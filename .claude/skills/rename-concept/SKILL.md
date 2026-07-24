@@ -72,11 +72,19 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, markdown, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, c, markdown, templates]
 install_with: [find-concept-divergence, map-subsystem]
 ---
 
 # /rename-concept
+
+## C17 branch
+
+Use `scripts/assess_c_rename.py` with the sibling `_c-semantic` provider; run
+the script with `--help` for the exact CLI. This external-library branch is
+assessment-only. Macros, strings, inactive variants, external consumers, ABI
+compatibility, arbitrary build variants, codemod safety, and mutation remain
+unresolved.
 
 ## PHP and Ruby
 

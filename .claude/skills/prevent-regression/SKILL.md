@@ -33,11 +33,19 @@ not_for: |
   fix in place).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /prevent-regression
+
+## C17 branch
+
+Use `scripts/generate_c_state_guard.py` on an accepted C enum proposal, then
+verify the staged bundle with `scripts/verify_c_state_guard.py`; run each with
+`--help` for the exact CLI. This branch stages but never installs one exact-
+field `_Static_assert`/`_Generic` type guard; values, assignments, aliases,
+runtime behavior, other fields, and general lint coverage remain unresolved.
 
 ## PHP and Ruby
 

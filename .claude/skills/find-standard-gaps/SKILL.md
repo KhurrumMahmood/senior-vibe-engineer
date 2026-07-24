@@ -26,7 +26,7 @@ not_for: |
   baseline belongs in host lint tooling.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
 ---
 
 ## External syntax variants
@@ -42,6 +42,14 @@ Each supports one declared direct-call enclosure condition only. The guides own
 the exact commands, standards inputs, native gates, and semantic non-claims.
 
 # /find-standard-gaps
+
+## C17 branch
+
+Use `scripts/scan_coverage_c.py` with the sibling `_c-syntax` provider; run the
+script with `--help` for the exact CLI. This external-library branch supports
+direct call spelling plus the configured syntactic `enclosed_by: "if"`
+condition only. Callee identity, aliases, function pointers, runtime control
+flow, general policy, and frameworks remain unresolved.
 
 ## Dart v1
 

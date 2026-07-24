@@ -1,7 +1,7 @@
 # Language-support development
 
 Status: durable contributor guide synthesized through TypeScript, JavaScript,
-Go, Java, PHP, Ruby, Swift, Rust, and Dart evidence
+Go, Java, PHP, Ruby, Swift, Rust, Dart, and C evidence
 
 Use this guide before starting another language or changing shared
 language-analysis tooling. It captures the tooling shape that repeated across
@@ -250,6 +250,31 @@ native test/smoke, exact after-tree verification, and full rollback. Unrelated
 dynamic Ruby is preserved; dynamic loading or reflection involving the moved
 identity refuses. Reuse this transaction shape selectively, but keep each
 language's identity and native-verification rules local.
+
+### 12. C completion evidence
+
+C reaches all 22 bounded language outcomes without treating C and C++ as one
+language. Every selected C path requires Clang 21+ and a trustworthy, current,
+complete C17 `compile_commands.json`; Make-owned native tests and exact smoke
+output remain separate proof from analyzer success. `.c` and `.i` are directly
+eligible, while `.h` and `.inc` remain ambiguous until the compiler dependency
+closure owns them.
+
+Three C-local read-only providers serve immediate consumers: `_c` owns five
+project/lexical outcomes, `_c-syntax` owns four syntax outcomes, and
+`_c-semantic` owns five conservative semantic outcomes. They remain external-
+library closures. The two original pilots and the self-contained accepted-
+evidence, proposal, guard, move, and unification consumers can run from their
+documented selected-skill closures. This is practical reuse inside C, not a new
+cross-language platform.
+
+Support is deliberately bounded. Macro expansion and inactive variants,
+function-pointer/callback reachability, arbitrary build configurations,
+external consumers, ABI/layout, undefined behavior, framework semantics, and
+C++/Objective-C are not inferred. Review-only findings never become deletion,
+equivalence, or mutation authority; proposals preserve human acceptance, the
+guard is staged rather than installed, and the one mutation supports only an
+authored `.c` file move inside one C17/Clang/Make project.
 
 ## Native foundations for queued languages
 

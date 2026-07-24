@@ -26,10 +26,18 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, go, java, typescript, javascript, php, ruby, rust, dart]
+scans: [python, go, java, typescript, javascript, php, ruby, rust, dart, c]
 ---
 
 # /propose-folder-reorganization
+
+## C17 branch
+
+Use `scripts/propose_c.py` with an accepted prefix cluster, explicit project
+convention, current complete C map, and hash-bound human acceptance; run the
+script with `--help` for the exact CLI. It emits a read-only ready, keep-flat,
+or no-convention outcome. Filename grouping proves no ownership, alternate-
+variant or external-consumer completeness, ABI, or mutation safety.
 
 ## PHP and Ruby
 

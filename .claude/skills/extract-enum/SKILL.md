@@ -28,11 +28,19 @@ not_for: |
   enumerations whose convention lacks fixture evidence.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /extract-enum
+
+## C17 branch
+
+Use `scripts/collect_c_state.py` on accepted `c-semantic-facts-v1` and
+`c-implicit-state-v1` artifacts; run `python3 scripts/collect_c_state.py
+--help` for the exact CLI. It emits a read-only proposal for one reviewed
+field. Observed literals do not prove a closed domain, ABI/layout, wire or
+storage compatibility, external-consumer safety, or mutation authority.
 
 ## PHP and Ruby
 

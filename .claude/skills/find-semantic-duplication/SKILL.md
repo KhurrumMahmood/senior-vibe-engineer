@@ -18,11 +18,19 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
 install_with: [map-subsystem]
 ---
 
 # /find-semantic-duplication
+
+## C17 branch
+
+Use `scripts/detect_c_semantic.py` with the sibling `_c-semantic` provider; run
+`python3 scripts/detect_c_semantic.py --help` for the exact CLI. This external-
+library branch emits static direct-return/caller review leads only. Aliasing,
+undefined behavior, side effects, function pointers, external behavior,
+equivalence, and consolidation safety remain unresolved.
 
 ## PHP and Ruby
 

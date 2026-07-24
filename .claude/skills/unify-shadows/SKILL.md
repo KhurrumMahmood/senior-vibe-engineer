@@ -19,10 +19,18 @@ not_for: |
   Source mutation begins only after human acceptance of this artifact.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
 ---
 
 # /unify-shadows
+
+## C17 branch
+
+Use `scripts/propose_c.py` with current accepted `c-semantic-duplication-v1`
+facts and hash-bound human acceptance; run the script with `--help` for the
+exact CLI. It emits exactly `proposal.md`, `evidence.json`, and `scope.json`;
+keep-separate is complete. Static direct-call evidence is not equivalence, ABI
+or external-consumer authority, survivor selection, or mutation approval.
 
 ## PHP and Ruby
 

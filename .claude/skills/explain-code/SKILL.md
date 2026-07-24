@@ -18,10 +18,18 @@ not_for: |
   Refactor execution (use /fix-workflow or /refactor-subsystem).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
 ---
 
 # /explain-code
+
+## C17 branch
+
+Use `scripts/explain_c.py` with the sibling `_c/c_lexical_facts.py` provider;
+run `python3 scripts/explain_c.py --help` for the exact CLI. This external-
+library branch explains direct compiler-owned declaration/definition spelling
+only; macro-expanded identity, callers, behavior, ABI, C++, and Objective-C
+remain unresolved.
 
 ## Dart v1
 

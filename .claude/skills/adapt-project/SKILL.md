@@ -24,7 +24,7 @@ escalate_to: |
   human-approved and detectable.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
 lanes: [project-adaptation]
 stage: discover
 entrypoint: true
@@ -35,6 +35,14 @@ max_overhead: "Stop after discovery and write unresolved questions; do not infer
 ---
 
 # /adapt-project
+
+## C17 branch
+
+Use `scripts/discover_c.py` with the sibling `_c/c_lexical_facts.py` provider;
+run `python3 scripts/discover_c.py --help` for the exact CLI. This external-
+library branch requires Clang 21+, Make, and a current complete C17 compilation
+database. It reports objective project facts only, not framework or layout
+health, macro variants, C++, or Objective-C semantics.
 
 ## Dart v1
 

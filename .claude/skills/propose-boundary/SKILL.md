@@ -30,10 +30,19 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
 ---
 
 # /propose-boundary
+
+## C17 branch
+
+Use `scripts/propose_c.py` with accepted omnibus scout evidence, a current
+complete C map, and a hash-bound human acceptance; run the script with `--help`
+for the exact CLI. It emits a read-only ready or cohesive-defer outcome.
+Function pointers, aliases, runtime reachability, alternate variants, external
+consumers, ABI/layout, linkage, undefined behavior, and mutation remain outside
+the claim.
 
 ## PHP and Ruby
 

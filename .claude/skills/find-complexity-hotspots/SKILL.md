@@ -18,13 +18,21 @@ not_for: |
   scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
 ---
 
 <!-- Native-parser compatibility subset: scans: [javascript, typescript, go, java] -->
 <!-- TypeScript compatibility subset: scans: [python, javascript, typescript] -->
 
 # /find-complexity-hotspots
+
+## C17 branch
+
+Use `scripts/run_c.py` with the sibling `_c-syntax` provider; run `python3
+scripts/run_c.py --help` for the exact CLI. This external-library branch emits
+a direct-function-body syntax score from one current C17 compile-command
+snapshot. Macro meaning, runtime cost/control flow, performance, behavior, and
+refactor safety remain unresolved.
 
 ## External syntax variants
 

@@ -25,7 +25,7 @@ tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
 install_with: [map-subsystem]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
@@ -58,6 +58,14 @@ delegate_from: |
 ---
 
 # /find-incomplete-sweep
+
+## C17 branch
+
+Use `scripts/detect_c_incomplete_sweep.py` with the sibling `_c-semantic`
+provider and a candidate-hash-bound human verdict; run the script with `--help`
+for the exact CLI. This external-library branch supports one direct designated-
+initializer omission shape only; macros, aliases, wrappers, external callers,
+incomplete history, variants, and automatic fixes remain unresolved.
 
 ## PHP and Ruby
 

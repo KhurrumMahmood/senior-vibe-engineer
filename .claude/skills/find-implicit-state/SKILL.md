@@ -21,12 +21,20 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-implicit-state
+
+## C17 branch
+
+Use `scripts/detect_c_state.py` with the sibling `_c-semantic` provider; run
+`python3 scripts/detect_c_state.py --help` for the exact CLI. This external-
+library branch emits one human-reviewed `enum_review_only` candidate. Aliasing,
+callbacks, external mutation, macros, variants, closed-domain proof, and
+automatic migration remain unresolved.
 
 ## PHP and Ruby
 

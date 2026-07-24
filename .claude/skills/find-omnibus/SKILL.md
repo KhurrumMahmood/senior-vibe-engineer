@@ -23,10 +23,18 @@ not_for: |
   to /find-perimeter-gaps.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, swift]
+scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, swift, c]
 ---
 
 # /find-omnibus
+
+## C17 branch
+
+Use `scripts/run_c.py` with the sibling `_c-syntax` provider and explicit scout
+JSON; run `python3 scripts/run_c.py --help` for the exact CLI. This external-
+library branch uses function-name clusters only to nominate candidates. Human
+domain judgment remains mandatory, and no runtime responsibility or safe
+decomposition is inferred.
 
 ## External syntax variants
 

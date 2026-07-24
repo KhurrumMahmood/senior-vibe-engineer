@@ -294,20 +294,30 @@ def test_c_frozen_contracts_and_all_22_initial_dispositions() -> None:
     assert contracts["mutation"]["skill"] == "move-path"
     assert contracts["mutation"]["state"] == "deferred-until-semantic-lineage"
     assert baseline["mutation_performed"] is False
+    assert baseline["coverage"]["rows"] == 22
+    assert baseline["coverage"]["disposition_counts"] == {
+        "c-pending-implementation": 22
+    }
 
     coverage = json.loads(COVERAGE.read_text(encoding="utf-8"))
     rows = coverage["skills"]
     assert coverage["decision"] == "expand"
+    assert coverage["phase"] == "p7-c-full"
     assert len(rows) == 22
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
     assert {
         row["skill"] for row in rows if row["disposition"] == "c-supported"
-    } == {"find-comment-drift", "map-subsystem"}
-    assert sum(row["disposition"] == "c-pending-implementation" for row in rows) == 20
+    } == EXPECTED_SKILLS
+    assert not {
+        row["skill"]
+        for row in rows
+        if row["disposition"] in {"c-pending-implementation", "c-partial", "c-unsupported"}
+    }
     assert all(
         row["evidence_path"]
         and row["native_check"]
         and row["reviewed_revision"]
         and row["limitation"]
+        and row["closure_mode"] in {"stock-selected-install", "external-library"}
         for row in rows
     )

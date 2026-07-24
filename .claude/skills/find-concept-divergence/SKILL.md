@@ -31,10 +31,18 @@ not_for: |
   (deferred — strict canonical-name + avoid-term grep only in v1).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, markdown, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, markdown, templates]
 ---
 
 # /find-concept-divergence
+
+## C17 branch
+
+Use `scripts/scan_c.py` with the sibling `_c/c_lexical_facts.py` provider; run
+`python3 scripts/scan_c.py --help` for the exact CLI. This external-library
+branch emits strict glossary-backed authored-text evidence only. Comments and
+strings may be review noise; macro expansion, symbol identity, rename
+completeness, C++, and Objective-C remain unresolved.
 
 ## Dart v1
 

@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "9b04e4e7ba35699fad866c8e47c69e22d90f8eb99e752c7f22961dc8ccd9e389"
+      "sha256": "d86612ecb620ffdfcfafc9457392397c948db5a9adf264151eaa98085a0c55f7"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -31,7 +31,7 @@
     },
     {
       "path": ".claude/tasks/c-language-coverage.json",
-      "sha256": "e7c07c368008433d48ca5a1c8c5e49a3631cd24a30622c7dfe5f8374315af275"
+      "sha256": "ea27139206e37b84daff0c8eaca0ae9deae195fc085527772bb2407777cdb38e"
     },
     {
       "path": ".claude/tasks/cpp-language-coverage.json",
@@ -187,13 +187,14 @@
       ],
       "swift_reviewed_revision": "105c7a2",
       "swift_limitation": "Objective dependency-free SwiftPM project facts only; no framework, Xcode, dependency, or layout endorsement.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-lexical-filesystem-cohort.md",
       "c_native_check": [
-        "profile and inventory fixture only"
+        "complete current C17 compile database plus Clang 21 and Make native test/smoke",
+        "copied adapter artifacts, exact roles, lifecycle recovery, and source preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "No C adapter artifact or build-system selection outcome is validated.",
+      "c_reviewed_revision": "2a93ee1",
+      "c_limitation": "Objective compile-database and Make project facts only; no framework, layout-health, arbitrary build-system, macro-variant, C++, or Objective-C claim.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -220,6 +221,7 @@
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
       "swift_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d1-project-lexical-family.md",
@@ -246,7 +248,8 @@
           "ruby",
           "swift",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },
@@ -419,13 +422,14 @@
       ],
       "swift_reviewed_revision": "f8cc3a4",
       "swift_limitation": "Registry-token syntax only; applicability, target/runtime identity, frameworks, and behavior remain unresolved.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-syntax-cohort.md",
       "c_native_check": [
-        "raw tokens retain a decision comment"
+        "Clang raw comment tokens over a current complete C17 compile-command snapshot",
+        "copied resolved/orphan decision artifacts, lifecycle recovery, native gates, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Comment association across macros, conditional branches, and headers has no final audit.",
+      "c_reviewed_revision": "2481fd8",
+      "c_limitation": "Registry-token syntax in real comments only; applicability, macro expansion, inactive branches, symbol meaning, runtime behavior, and frameworks remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -452,6 +456,7 @@
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
       "swift_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d2-syntax-family.md",
@@ -480,7 +485,8 @@
           "ruby",
           "swift",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },
@@ -1214,13 +1220,14 @@
       ],
       "swift_reviewed_revision": "105c7a2",
       "swift_limitation": "Direct public lexical declarations only; overload identity, cross-file extensions, protocols, macros, callers, types, contracts, and behavior remain unresolved.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-lexical-filesystem-cohort.md",
       "c_native_check": [
-        "syntax and AST feasibility only"
+        "compiler-owned direct declaration and definition spelling plus exact hashes",
+        "copied explanation, targets, annotations, unresolved sidecars, native gates, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "No compile-database-backed explanation artifact is validated.",
+      "c_reviewed_revision": "2a93ee1",
+      "c_limitation": "Direct static and lexical declarations only; macro-expanded identity, callers, behavior, types, ABI, arbitrary variants, C++, and Objective-C remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -1247,6 +1254,7 @@
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
       "swift_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d3-declaration-body-family.md",
@@ -1273,7 +1281,8 @@
           "ruby",
           "swift",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },
@@ -1450,13 +1459,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No resolved type/reference evidence reaches the proposal boundary.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-state-proposal-guard.md",
       "c_native_check": [
-        "no proposal executed"
+        "accepted C semantic fact pack and candidate-hash-bound implicit-state evidence",
+        "copied exact-field proposal, caller inventory, refusal lifecycle, and source preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Use coverage, ABI/layout, macro, and build compatibility are unproven.",
+      "c_reviewed_revision": "5a41abd",
+      "c_limitation": "Proposal-only for one reviewed const-char-pointer field; no closed-domain, ABI/layout, wire/storage, external-consumer, macro-variant, or mutation authority is implied.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -1482,6 +1492,7 @@
       "rust_limitation": "Proposal-only; macros, build/include output, cfg variants, traits/generics, unsafe/FFI, serialization/wire behavior, exhaustiveness, public compatibility, and source mutation remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "stock-selected-install",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d6-accepted-state-consumers.md",
@@ -1507,7 +1518,8 @@
           "php",
           "ruby",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": [
           "find-implicit-state",
@@ -1985,9 +1997,8 @@
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-find-comment-drift.md",
       "c_native_check": [
-        "make clean test CC=clang",
-        "clang -fsyntax-only -std=c17 over selected translation units",
-        "9 focused pytest cases including copied closure"
+        "make clean test CC=clang and Clang C17 syntax/raw-token checks",
+        "nine focused cases including copied closure, terminal-state replacement, and source preservation"
       ],
       "c_reviewed_revision": "b5a63e9",
       "c_limitation": "Lexical raw-token findings only; macro expansion, inactive branches, comment-to-symbol meaning, C++, Objective-C, and framework conventions remain outside the claim.",
@@ -2017,6 +2028,7 @@
       "rust_limitation": "One bounded adjacent percentage/rate doc-comment versus fixed-literal function-body rule; macros, build scripts, include!, cfg/target variants, traits, generics, unsafe/FFI, and runtime semantics remain explicit non-claims.",
       "dart_disposition": "dart-supported",
       "swift_closure_mode": "external-library",
+      "c_closure_mode": "stock-selected-install",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d2-syntax-family.md",
       "dart_native_check": [
@@ -2125,13 +2137,14 @@
       ],
       "swift_reviewed_revision": "f8cc3a4",
       "swift_limitation": "Frozen direct-body token score only; control-flow semantics, runtime cost, behavior, and refactor authority remain unresolved.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-syntax-cohort.md",
       "c_native_check": [
-        "per-translation-unit AST feasibility only"
+        "Clang AST direct-body branch facts over the exact C17 compile-command snapshot",
+        "copied score-8 advisory outcome, macro/callee decoys, native gates, lifecycle, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Macro, generated-code, and conditional-branch counting policy is not validated.",
+      "c_reviewed_revision": "2481fd8",
+      "c_limitation": "Frozen direct-body syntactic score only; macros, runtime cost/control flow, performance, behavior, arbitrary build variants, and refactor safety remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -2158,6 +2171,7 @@
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
       "swift_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d3-declaration-body-family.md",
@@ -2184,7 +2198,8 @@
           "ruby",
           "swift",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },
@@ -2266,13 +2281,14 @@
       ],
       "swift_reviewed_revision": "105c7a2",
       "swift_limitation": "Strict authored-text evidence only; comments or strings may be review noise and no symbol or conceptual identity is claimed.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-lexical-filesystem-cohort.md",
       "c_native_check": [
-        "lexical feasibility only"
+        "current compiler-owned C17 source snapshot plus strict glossary spelling",
+        "copied one-hit and clean final artifacts, exact hashes, exclusions, native gates, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Preprocessor spelling and symbol identity do not reach a final census.",
+      "c_reviewed_revision": "2a93ee1",
+      "c_limitation": "Strict authored-text evidence only; comments and strings may be review noise, and preprocessor spelling, symbol identity, rename completeness, and frameworks remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -2299,6 +2315,7 @@
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
       "swift_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d1-project-lexical-family.md",
@@ -2326,6 +2343,7 @@
           "swift",
           "rust",
           "dart",
+          "c",
           "markdown",
           "templates"
         ],
@@ -2698,13 +2716,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "Recent successful indexing, mixed-target failure inspection, and reflective use limits are unresolved.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
-        "function-pointer fixture present"
+        "Clang 21 AST direct references for one private static definition under a complete C17 snapshot",
+        "copied review-required outcome, clean case, native smoke, lifecycle recovery, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Roots, linkage, callbacks, build variants, and cross-translation-unit reachability are unresolved.",
+      "c_reviewed_revision": "80c8941",
+      "c_limitation": "certain_delete is always zero; address-taking, function pointers, callbacks, registration, macros, variants, external reachability, dynamic loading, and safe deletion remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -2730,6 +2749,7 @@
       "rust_limitation": "No safe-deletion claim; feature/target roots, macros/build output, doctests, callbacks, traits/generics, external APIs, reflection, and unsafe/FFI remain deferred.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",
@@ -2755,7 +2775,8 @@
           "php",
           "ruby",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": [
           "map-subsystem"
@@ -2847,13 +2868,14 @@
       ],
       "swift_reviewed_revision": "105c7a2",
       "swift_limitation": "Identical normalized direct bodies are advisory clone leads only; resolved identity, behavior, and safe consolidation remain unresolved.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-lexical-filesystem-cohort.md",
       "c_native_check": [
-        "raw tokens available"
+        "compiler-owned direct function-body spelling and exact normalized hashes",
+        "copied one-clone-pair triage, changed-body decoy, native gates, lifecycle, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "No accepted normalization or semantic-equivalence final triage exists.",
+      "c_reviewed_revision": "2a93ee1",
+      "c_limitation": "Exact direct-body spelling is an advisory clone lead only; macros, semantic or behavioral equivalence, consolidation authority, and arbitrary variants remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -2880,6 +2902,7 @@
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
       "swift_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d3-declaration-body-family.md",
@@ -2906,7 +2929,8 @@
           "ruby",
           "swift",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },
@@ -2988,13 +3012,14 @@
       ],
       "swift_reviewed_revision": "105c7a2",
       "swift_limitation": "Filename clusters prove no target ownership, imports, framework convention, or safe-move contract.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-lexical-filesystem-cohort.md",
       "c_native_check": [
-        "source-role decoys validated"
+        "complete compiler-owned translation-unit inventory plus direct-sibling filename clustering",
+        "copied threshold-three finding and threshold-four clean outcome, native gates, lifecycle, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "One Make layout and ambiguous headers do not prove project topology.",
+      "c_reviewed_revision": "2a93ee1",
+      "c_limitation": "Direct-sibling filename evidence only; no namespace, ownership, layout-health, include/build impact, framework convention, or safe-move claim.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -3021,6 +3046,7 @@
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
       "swift_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d1-project-lexical-family.md",
@@ -3047,7 +3073,8 @@
           "ruby",
           "swift",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },
@@ -3324,13 +3351,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No resolved type/reference producer reaches this contract.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
-        "file-local static fixture present"
+        "Clang-resolved const-char-pointer field and three direct literal assignments",
+        "candidate-hash-bound human review, copied artifacts, native smoke, lifecycle recovery, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Aliasing, callbacks, TLS, macros, and cross-translation-unit effects remain unresolved.",
+      "c_reviewed_revision": "80c8941",
+      "c_limitation": "enum_review_only evidence does not prove a closed domain; aliasing, callbacks, external mutation, TLS, macros, variants, wire/storage, and automatic migration remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -3356,6 +3384,7 @@
       "rust_limitation": "Human extract-enum verdict required; the domain is not proven closed, and statics, interior mutability, environment/thread state, traits/generics, macros/cfg, registries, and unsafe/FFI remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-semantic-state-family.md",
@@ -3381,7 +3410,8 @@
           "php",
           "ruby",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": [
           "map-subsystem"
@@ -3476,13 +3506,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "Resolved call targets and complete cross-target evidence are unavailable.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
-        "incomplete compile database rejected by frozen gate"
+        "Clang-resolved direct compound literals plus bounded Git trajectory",
+        "candidate-hash-bound fixed-vocabulary verdict, copied manifest, native smoke, lifecycle recovery, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Declarations, definitions, build variants, macros, and generated inputs lack complete project facts.",
+      "c_reviewed_revision": "80c8941",
+      "c_limitation": "One direct designated-initializer omission shape only; macro-expanded literals, aliases, wrappers, external callers, incomplete history, arbitrary variants, and automatic fixes remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -3508,6 +3539,7 @@
       "rust_limitation": "One direct struct-option omission shape only; target/cfg variants, macros/build output, dynamic/trait/generic calls, optional dependencies, external crates, and missing Git evidence remain deferred.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-semantic-state-family.md",
@@ -3533,7 +3565,8 @@
           "php",
           "ruby",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": [
           "map-subsystem"
@@ -3717,13 +3750,14 @@
       ],
       "swift_reviewed_revision": "84bd160",
       "swift_limitation": "Bounded to dependency-free SwiftPM compiler-AST facts; no SwiftSyntax, resolved references, full project semantics, Xcode/framework behavior, macros, reflection, or mixed-language claim.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-syntax-cohort.md",
       "c_native_check": [
-        "AST feasibility only"
+        "Clang named-function syntax clusters over the exact current C17 snapshot",
+        "candidate-hash-bound explicit scout verdict, copied final findings, native gates, lifecycle, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Header reuse and per-translation-unit deduplication policy are not validated.",
+      "c_reviewed_revision": "2481fd8",
+      "c_limitation": "Function-name clusters only nominate candidates; human domain judgment is mandatory, and macro meaning, runtime responsibility, safe decomposition, and frameworks remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -3749,6 +3783,7 @@
       "rust_limitation": "Scout judgment remains mandatory; macros, generated/build output, impl/trait defaults, cfg variants, and runtime responsibility remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d3-declaration-body-family.md",
@@ -3775,7 +3810,8 @@
           "ruby",
           "rust",
           "dart",
-          "swift"
+          "swift",
+          "c"
         ],
         "install_with": []
       },
@@ -4327,13 +4363,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No accepted project semantic index reaches final triage.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
-        "no semantic producer accepted"
+        "Clang-resolved direct record return shapes and distinct direct callers",
+        "copied static review lead, clean/deferred boundaries, native smoke, lifecycle recovery, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Macros, aliasing, build variants, and undefined behavior prevent equivalence claims.",
+      "c_reviewed_revision": "80c8941",
+      "c_limitation": "Static review lead only; aliasing, undefined behavior, side effects, function pointers, external behavior, arbitrary variants, behavioral equivalence, and consolidation safety remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -4359,6 +4396,7 @@
       "rust_limitation": "No behavioral-equivalence or safe-refactor claim; traits/blanket impls, generics, macros/cfg, unsafe behavior, runtime dispatch, external APIs, and type/const inference remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-d7-semantic-finish.md",
@@ -4384,7 +4422,8 @@
           "php",
           "ruby",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": [
           "map-subsystem"
@@ -4758,13 +4797,14 @@
       ],
       "swift_reviewed_revision": "f8cc3a4",
       "swift_limitation": "One direct-call/do-catch condition only; callee identity, exception flow, frameworks, Xcode, and general lint policy remain unresolved.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-syntax-cohort.md",
       "c_native_check": [
-        "C17 warnings-as-errors build passes"
+        "Clang direct-call spelling plus configured syntactic if enclosure",
+        "copied two-site/one-gap 50-percent census, decoys, native gates, lifecycle, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Compiler success is not a standards-gap artifact; host policy and optional analyzers are absent.",
+      "c_reviewed_revision": "2481fd8",
+      "c_limitation": "Only direct call spelling and one frozen enclosed_by-if condition are supported; callee identity, aliases, function pointers, runtime control flow, general policy, and frameworks remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -4791,6 +4831,7 @@
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
       "swift_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d2-syntax-family.md",
@@ -4817,7 +4858,8 @@
           "ruby",
           "swift",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },
@@ -5847,9 +5889,8 @@
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-map-subsystem.md",
       "c_native_check": [
-        "make clean compile-db CC=clang",
-        "make test CC=clang and executable smoke",
-        "12 focused pytest cases including copied closure"
+        "make clean compile-db CC=clang plus Clang/clangd 21 C17 attribution",
+        "twelve focused cases including copied closure, native test/smoke, lifecycle recovery, and preservation"
       ],
       "c_reviewed_revision": "5d6def3",
       "c_limitation": "Complete only for the exact current C17 compile-command snapshot; macro and inactive-branch facts, function-pointer targets, ABI/layout, arbitrary variants, C++, Objective-C, and framework semantics remain outside the claim.",
@@ -5878,6 +5919,7 @@
       "rust_reviewed_revision": "aee1e4a863f66d259e2683fb7ca18437c6ed38da",
       "rust_limitation": "The bounded selected-configuration map contract is supported; macro/procedural expansion, build-script OUT_DIR, include!, unselected cfg/feature/target variants, and runtime trait-object dispatch remain explicit runtime-partial completeness rather than inferred facts.",
       "dart_disposition": "dart-supported",
+      "c_closure_mode": "stock-selected-install",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",
       "dart_native_check": [
@@ -6084,13 +6126,14 @@
       ],
       "swift_reviewed_revision": "7fb2f4f",
       "swift_limitation": "Only one dependency-free regular SwiftPM target-directory move retaining module identity; Xcode, resources, dependencies, frameworks, macros/plugins, generated/symlink/mixed-language shapes, individual files, and reflective identities remain partial or unsupported.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-move-path.md",
       "c_native_check": [
-        "mutation intentionally not performed"
+        "content-addressed preview approval for one authored C17 source file and exact include/Make edits",
+        "copied dry-run/apply/check, regenerated compile database, native smoke, exact after-tree, refusal, and rollback"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Deferred until semantic lineage, include/build impacts, rollback, and native verification are proven.",
+      "c_reviewed_revision": "2e2836e",
+      "c_limitation": "One .c file move inside one Clang/C17/Make project only; no directory/public-header/symbol move, arbitrary build system, inactive macro variant, ABI guarantee, or external-consumer completeness.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -6115,6 +6158,7 @@
       "rust_reviewed_revision": "af9ecc6e77623bff42a04c7643bdde09210b413b",
       "rust_limitation": "Version 1 supports one conventional leaf module in one regular Cargo library target; cfg/path attributes, macros, include!, build output, reflective strings, multiple/cross-package moves, arbitrary files, and non-Cargo/nightly/no_std/cross-target shapes remain partial and block writes.",
       "dart_disposition": "dart-supported",
+      "c_closure_mode": "stock-selected-install",
       "ruby_closure_mode": "stock-selected-install",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d8-move-path.md",
@@ -6132,6 +6176,7 @@
         "language": "any",
         "framework": "any",
         "scans": [
+          "c",
           "dart",
           "go",
           "java",
@@ -6689,13 +6734,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No accepted Swift producer evidence reaches the guard boundary.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-state-proposal-guard.md",
       "c_native_check": [
-        "no accepted producer artifact"
+        "accepted enum proposal with all four human gates and current migrated-source hashes",
+        "staged C17 _Static_assert/_Generic guard passes migrated source and fails the exact buildable type reversion"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "No C producer-to-guard chain reaches native verification.",
+      "c_reviewed_revision": "5a41abd",
+      "c_limitation": "Stages but never installs one exact-field type guard; enumerator values, assignments, aliases, conversion functions, runtime behavior, other fields, and general lint coverage remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -6721,6 +6767,7 @@
       "rust_limitation": "Exact reviewed field only; private fields abstain, and this is not a universal Rust lint or a claim about macros, cfg variants, traits/generics, unsafe/FFI, serialization, wire behavior, or compatibility.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "stock-selected-install",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d6-accepted-state-consumers.md",
@@ -6746,7 +6793,8 @@
           "php",
           "ruby",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": [
           "find-implicit-state",
@@ -6941,13 +6989,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No complete resolved dependency graph reaches the proposal boundary.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-structure-proposals.md",
       "c_native_check": [
-        "compile database feasibility only"
+        "accepted explicit-scout omnibus evidence plus current complete C map and exact source/Make census",
+        "read-only ready/cohesive-defer artifacts and independently applied disposable after-tree native verification"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "No trustworthy complete target/reference graph reaches a proposal.",
+      "c_reviewed_revision": "1dd2be7",
+      "c_limitation": "Proposal-only for one accepted selected-configuration seam; function pointers, aliases, runtime reachability, alternate variants, external consumers, ABI/layout, linkage, undefined behavior, and mutation remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -6973,6 +7022,7 @@
       "rust_limitation": "Proposal-only; macros/proc macros, build/generated/include inputs, cfg/feature/target variants, traits/generics, unsafe/FFI, external APIs, public compatibility, and semver remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "stock-selected-install",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d7-proposal-family.md",
@@ -6998,7 +7048,8 @@
           "php",
           "ruby",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },
@@ -7082,13 +7133,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "SwiftPM target and source layout rules need a dedicated final-outcome pass.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-structure-proposals.md",
       "c_native_check": [
-        "Make fixture only"
+        "accepted three-member prefix cluster, explicit project convention, current complete C map, and exact impact census",
+        "read-only ready/keep-flat/no-convention outcomes and independently applied disposable after-tree native verification"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Semantic graph and build-manifest impacts are unvalidated.",
+      "c_reviewed_revision": "1dd2be7",
+      "c_limitation": "One reviewed direct-sibling C cluster plan only; filename grouping proves no ownership, and alternate variants, external consumers, public compatibility, ABI, automatic mutation, and frameworks remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -7114,6 +7166,7 @@
       "rust_limitation": "Proposal-only and requires a human split/cohesive judgment; macros/proc macros, build/generated/include inputs, cfg variants, traits/generics, unsafe/FFI, external/public/semver compatibility, and automatic moves remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "stock-selected-install",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d7-proposal-family.md",
@@ -7139,7 +7192,8 @@
           "php",
           "ruby",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },
@@ -7411,13 +7465,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "Conditional compilation, reflection, dynamic dispatch, and cross-module references are unresolved.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
-        "no mutation executed"
+        "Clang-observed old/new typedef declarations and direct selected-source references",
+        "copied half-applied and candidate-complete assessments, native smoke, lifecycle recovery, and preservation"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Macros, declarations/definitions, linkage, and textual build uses lack complete references.",
+      "c_reviewed_revision": "80c8941",
+      "c_limitation": "Assess-only selected-configuration evidence; macros, strings, inactive variants, external consumers, ABI compatibility, arbitrary build variants, codemod safety, and mutation remain unresolved.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -7443,6 +7498,7 @@
       "rust_limitation": "Assess-only; macros/proc macros, imports/re-exports, associated items, cfg variants, generated code, reflection strings/symbols, external APIs, mutation safety, and compatibility remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "stock-selected-install",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d4-semantic-family.md",
@@ -7469,6 +7525,7 @@
           "ruby",
           "rust",
           "dart",
+          "c",
           "markdown",
           "templates"
         ],
@@ -8038,13 +8095,14 @@
       ],
       "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
       "swift_limitation": "No accepted Swift producer evidence reaches the proposal boundary.",
-      "c_disposition": "c-pending-implementation",
-      "c_evidence_path": ".claude/tasks/p7-baseline/c-pilot-baseline.json",
+      "c_disposition": "c-supported",
+      "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-unify-shadows.md",
       "c_native_check": [
-        "no proposal executed"
+        "current accepted C semantic-duplication lead plus exact definition/caller citations and human-selected shape",
+        "copied three-artifact ready/keep-separate/refusal lifecycle, source preservation, Make test, and exact smoke"
       ],
-      "c_reviewed_revision": "4f4a6b3b0bbe06d82d0d15ce64829d2d468c3e9a",
-      "c_limitation": "Semantic equivalence and ABI compatibility evidence are unavailable.",
+      "c_reviewed_revision": "7772fd7",
+      "c_limitation": "Read-only proposal only; direct-call static evidence is not behavioral equivalence, and ABI/export drift, function pointers, external consumers, variants, side effects, undefined behavior, survivor choice, and mutation remain human-owned.",
       "cpp_disposition": "cpp-pending-implementation",
       "cpp_evidence_path": ".claude/tasks/p7-baseline/cpp-pilot-baseline.json",
       "cpp_native_check": [
@@ -8070,6 +8128,7 @@
       "rust_limitation": "No behavioral-equivalence or mutation authority; traits/blanket impls, generics, macros/cfg variants, unsafe/FFI, runtime behavior, external APIs, and semver compatibility remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "c_closure_mode": "stock-selected-install",
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d5-d7-semantic-finish.md",
@@ -8095,7 +8154,8 @@
           "php",
           "ruby",
           "rust",
-          "dart"
+          "dart",
+          "c"
         ],
         "install_with": []
       },

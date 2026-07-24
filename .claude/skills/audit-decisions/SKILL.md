@@ -19,10 +19,18 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, javascript, typescript, go, java, php, ruby, swift, rust, dart]
+scans: [python, markdown, html, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
 ---
 
 # /audit-decisions
+
+## C17 branch
+
+Use `scripts/audit_c.py` with the sibling `_c-syntax` provider; run
+`python3 scripts/audit_c.py --help` for the exact CLI. This external-library
+branch requires Clang 21+ and a current complete C17 compilation database. It
+recognizes registry tokens in real comments only; macro meaning, inactive
+branches, applicability, and runtime behavior remain unresolved.
 
 ## External syntax variants
 

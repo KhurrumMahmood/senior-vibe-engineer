@@ -240,7 +240,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "java_disposition": "java-supported",
         "php_disposition": "php-supported",
         "swift_disposition": "swift-pending-implementation",
-        "c_disposition": "c-pending-implementation",
+        "c_disposition": "c-supported",
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-supported",
         "rust_disposition": "rust-supported",
@@ -419,7 +419,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "c_disposition"
     ] == "c-supported"
 
-    pending_c = _run_isolated(
+    supported_c_adapt = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this C17 repository",
         "--project-root",
@@ -431,15 +431,24 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert pending_c.returncode == 1
-    pending_c_payload = json.loads(pending_c.stdout)
-    assert pending_c_payload["recommendation"] == "pending-implementation"
-    assert pending_c_payload["unavailable"]["classification"] == (
-        "pending-implementation"
+    supported_c_adapt_payload = _json_output(supported_c_adapt)
+    assert supported_c_adapt.returncode == 0
+    assert supported_c_adapt_payload["recommendation"] == "adapt-project"
+    assert supported_c_adapt_payload["handoff"]["available"] is True
+    assert supported_c_adapt_payload["handoff"]["capabilities"]["skills"][0][
+        "c_disposition"
+    ] == "c-supported"
+    assert supported_c_adapt_payload["optional_install"]["available"] is False
+    assert supported_c_adapt_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
     )
-    assert pending_c_payload["unavailable"]["reason"] == (
-        "/adapt-project declares c_disposition=c-pending-implementation"
-    )
+    assert supported_c_adapt_payload["optional_install"]["evidence"] == [
+        {"skill": "adapt-project", "status": "external-library-only"}
+    ]
+    assert (
+        library_root / ".claude/skills/adapt-project/scripts/discover_c.py"
+    ).is_file()
+    assert (library_root / ".claude/skills/_c/c_lexical_facts.py").is_file()
 
     cpp_routed = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
@@ -826,7 +835,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "java_disposition": "java-supported",
         "php_disposition": "php-supported",
         "swift_disposition": "swift-supported",
-        "c_disposition": "c-pending-implementation",
+        "c_disposition": "c-supported",
         "cpp_disposition": "cpp-pending-implementation",
         "ruby_disposition": "ruby-supported",
         "rust_disposition": "rust-supported",
@@ -914,17 +923,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     )
     c_shape_payload = _json_output(c_shape)
     assert c_shape_payload["recommendation"]["first_next"] == "/adapt-project"
-    assert c_shape_payload["handoff"]["available"] is False
-    assert c_shape_payload["handoff"]["reason"] == (
-        "selected_skill_pending_implementation"
+    assert c_shape_payload["handoff"]["available"] is True
+    assert c_shape_payload["handoff"]["default_execution"] == (
+        "fresh_non_context_subagent"
     )
-    assert c_shape_payload["handoff"]["blocked"] == [
-        {
-            "skill": "adapt-project",
-            "language": "c",
-            "disposition": "c-pending-implementation",
-        }
-    ]
+    assert c_shape_payload["handoff"]["capabilities"]["skills"][0][
+        "c_disposition"
+    ] == "c-supported"
 
     cpp_shape = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",

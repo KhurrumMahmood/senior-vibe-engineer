@@ -36,10 +36,18 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [dart, go, java, javascript, php, ruby, rust, swift, typescript]
+scans: [c, dart, go, java, javascript, php, ruby, rust, swift, typescript]
 ---
 
 # /move-path
+
+## C17 branch
+
+Use `scripts/c_source_move.py`; run it with `--help` and review `--dry-run`
+evidence before passing its SHA-256 to `--apply`, then use `--check`. The
+supported mutation is one authored `.c` file inside one C17/Clang/Make project.
+Directory or public-header moves, symbol renames, arbitrary build systems,
+inactive macro variants, ABI guarantees, and external completeness are refused.
 
 You are the orchestrator for safe batched standalone TypeScript/TSX path
 moves, plus opt-in bounded checked-Dart, JavaScript, Go, Java, PHP, Ruby, Rust, and SwiftPM modes. The deterministic

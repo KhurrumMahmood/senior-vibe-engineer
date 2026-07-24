@@ -20,10 +20,18 @@ not_for: |
   resolved-import contract.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
 ---
 
 # /find-folder-topology-drift
+
+## C17 branch
+
+Use `scripts/detect_c.py` with the sibling `_c/c_lexical_facts.py` provider;
+run `python3 scripts/detect_c.py --help` for the exact CLI. This external-
+library branch reports direct-sibling translation-unit filename clusters only;
+it does not prove ownership, layout health, include/build impact, framework
+conventions, or move safety.
 
 ### Dart v1: explicit source roots only
 

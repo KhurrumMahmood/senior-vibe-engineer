@@ -19,10 +19,18 @@ not_for: |
   clone leads and stops short of safety or reuse conclusions.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
 ---
 
 # /find-duplication
+
+## C17 branch
+
+Use `scripts/run_c.py` with the sibling `_c/c_lexical_facts.py` provider; run
+`python3 scripts/run_c.py --help` for the exact CLI. This external-library
+branch reports exact normalized direct-body spelling as an advisory clone lead
+only; macro expansion, behavioral equivalence, and consolidation safety remain
+unresolved.
 
 ## Dart v1
 

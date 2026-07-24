@@ -27,12 +27,20 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-dormant
+
+## C17 branch
+
+Use `scripts/detect_c_dormant.py` with the sibling `_c-semantic` provider; run
+`python3 scripts/detect_c_dormant.py --help` for the exact CLI. This external-
+library branch emits `review_required` leads and never `certain_delete`.
+Function pointers, callbacks, registration, macros, variants, external
+reachability, dynamic loading, and safe deletion remain unresolved.
 
 ## PHP and Ruby
 
