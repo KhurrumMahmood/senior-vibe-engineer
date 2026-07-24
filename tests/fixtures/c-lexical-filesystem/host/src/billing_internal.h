@@ -1,0 +1,6 @@
+#ifndef C_BILLING_INTERNAL_H
+#define C_BILLING_INTERNAL_H
+
+#define BILLING_FEE_DIVISOR 10
+
+#endif

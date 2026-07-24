@@ -1,0 +1,9 @@
+concepts:
+  - name: invoice_lifecycle
+    preferred: cancelled_invoice
+    avoid:
+      - cancelled_order
+    source_files:
+      - .claude/contracts/concepts.yaml
+
+flagged_ambiguities: []
