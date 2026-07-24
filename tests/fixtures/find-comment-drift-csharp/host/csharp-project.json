@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "target_framework": "net10.0",
+  "language_version": "14.0",
+  "sources": [
+    "src/CSharpComment/CommentEvidence.cs",
+    "src/CSharpComment/CleanEvidence.cs",
+    "src/CSharpComment/Program.cs"
+  ],
+  "tests": [
+    "tests/CSharpCommentTests.cs"
+  ],
+  "smoke_main": "CSharpComment.Program",
+  "smoke_output": "csharp-comment:queued:1\n",
+  "test_main": "CSharpCommentTests.Program",
+  "test_output": "csharp-comment-tests:ok\n"
+}
