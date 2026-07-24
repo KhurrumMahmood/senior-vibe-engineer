@@ -12,6 +12,7 @@ from pathlib import Path
 
 
 DEFAULT_SOURCE = "https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
+LOCAL_IGNORE_RULES = {"/local/", "local/"}
 
 
 def default_library_root(project_root: Path) -> Path:
@@ -86,6 +87,31 @@ def setup_runtime(*, library_root: Path, python: str | None) -> str:
     return result.stdout.strip()
 
 
+def prepare_host_state(project_root: Path) -> bool:
+    """Create the one toolkit-owned prerequisite for local migration journals."""
+    engineering = project_root / ".engineering"
+    if engineering.is_symlink() or (engineering.exists() and not engineering.is_dir()):
+        raise ValueError(f"host state home is not a regular directory: {engineering}")
+    engineering.mkdir(exist_ok=True)
+    ignore = engineering / ".gitignore"
+    if ignore.is_symlink() or (ignore.exists() and not ignore.is_file()):
+        raise ValueError(f"host local-ignore path is not a regular file: {ignore}")
+    if ignore.exists():
+        rules = {
+            line.strip()
+            for line in ignore.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
+        if not (LOCAL_IGNORE_RULES & rules):
+            raise ValueError(
+                f"existing {ignore} must ignore /local/ before host-state migration"
+            )
+        return False
+    with ignore.open("x", encoding="utf-8") as handle:
+        handle.write("/local/\n")
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", default=DEFAULT_SOURCE)
@@ -108,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
         runtime_summary = None
         if not args.skip_runtime:
             runtime_summary = setup_runtime(library_root=root, python=args.python)
+        host_state_created = prepare_host_state(project_root)
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -115,6 +142,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"engineering-skills library {state}: {root}")
     if runtime_summary:
         print(runtime_summary)
+    host_state = "created" if host_state_created else "already available"
+    print(f"host migration state {host_state}: {project_root / '.engineering'}")
     return 0
 
 

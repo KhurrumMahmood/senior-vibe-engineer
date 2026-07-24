@@ -618,3 +618,37 @@ def test_map_restore_refuses_changed_canonical_content_and_occupied_legacy_path(
         }
     ]
     assert _files(occupied) == before
+
+
+def test_restore_rejects_out_of_root_created_parent_journal_without_writes(
+    tmp_path: Path,
+) -> None:
+    for name, malicious in (
+        ("absolute", str(tmp_path / "outside-absolute")),
+        ("traversal", "../outside-traversal"),
+    ):
+        host = tmp_path / name
+        outside = tmp_path / f"outside-{name}"
+        outside.mkdir()
+        _write_manifest(
+            host,
+            {
+                "version": 2,
+                "applied_migrations": [hm.SUBSYSTEM_REGISTRY_MIGRATION_ID],
+            },
+        )
+        _write_legacy_maps(host)
+        assert hm.apply(host)["status"] == "applied"
+        journal_path = host / hm._journal_path(hm.SUBSYSTEM_MAPS_MIGRATION_ID)
+        journal = json.loads(journal_path.read_text(encoding="utf-8"))
+        journal["created_destination_parents"] = [malicious]
+        journal_path.write_text(json.dumps(journal), encoding="utf-8")
+        before = _files(host)
+
+        refused = hm.restore(host, hm.SUBSYSTEM_MAPS_MIGRATION_ID)
+
+        assert refused["status"] == "blocked"
+        assert refused["blockers"][0]["code"] == "inconsistent-journal"
+        assert "created_destination_parents" in refused["blockers"][0]["detail"]
+        assert outside.is_dir()
+        assert _files(host) == before

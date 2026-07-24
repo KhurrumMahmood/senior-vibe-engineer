@@ -291,6 +291,24 @@ def _journal_shape_errors(
         mismatches.append("journal_version")
     if not isinstance(journal.get("moved_path"), bool):
         mismatches.append("moved_path")
+    created_parents = journal.get("created_destination_parents", [])
+    allowed_parents = {
+        str(Path(*migration["destination"].parent.parts[:index]))
+        for index in range(1, len(migration["destination"].parent.parts) + 1)
+    }
+    if (
+        not isinstance(created_parents, list)
+        or not all(isinstance(item, str) for item in created_parents)
+        or len(set(created_parents)) != len(created_parents)
+        or any(
+            not item
+            or Path(item).is_absolute()
+            or Path(item).as_posix() != item
+            or item not in allowed_parents
+            for item in created_parents
+        )
+    ):
+        mismatches.append("created_destination_parents")
     if mismatches:
         return [
             _block(
@@ -740,6 +758,10 @@ def restore(project_root: Path | str, migration_id: str) -> dict[str, Any]:
         report["blockers"] = [
             _block("restore-record-missing", f"no applied journal for {migration_id}")
         ]
+        return report
+    if errors := _journal_shape_errors(journal, migration):
+        report["status"] = "blocked"
+        report["blockers"] = errors
         return report
 
     manifest_path = root / MANIFEST

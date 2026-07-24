@@ -36,6 +36,12 @@ This design does not replace that decision. It defines the smallest useful
 extension: optional integration of selected engineering guidance into a host
 project's native agent-instruction surfaces.
 
+The shipped `which-skill/scripts/bootstrap_library.py` action also initializes
+the fresh host's toolkit-owned `.engineering/.gitignore` with `/local/`. It
+does not edit project source or agent instructions. If that file already exists
+without the rule, or either path is unsafe, bootstrap stops instead of guessing;
+the migration runner therefore never relies on an undocumented manual file.
+
 ## Release updates and host-state migrations
 
 Distributed toolkit code and projected host state have separate version axes:

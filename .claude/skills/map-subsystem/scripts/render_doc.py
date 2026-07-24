@@ -81,6 +81,30 @@ def _iso_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _output_path(raw: str) -> Path:
+    project_root = Path.cwd().resolve()
+    canonical = project_root / ".engineering" / "docs" / "subsystems"
+    for path in (
+        project_root / ".engineering",
+        project_root / ".engineering" / "docs",
+        canonical,
+    ):
+        if path.is_symlink():
+            raise ValueError(f"canonical output parent is a symlink: {path}")
+    candidate = Path(raw)
+    if not candidate.is_absolute():
+        candidate = project_root / candidate
+    candidate = candidate.resolve()
+    canonical = canonical.resolve()
+    if candidate == canonical or not candidate.is_relative_to(canonical):
+        raise ValueError(
+            f"output must stay below .engineering/docs/subsystems: {candidate}"
+        )
+    if candidate.suffix != ".md":
+        raise ValueError("output must be a Markdown file")
+    return candidate
+
+
 def _front_matter(
     name: str,
     target: str,
@@ -408,7 +432,11 @@ def render(args: argparse.Namespace) -> int:
 
     doc = "\n".join(out_parts).rstrip() + "\n"
 
-    out_path = Path(args.output)
+    try:
+        out_path = _output_path(args.output)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(doc, encoding="utf-8")
 

@@ -73,9 +73,6 @@ def _fresh_handoff(tmp_path: Path, host: Path) -> tuple[Path, dict]:
     assert payload["recommendation"] == "map-subsystem"
     assert payload["handoff"]["available"] is True
 
-    engineering = host / ".engineering"
-    engineering.mkdir(exist_ok=True)
-    (engineering / ".gitignore").write_text("/local/\n", encoding="utf-8")
     migration = library / "scripts" / "host_migrations.py"
     preview = _run(
         sys.executable,

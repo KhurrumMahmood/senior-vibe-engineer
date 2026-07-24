@@ -88,6 +88,9 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     library_root = host.parent / ".engineering-skills" / host.name
     assert (library_root / ".claude" / "skills" / "diagnose" / "SKILL.md").is_file()
     assert (library_root / "scripts").is_dir()
+    assert (host / ".engineering" / ".gitignore").read_text(encoding="utf-8") == (
+        "/local/\n"
+    )
     assert {
         path.name
         for path in (host / ".agents" / "skills").iterdir()
@@ -105,6 +108,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     )
     assert repeated.returncode == 0, repeated.stdout + repeated.stderr
     assert "already available" in repeated.stdout
+    assert "host migration state already available" in repeated.stdout
 
     routed = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
@@ -1051,6 +1055,28 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "command"
     ]
     assert "--skill map-subsystem" in rename_payload["optional_install"]["command"]
+
+
+def test_library_bootstrap_refuses_ambiguous_existing_host_local_ignore(tmp_path):
+    host = tmp_path / "host"
+    router = _install_router(host, "which-skill")
+    ignore = host / ".engineering" / ".gitignore"
+    ignore.parent.mkdir(parents=True)
+    ignore.write_text("/other/\n", encoding="utf-8")
+
+    result = _run_isolated(
+        router / "scripts" / "bootstrap_library.py",
+        "--project-root",
+        str(host),
+        "--source",
+        str(REPO_ROOT),
+        "--skip-runtime",
+        cwd=host,
+    )
+
+    assert result.returncode == 2
+    assert "must ignore /local/" in result.stderr
+    assert ignore.read_text(encoding="utf-8") == "/other/\n"
 
 
 def test_library_bootstrap_creates_and_verifies_runtime_by_default(tmp_path):

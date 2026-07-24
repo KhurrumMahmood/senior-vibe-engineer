@@ -127,7 +127,10 @@ existing incomplete destination is never overwritten. Candidate interpreters
 are health-probed rather than trusted from `--version`; pass `--python
 /absolute/path` to select one explicitly. `--skip-runtime` is an intentional
 escape hatch for storage-only/bootstrap tests, not the normal installation
-path.
+path. The same explicit bootstrap creates `.engineering/.gitignore` with the
+required `/local/` rule on a fresh host so previewable migration journals never
+become tracked project state. An existing file is preserved only when it
+already carries that rule; ambiguous or unsafe host-state paths stop bootstrap.
 
 ### Stage 1 — Run the matcher
 
