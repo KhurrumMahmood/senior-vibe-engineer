@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "frozen_at": "2026-07-24",
+  "frozen_revision": "b1461c8d803016e49cc33e5bd4905dd1444d9195",
+  "source": {
+    "path": "tests/fixtures/router-decision-quality/cases.json",
+    "sha256": "9e59b3913146cf741b2148f9947bbdc554e6cdf626e03ad292636f1f6cf01286"
+  },
+  "commands": {
+    "which-shape": ".venv/bin/python -I -S .claude/skills/which-shape/scripts/route.py <prompt> --project-root <host> --library-root <library> --skip-log --json",
+    "which-skill": ".venv/bin/python -I -S .claude/skills/which-skill/scripts/match.py <prompt> --project-root <host> --library-root <library> --top 10 --json",
+    "which-cleanup": ".venv/bin/python -I -S .claude/skills/which-cleanup/scripts/route.py <selector> --project-root <host> --library-root <library> --json"
+  },
+  "hard_gates": {
+    "clear_route_accuracy_percent": 100,
+    "ambiguous_behavior": "expected allowed set or an explicit discriminating question",
+    "heavy_false_positives_on_direct_tasks": 0,
+    "selected_closure_paths_valid": true,
+    "unsupported_or_stack_bound_claims_honest": true
+  },
+  "rubrics": {
+    "shape-route": [
+      "route is in the frozen expected or allowed set",
+      "handoff state matches the case contract",
+      "a selected on-demand guide path exists",
+      "representative execution reaches the first-next artifact or documented stop"
+    ],
+    "skill-route": [
+      "route is in the frozen expected or allowed set",
+      "selected closure is exact and every guide path exists",
+      "capability/refusal matches the resolved language and framework",
+      "representative execution reaches the skill final artifact and verification boundary"
+    ],
+    "cleanup-route": [
+      "selector resolves the frozen path set and scope band",
+      "recommendation count and scan-scope contract match",
+      "every selected closure guide path exists",
+      "representative closeout preserves source and emits bounded findings or an explicit no-op"
+    ]
+  },
+  "case_categories": {
+    "which_shape": {
+      "S1": "clear",
+      "S2": "direct-no-skill",
+      "S3": "clear",
+      "S4": "clear",
+      "S5": "ambiguous",
+      "S6": "ambiguous",
+      "S7": "negated-misleading",
+      "S8": "clear",
+      "S9": "ambiguous",
+      "S10": "unsupported-language-or-stack"
+    },
+    "which_skill": {
+      "K1": "clear",
+      "K2": "direct-no-skill",
+      "K3": "clear",
+      "K4": "clear",
+      "K5": "direct-no-skill",
+      "K6": "ambiguous",
+      "K7": "clear",
+      "K8": "clear",
+      "K9": "negated-misleading",
+      "K10": "different-scope",
+      "K11": "unsupported-language-or-stack"
+    },
+    "which_cleanup": {
+      "C0": "direct-no-skill",
+      "C1": "different-scope",
+      "C2": "different-scope",
+      "C3": "different-scope",
+      "C4": "different-scope",
+      "C5": "different-scope",
+      "C6": "different-scope",
+      "C7": "different-scope",
+      "C8": "different-scope"
+    }
+  }
+}

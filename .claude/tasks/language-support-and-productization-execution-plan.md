@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: F5 final language release complete; F6/P8 is ready
-Last updated: 2026-07-24 (corrected public candidate `1c333d2` passed the stock install/bootstrap/route/execute/cleanup/uninstall replay; evidence is frozen in `f5-final-language-release-evidence.json`)
+Current phase: F6/P8 router corpus and measurement protocol freeze in progress
+Last updated: 2026-07-24 (F5 is complete at candidate `1c333d2`; P8 started by freezing the pre-change router corpus and measure-only protocol at evidence revision `b1461c8`)
 
 ## Objective
 
@@ -121,7 +121,7 @@ execution authorities.
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `superseded_by_f4` | Pilot spine `f3166fd`; final C# completion `2dcbddb` |
 | P6 | Shared components promoted or rejected on evidence | `done` | `febc761` |
 | P7 | Every chosen language reaches complete, value-tested language-level support | `done` | Swift compiler-AST families through `f03cf8a`; publication `da51a8d` |
-| P8 | Current journey, update/repair, and help are measured | `ready` | — |
+| P8 | Current journey, update/repair, and help are measured | `in_progress` | Pre-change corpus/protocol frozen from `b1461c8` |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
 
 ## Follow-on execution sequence — 2026-07-23
@@ -140,7 +140,7 @@ the committed integration revision.
 | F3 | Complete C, then C++, then Kotlin | `done` | Finish one language before the next; up to three disjoint same-language lanes, with shared publication serial | C, C++, and Kotlin are complete at 22/22 under separate bounded truth; Kotlin's final structure consumers are `2c35b98`, publication is `52fc489`, and the committed installed-router replay passes `59` |
 | F4 | Complete C#/.NET last | `done:2dcbddb` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | C# is 22/22 with exact closure modes and bounded native claims; the committed cloned external-library/router replay passes 59 tests |
 | F5 | Publish final language release | `done:1c333d2` | Root only | All 13 chosen language columns are 22/22; 76-skill public catalog, exact three-router install, same-revision bootstrap, six language routes, final Swift artifact, bounded cleanup, preservation, and stock removal pass |
-| F6 | Measure and finish the existing user journey (P8) | `ready` | Up to three read-only corpus/measurement lanes; router/help/status implementation serial | Frozen router corpus, non-executing help, stock update/repair journey, and serial/batched baseline measurements pass |
+| F6 | Measure and finish the existing user journey (P8) | `in_progress` | Up to three read-only corpus/measurement lanes; router/help/status implementation serial | Pre-change corpus and measure-only protocol frozen at `b1461c8`; adjudication, help/update observations, and measurements pending |
 | F7 | Adopt only measured UX/performance improvements (P9) | `pending_f6` | One experiment at a time; shared routing and mutation integration serial | Only experiments meeting predeclared correctness and efficiency thresholds ship; neutral/harmful results are recorded and rejected |
 
 ### F0 — Dart and repository closeout

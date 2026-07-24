@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "status": "frozen-before-router-changes",
+  "frozen_at": "2026-07-24",
+  "frozen_revision": "b1461c8d803016e49cc33e5bd4905dd1444d9195",
+  "router_corpus": "tests/fixtures/p8-router-quality/corpus.json",
+  "purpose": "Measure the completed three-router and on-demand-library journey before proposing convenience or coordination infrastructure.",
+  "trial_policy": {
+    "paired_trials": 5,
+    "condition_order": "alternating",
+    "same_task_and_fixture_per_pair": true,
+    "warm_and_cold_state_recorded_separately": true
+  },
+  "workflows": {
+    "serial": {
+      "id": "serial-full-context",
+      "implementation": "existing serial invocation of the selected read-only skill closures",
+      "mutation_policy": "read-only lenses may run serially; any mutation and final verification remain serial",
+      "required_final_outcome": "all member artifacts plus one synthesized correctness verdict"
+    },
+    "existing_batched": {
+      "id": "compressed-parallel-existing-family",
+      "implementation": "scripts/benchmark_code_health_family.py existing compressed-family condition",
+      "mutation_policy": "independent read-only members only; mutation remains outside the batch",
+      "required_final_outcome": "independently attributable member artifacts plus one synthesized correctness verdict"
+    }
+  },
+  "fixed_inputs": {
+    "benchmark_script": "scripts/benchmark_code_health_family.py",
+    "existing_results": ".claude/tasks/ml020-code-health-results.json",
+    "representative_router_journeys": [
+      "which-shape -> adapt-project",
+      "which-skill -> one language-level final artifact",
+      "which-cleanup -> bounded closeout and guard handoff"
+    ]
+  },
+  "metrics": {
+    "correctness": {
+      "observation": "frozen route gates plus final artifact/verification rubric",
+      "missing_value": "fail"
+    },
+    "completion": {
+      "observation": "all required final artifacts and terminal statuses",
+      "missing_value": "fail"
+    },
+    "wall_time_ms": {
+      "observation": "monotonic elapsed time per condition and end-to-end pair",
+      "missing_value": "unavailable"
+    },
+    "observable_model_tokens": {
+      "observation": "provider-reported aggregate only",
+      "missing_value": "unavailable"
+    },
+    "controlled_context_utf8_bytes": {
+      "observation": "exact UTF-8 bytes of task packets, prompts, guides, and shared context deliberately injected",
+      "missing_value": "unavailable"
+    },
+    "repeated_context_utf8_bytes": {
+      "observation": "exact injected byte sequences repeated across calls in one condition",
+      "missing_value": "unavailable"
+    },
+    "native_tool_invocations": {
+      "observation": "count from command/event records; repeated identical commands remain separate invocations",
+      "missing_value": "unavailable"
+    },
+    "human_interventions": {
+      "observation": "count and classify approvals, clarifications, retries, and manual repair choices",
+      "missing_value": "unavailable"
+    },
+    "recoverable_failures": {
+      "observation": "count with command, symptom, repair, and whether the documented path was sufficient",
+      "missing_value": "unavailable"
+    }
+  },
+  "correctness_gates": [
+    "100% of clear corpus cases route as frozen",
+    "every ambiguous case stays within its allowed set or asks a discriminating question",
+    "zero heavy false positives on direct/no-skill cases",
+    "every selected closure path exists and matches capability truth",
+    "all final artifacts, native checks, source-preservation, and failure-honesty rubrics pass"
+  ],
+  "p9_adoption_threshold": {
+    "minimum_paired_trials": 5,
+    "performance": "at least 20% median wall-time reduction or 30% controlled-context reduction",
+    "token_guard": "no more than 10% observable-model-token growth",
+    "correctness": "all P8 correctness gates remain green"
+  },
+  "decision": "measure-only; no router, coordinator, updater, or host-guidance behavior changes are authorized by this protocol"
+}
