@@ -1,0 +1,16 @@
+{
+  "language_version": "14.0",
+  "schema_version": 1,
+  "smoke_main": "CSharpMap.Program",
+  "smoke_output": "order:7\n",
+  "sources": [
+    "src/Orders/OrderService.cs",
+    "src/Program.cs"
+  ],
+  "target_framework": "net10.0",
+  "test_main": "CSharpMap.OrderTests",
+  "test_output": "csharp-map-native-test:ok\n",
+  "tests": [
+    "tests/OrderTests.cs"
+  ]
+}

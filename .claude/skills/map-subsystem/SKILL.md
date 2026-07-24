@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Kotlin/JVM, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .engineering/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Kotlin/JVM, C# 14/.NET 10, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .engineering/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,10 +17,43 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, php, swift, c, cpp, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, swift, c, cpp, ruby, rust, dart]
 ---
 
 # /map-subsystem
+
+## C# 14 / .NET 10 bounded branch
+
+Trigger this branch only for one target selected from current
+`csharp-project.json` and `csharp-semantic-project.json` manifests. The two
+manifests must name identical ordered source/test paths, and the copied lexical
+and semantic providers must report identical current SHA-256 values for every
+selected input. Read `../_csharp-semantic/GUIDE.md` and
+`knowledge/csharp-v1.md`, keep both `_csharp` and `_csharp-semantic` beside the
+selected skill, and run:
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/map-subsystem"
+python3 -I -S "${SKILL_ROOT}/scripts/map_csharp.py" \
+  --name "${MAP_NAME:?Set the subsystem name}" \
+  --target "${MAP_TARGET:?Set the manifest-owned C# target}" \
+  --project-root "$PWD" \
+  --output "$PWD/.engineering/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "$PWD/reports/map/${MAP_NAME}/csharp-map.json" \
+  --semantic-manifest csharp-semantic-project.json \
+  --dotnet "${DOTNET:?Set the pinned .NET 10.0.302 dotnet executable}"
+```
+
+The complete artifact records exact source/test hashes, selected namespaces,
+types, methods, properties and declared accessibility, plus only direct calls
+and references resolved by the pinned SDK-bundled Roslyn helper. Native direct
+`csc` compilation, test, and smoke replay are mandatory. Runtime reachability,
+reflection and runtime names, delegates, override/interface dispatch,
+generated/source-generator inputs, project/solution graphs, and framework
+registration remain explicit unresolved boundaries. Any missing, stale,
+malformed, incoherent, or authority-mismatched evidence atomically replaces
+old structural claims with a claim-free terminal artifact; host source is never
+edited.
 
 ## Kotlin/JVM 2.4.10 bounded branch
 
@@ -111,6 +144,8 @@ Procedural detail lives in one knowledge file:
   evidence, native checks, partial semantic boundary, and deliberate non-claims.
 - `knowledge/rust-v1.md` — the Cargo/compiler/stable-LSP evidence chain,
   source roles, partial completeness, lifecycle, and deliberate non-claims.
+- `knowledge/csharp-v1.md` — the paired lexical/Roslyn manifest contract,
+  exact SDK authority, final map schema, lifecycle, and deliberate non-claims.
 
 ## SwiftPM v1
 
@@ -604,7 +639,11 @@ python3 "${SKILL_ROOT}/scripts/map_rust.py" \
   behavior are not inferred. Rust v1 follows `knowledge/rust-v1.md`: its
   bounded selected-configuration contract is supported, while the artifact
   reports runtime `partial` completeness across macros, build output, include
-  contents, variants, and runtime trait dispatch.
+  contents, variants, and runtime trait dispatch. C# v1 follows
+  `knowledge/csharp-v1.md`: complete means exact paired-manifest path/hash
+  coherence, pinned direct-csc native gates, and SDK-bundled Roslyn binding;
+  every runtime/reflection/delegate/dispatch/generated/project/framework
+  boundary remains explicit.
 - On `--refresh`, the doc opens with a diff section against the prior
   version — what changed, not just what is.
 - The run cites artifact truth: pasted `render_doc.py` `wrote ...`
@@ -819,12 +858,14 @@ counts, and one evidence-based next job (`/fix-workflow`, a SUSPECT skill,
 ├── scripts/
 │   ├── map_go.go                 # Go v1 package map + final artifacts
 │   ├── map_java.java             # Java v1 package map + final artifacts
+│   ├── map_csharp.py             # C# v1 paired-provider map + final artifacts
 │   ├── map_php.php               # PHP v1 Composer PSR-4 static map + final artifacts
 │   ├── map_c.py                  # C v1 compile-database map + final artifacts
 │   └── render_doc.py             # Python Stages 6-7 — renders the doc + appends log
 └── knowledge/
     ├── go-v1.md                  # bounded active-build Go contract
     ├── java-v1.md                # bounded compiler-attributed Java contract
+    ├── csharp-v1.md              # bounded paired C# lexical/Roslyn contract
     ├── php-v1.md                 # bounded native PHP + Composer contract
     └── output-format.md          # Python doc structure + worked example
 ```
