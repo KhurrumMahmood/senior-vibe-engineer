@@ -27,6 +27,27 @@ STATE_GATES = {
     "overload_ambiguity": "none",
 }
 
+DUPLICATION_GATES = {
+    "overload_ambiguity": "none",
+    "reflection": "none",
+    "callable_references": "none",
+    "delegated_property": "none",
+    "generated_kapt_ksp": "none",
+    "gradle_variants": "none",
+    "java_callers": "none",
+    "external_callers": "none",
+    "runtime_equivalence": "not_established_no_mutation_authority",
+    "behavioral_equivalence": "not_established_no_mutation_authority",
+    "jvm_abi": "separate_approval_required",
+}
+
+CONSOLIDATION_SHAPES = {
+    "keep_separate_document_why",
+    "share_utilities",
+    "complete_migration",
+    "merge_at_workflow",
+}
+
 
 class EvidenceError(ValueError):
     """A classified refusal at the accepted-evidence boundary."""
@@ -203,6 +224,74 @@ def validate_state_acceptance(
         "acceptance_path": acceptance_file,
         "acceptance": acceptance,
         "candidate": candidates[0],
+    }
+
+
+def validate_duplication_acceptance(
+    root: Path,
+    *,
+    facts_path: str | Path,
+    analysis_path: str | Path,
+    acceptance_path: str | Path,
+) -> dict[str, Any]:
+    fact_file, facts = validate_fact_pack(root, facts_path)
+    analysis_file = safe_project_path(root, analysis_path, "semantic-duplication analysis")
+    analysis = read_json(analysis_file, "semantic-duplication analysis")
+    if (
+        analysis.get("schema_version") != "kotlin-jvm-duplication-v1"
+        or analysis.get("language") != "kotlin"
+        or analysis.get("status") != "complete"
+        or analysis.get("read_only") is not True
+        or analysis.get("fact_pack_sha256") != facts.get("fact_pack_sha256")
+        or analysis.get("source_manifest_sha256") != facts.get("source_manifest_sha256")
+        or analysis.get("candidate_sha256") != canonical_hash(analysis.get("leads", []))
+    ):
+        raise EvidenceError(
+            "partial",
+            "producer_artifact_invalid",
+            "accepted semantic-duplication analysis does not verify",
+        )
+    acceptance_file = safe_project_path(root, acceptance_path, "duplication acceptance")
+    acceptance = read_json(acceptance_file, "duplication acceptance")
+    if (
+        acceptance.get("schema_version") != "kotlin-duplication-acceptance-v1"
+        or acceptance.get("language") != "kotlin"
+        or acceptance.get("status") != "accepted"
+        or acceptance.get("producer") != "find-semantic-duplication"
+        or acceptance.get("decision") not in CONSOLIDATION_SHAPES
+        or acceptance.get("artifact") != analysis_file.relative_to(root).as_posix()
+        or acceptance.get("artifact_sha256") != file_hash(analysis_file)
+        or acceptance.get("fact_pack_sha256") != facts.get("fact_pack_sha256")
+        or acceptance.get("source_manifest_sha256") != facts.get("source_manifest_sha256")
+        or acceptance.get("candidate_sha256") != analysis.get("candidate_sha256")
+        or acceptance.get("boundary_verdicts") != DUPLICATION_GATES
+        or not isinstance(acceptance.get("reviewer"), str)
+        or not acceptance["reviewer"].strip()
+        or not isinstance(acceptance.get("notes"), str)
+        or not acceptance["notes"].strip()
+        or not valid_hashed_object(acceptance, "acceptance_sha256")
+    ):
+        raise EvidenceError(
+            "partial",
+            "acceptance_invalid",
+            "fresh exact Kotlin duplication acceptance is required",
+        )
+    selection = acceptance.get("selection_id")
+    leads = [row for row in analysis.get("leads", []) if row.get("id") == selection]
+    if len(leads) != 1:
+        raise EvidenceError(
+            "partial",
+            "selection_invalid",
+            "acceptance must select one exact semantic-duplication lead",
+        )
+    return {
+        "facts_path": fact_file,
+        "facts": facts,
+        "analysis_path": analysis_file,
+        "analysis": analysis,
+        "acceptance_path": acceptance_file,
+        "acceptance": acceptance,
+        "lead": leads[0],
     }
 
 
