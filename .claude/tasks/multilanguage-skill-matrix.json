@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "6602b5f823c78625fd3ef17e267f6547fa85737ecc59eedc5b799e8056d9a314"
+      "sha256": "4eae4134de63eb3d20cccae97cdc8ddd6e1a86950df3280794b0aea9de1a11c9"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -55,7 +55,7 @@
     },
     {
       "path": ".claude/tasks/csharp-language-coverage.json",
-      "sha256": "108ecea763b26e516a5f0aa9b4ccc4db38fec9bce21c48ff79738e24d66fe880"
+      "sha256": "c7c3b302fca3f6356621af2b7239a20b1e944d20b44ef6931cbdabfdd93c5369"
     }
   ],
   "counts": {
@@ -7871,6 +7871,7 @@
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "kotlin_closure_mode": "external-library",
+      "csharp_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d7-proposal-family.md",
       "dart_native_check": [
         "accepted D4 facts and human selection produce exact public/caller/barrel/test citations, atomic lifecycle recovery, source preservation, and copied execution",
@@ -7886,13 +7887,14 @@
       ],
       "kotlin_reviewed_revision": "2c35b98d9ff9f6e2ee86495e81ecae1a47effb4f",
       "kotlin_limitation": "One exact three-function same-package extraction proposal only; K1 direct facts do not establish override dispatch, reflection/callable references, delegation, framework/runtime reachability, or behavior. Generated/KAPT/KSP and plugin sources, Gradle variants, Java/framework/external callers, package/JVM identity change, Android, Multiplatform, JVM ABI/binary compatibility, host mutation, and release authority remain outside the claim.",
-      "csharp_disposition": "csharp-pending-implementation",
-      "csharp_evidence_path": ".claude/tasks/multilanguage-learnings/csharp-foundation.md",
+      "csharp_disposition": "csharp-supported",
+      "csharp_evidence_path": ".claude/tasks/multilanguage-learnings/csharp-structure-proposals.md",
       "csharp_native_check": [
-        "project compilation and later map/omnibus evidence exist separately; no accepted C# boundary proposal reaches its final artifact yet"
+        "hash-bound accepted confirmed-omnibus domain plus current complete integrated C# map and Roslyn fact pack, exact project/config/source and provider hashes, resolved caller impact, compatibility-shim/API decisions, and closed reviewer boundary verdicts",
+        "copied selected skill plus _csharp, _csharp-semantic, and map-subsystem closure; exact proposal/evidence/scope replacement; current and independently applied disposable after-tree .NET build, native test, and smoke; refusal/recovery and host-source preservation"
       ],
-      "csharp_reviewed_revision": "f3166fdc46387a9ef2bbe1e7ad930523d239271d",
-      "csharp_limitation": "Pending the separate structure lane: no hash-bound accepted omnibus/map input, proposed extraction, disposable after-tree native proof, closure test, or installed replay has been accepted.",
+      "csharp_reviewed_revision": "9d44eeaeeae8537f8717c30449cb1c7d2a08b06f",
+      "csharp_limitation": "One exact three-method same-namespace extraction proposal only; static selected-project facts do not establish runtime behavior, interface/virtual/dynamic dispatch, delegates, reflection/runtime names, generated/vendor inputs, external callers, conditional variants, frameworks, ABI/release compatibility, host mutation, or general decomposition safety.",
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
       "framework_family": null,
@@ -8036,6 +8038,7 @@
       "ruby_closure_mode": "external-library",
       "dart_closure_mode": "external-library",
       "kotlin_closure_mode": "external-library",
+      "csharp_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d7-proposal-family.md",
       "dart_native_check": [
         "accepted D1 cluster plus D4 impact and human convention account for all three members and six edges, preserve the barrel, recover lifecycle atomically, preserve source, and run copied",
@@ -8051,13 +8054,14 @@
       ],
       "kotlin_reviewed_revision": "2c35b98d9ff9f6e2ee86495e81ecae1a47effb4f",
       "kotlin_limitation": "One exact four-file same-package source-location proposal only; filename grouping and K1 direct facts do not prove ownership, behavior, override dispatch, reflection, delegation, runtime reachability, or refactor safety. Package changes, generated/KAPT/KSP and plugin inputs, resources, Gradle/source-set variants, Java/framework/external callers, Android, Multiplatform, JVM ABI/binary compatibility, host mutation, and release authority remain outside the claim.",
-      "csharp_disposition": "csharp-pending-implementation",
-      "csharp_evidence_path": ".claude/tasks/multilanguage-learnings/csharp-foundation.md",
+      "csharp_disposition": "csharp-supported",
+      "csharp_evidence_path": ".claude/tasks/multilanguage-learnings/csharp-structure-proposals.md",
       "csharp_native_check": [
-        "project compilation and later topology/map evidence exist separately; no accepted C# folder proposal reaches its final artifact yet"
+        "hash-bound accepted direct-sibling prefix cluster plus explicit convention, current complete integrated C# map and Roslyn fact pack, exact project/config/source and provider hashes, unchanged namespace/type/assembly decisions, exact manifest/project after-states, and closed reviewer boundary verdicts",
+        "copied selected skill plus _csharp, _csharp-semantic, and map-subsystem closure; exact proposal/evidence/scope replacement; current and independently applied disposable after-tree .NET build, native test, and smoke; refusal/recovery and host-source preservation"
       ],
-      "csharp_reviewed_revision": "f3166fdc46387a9ef2bbe1e7ad930523d239271d",
-      "csharp_limitation": "Pending the separate structure lane: no hash-bound topology/map acceptance, namespace/project-preserving proposal, disposable after-tree native proof, closure test, or installed replay has been accepted.",
+      "csharp_reviewed_revision": "9d44eeaeeae8537f8717c30449cb1c7d2a08b06f",
+      "csharp_limitation": "One exact four-file same-namespace source-location proposal only; filename grouping and static selected-project facts do not prove ownership, runtime behavior, dispatch, reflection/resource paths, generated/vendor inputs, external callers, conditional variants, frameworks, ABI/release compatibility, host mutation, or general reorganization safety.",
       "fact_level": "semantic-project",
       "outcome_class": "proposal-only",
       "framework_family": null,
@@ -8070,6 +8074,7 @@
           "go",
           "java",
           "kotlin",
+          "csharp",
           "typescript",
           "javascript",
           "php",
@@ -8445,6 +8450,7 @@
           "go",
           "java",
           "kotlin",
+          "csharp",
           "php",
           "ruby",
           "rust",

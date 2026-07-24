@@ -114,8 +114,7 @@ EXPECTED_KOTLIN_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_CSHARP_COUNTS = {
-    "csharp-supported": 20,
-    "csharp-pending-implementation": 2,
+    "csharp-supported": 22,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -448,18 +447,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["kotlin_native_check"]
             assert row["kotlin_reviewed_revision"]
             assert row["kotlin_limitation"]
-            if row["csharp_disposition"] == "csharp-pending-implementation":
-                assert row["skill"] in {
-                    "propose-boundary",
-                    "propose-folder-reorganization",
-                }
-                assert row.get("csharp_closure_mode") is None
-            else:
-                assert row["csharp_disposition"] == "csharp-supported"
-                assert row["csharp_closure_mode"] in {
-                    "external-library",
-                    "stock-selected-install",
-                }
+            assert row["csharp_disposition"] == "csharp-supported"
+            assert row["csharp_closure_mode"] in {
+                "external-library",
+                "stock-selected-install",
+            }
             assert (REPO_ROOT / row["csharp_evidence_path"]).is_file()
             assert row["csharp_native_check"]
             assert row["csharp_reviewed_revision"]
@@ -743,10 +735,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["csharp_disposition"] == "csharp-supported"
-    } == {row["skill"] for row in language_rows} - {
-        "propose-boundary",
-        "propose-folder-reorganization",
-    }
+    } == {row["skill"] for row in language_rows}
     assert {
         row["skill"]
         for row in language_rows
@@ -933,11 +922,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row.get("csharp_closure_mode") == "external-library"
-    } == {row["skill"] for row in language_rows} - {
-        "move-path",
-        "propose-boundary",
-        "propose-folder-reorganization",
-    }
+    } == {row["skill"] for row in language_rows} - {"move-path"}
     assert {
         row["skill"]
         for row in language_rows

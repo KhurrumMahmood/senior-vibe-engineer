@@ -327,14 +327,11 @@ explicit non-claims. Most Kotlin closures require the external selected-skill
 library plus `_kotlin` or `_kotlin-semantic`; only the standalone move is a
 stock-selected install.
 
-### 15. C# 20/22 publication checkpoint
+### 15. C# completion evidence
 
-C# currently supports 20 of the 22 language-level outcomes. The authoritative
-coverage file is `.claude/tasks/csharp-language-coverage.json`; it deliberately
-leaves `propose-boundary` and `propose-folder-reorganization` as
-`csharp-pending-implementation`. No catalog, matrix, router, or README surface
-may turn this checkpoint into a 22/22 claim until those two final artifacts,
-their copied closures, and native verification exist.
+C# reaches all 22 bounded language-level outcomes. The authoritative coverage
+file is `.claude/tasks/csharp-language-coverage.json`; all rows are
+`csharp-supported`, with no pending, partial, or unsupported outcome.
 
 The project and syntax tiers use exact selected manifests plus the
 family-local `_csharp` Roslyn helper. The semantic tier uses
@@ -343,7 +340,12 @@ content-addressed `csc.dll` and Roslyn assemblies, and all 167 pinned reference
 assemblies. Consumer runs compile directly without restore or network access.
 The supported state, guard, and shadow proposal paths require fresh
 content-addressed human acceptance; `move-path` is the only stock-selected C#
-closure, while the other 19 supported outcomes require the external library.
+closure, while the other 21 supported outcomes require the external library.
+The two structure consumers additionally bind final producer, integrated map,
+Roslyn fact, project/config/source-hash, reviewer-acceptance, and closed
+boundary-verdict artifacts. They prove both current and independently applied
+disposable after-trees through native build, test, and smoke without editing
+the reviewed host.
 
 These facts cover selected static declarations, references, calls,
 constructor arguments, assignments, overrides, and partial metadata. They do
@@ -360,7 +362,7 @@ the one accepted source-location move.
 |---|---|---|
 | PHP | native `php -l`; PHP Parser or the bounded tree-sitter pack for syntax; project-local PHPStan/Psalm for semantics | Composer/project configuration controls semantic completeness |
 | Ruby | Prism and `ruby -c`; project-local Sorbet or Steep when already configured | dynamic reference/type claims otherwise remain partial |
-| C# | 20/22 checkpoint with SDK-bundled Roslyn, direct `csc`, and native `dotnet ... --no-restore` gates | selected manifests are authoritative; structure proposals, inferred project/solution graphs, runtime dispatch, frameworks, and binary compatibility remain open |
+| C# | completed at 22/22 with SDK-bundled Roslyn, direct `csc`, native `dotnet ... --no-restore` gates, and accepted structure proposals | selected manifests are authoritative; inferred project/solution graphs, runtime dispatch, frameworks, binary compatibility, and mutation authority remain outside the bounded claim |
 | Rust | `cargo metadata`, `cargo check`, Clippy; rust-analyzer for bounded reference operations | prefer stable Cargo JSON/LSP boundaries over private compiler APIs |
 | Swift | SwiftSyntax, SourceKit-LSP, and SwiftPM | indexed cross-module facts may require a recent build |
 | Dart | analyzer/Analysis Server plus `dart analyze` and native tests | pin to the SDK and treat analyzer API churn explicitly |
@@ -378,8 +380,8 @@ contracts rather than reimplementing them.
 The accepted P6 decision is recorded in
 `.claude/tasks/shared-kit-promotion-decision.md`. PHP, Rust, and Dart supplied
 the materially different evidence that the initial TypeScript/Java comparison
-lacked. C# remains open at 20/22 until its two structure outcomes pass; that
-does not invalidate the already-proven narrow shared foundation.
+lacked. C# now closes at 22/22 without invalidating or broadening the
+already-proven narrow shared foundation.
 
 Promote a shared component only when:
 

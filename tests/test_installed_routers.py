@@ -767,25 +767,41 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         library_root / ".claude/skills/_csharp-semantic/CSharpSemanticFacts.cs"
     ).is_file()
 
-    pending_csharp = _run_isolated(
-        installed["which-skill"] / "scripts" / "match.py",
-        "use propose-boundary for this C# namespace boundary",
-        "--project-root",
-        str(host),
-        "--library-root",
-        str(library_root),
-        "--language",
-        "csharp",
-        "--json",
-        cwd=host,
-    )
-    assert pending_csharp.returncode == 1, pending_csharp.stderr
-    pending_csharp_payload = json.loads(pending_csharp.stdout)
-    assert pending_csharp_payload["recommendation"] == "pending-implementation"
-    assert pending_csharp_payload["unavailable"]["name"] == "propose-boundary"
-    assert pending_csharp_payload["unavailable"]["classification"] == (
-        "pending-implementation"
-    )
+    for skill, task in (
+        ("propose-boundary", "use propose-boundary for this C# namespace boundary"),
+        (
+            "propose-folder-reorganization",
+            "use propose-folder-reorganization for this C# prefix cluster",
+        ),
+    ):
+        structure_csharp = _run_isolated(
+            installed["which-skill"] / "scripts" / "match.py",
+            task,
+            "--project-root",
+            str(host),
+            "--library-root",
+            str(library_root),
+            "--language",
+            "csharp",
+            "--json",
+            cwd=host,
+        )
+        structure_payload = _json_output(structure_csharp)
+        assert structure_payload["recommendation"] == skill
+        assert structure_payload["handoff"]["skills"] == [skill]
+        assert [
+            guide["skill"] for guide in structure_payload["handoff"]["guides"]
+        ] == [skill]
+        assert structure_payload["handoff"]["capabilities"]["skills"][0][
+            "csharp_disposition"
+        ] == "csharp-supported"
+        assert structure_payload["optional_install"]["available"] is False
+        assert structure_payload["optional_install"]["reason"] == (
+            "selected_language_requires_external_library"
+        )
+        assert (
+            library_root / ".claude/skills" / skill / "scripts/propose_csharp.py"
+        ).is_file()
 
     csharp_move = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",

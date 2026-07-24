@@ -1,4 +1,4 @@
-"""Truth sentinels for the bounded 20/22 C# publication checkpoint."""
+"""Truth sentinels for the bounded 22/22 C# publication."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 COVERAGE = ROOT / ".claude/tasks/csharp-language-coverage.json"
-PENDING = {"propose-boundary", "propose-folder-reorganization"}
+STRUCTURE = {"propose-boundary", "propose-folder-reorganization"}
 LEXICAL = {
     "adapt-project",
     "audit-decisions",
@@ -50,6 +50,8 @@ ENTRYPOINTS = {
     "map-subsystem": "scripts/map_csharp.py",
     "move-path": "scripts/csharp_source_move.py",
     "prevent-regression": "scripts/stage_csharp_state_guard.py",
+    "propose-boundary": "scripts/propose_csharp.py",
+    "propose-folder-reorganization": "scripts/propose_csharp.py",
     "rename-concept": "scripts/assess_csharp_rename.py",
     "unify-shadows": "scripts/propose_csharp.py",
 }
@@ -71,36 +73,23 @@ def _skill(skill: str) -> tuple[dict, str]:
     return yaml.safe_load(raw), body
 
 
-def test_csharp_checkpoint_has_exactly_twenty_supported_and_two_pending() -> None:
+def test_csharp_publication_has_exactly_twenty_two_supported() -> None:
     payload = _payload()
     rows = payload["skills"]
     by_name = {row["skill"]: row for row in rows}
 
-    assert payload["phase"] == "p7-csharp-20-of-22-publication-checkpoint"
+    assert payload["phase"] == "p7-csharp-full-publication"
     assert len(rows) == len(by_name) == 22
     assert Counter(row["disposition"] for row in rows) == {
-        "csharp-supported": 20,
-        "csharp-pending-implementation": 2,
+        "csharp-supported": 22,
     }
-    assert set(payload["current_assertions"]["pending_skills"]) == PENDING
-    assert {
-        skill
-        for skill, row in by_name.items()
-        if row["disposition"] == "csharp-pending-implementation"
-    } == PENDING
-    assert set(payload["current_assertions"]["supported_skills"]) == (
-        set(by_name) - PENDING
-    )
-    for skill in PENDING:
-        row = by_name[skill]
-        assert "closure_mode" not in row
-        assert row["reviewed_revision"] == payload["baseline_revision"]
-        assert "no accepted C#" in row["native_check"][0]
-        assert "Pending the separate structure lane" in row["limitation"]
-    assert not (
+    assert payload["current_assertions"]["pending_skills"] == []
+    assert set(payload["current_assertions"]["supported_skills"]) == set(by_name)
+    assert all(row["closure_mode"] for row in rows)
+    assert (
         ROOT
         / ".claude/tasks/multilanguage-learnings/csharp-structure-proposals.md"
-    ).exists()
+    ).is_file()
 
 
 def test_csharp_supported_rows_bind_exact_cohort_evidence_and_closures() -> None:
@@ -125,6 +114,14 @@ def test_csharp_supported_rows_bind_exact_cohort_evidence_and_closures() -> None
     assert by_name["map-subsystem"]["reviewed_revision"].startswith("915f605")
     assert by_name["move-path"]["reviewed_revision"].startswith("d02bb80")
     assert by_name["move-path"]["closure_mode"] == "stock-selected-install"
+    for skill in STRUCTURE:
+        row = by_name[skill]
+        assert row["reviewed_revision"] == (
+            "9d44eeaeeae8537f8717c30449cb1c7d2a08b06f"
+        )
+        assert row["evidence_path"].endswith("csharp-structure-proposals.md")
+        assert row["closure_mode"] == "external-library"
+        assert "independently applied disposable after-tree" in row["native_check"][1]
     for skill, row in by_name.items():
         assert (ROOT / row["evidence_path"]).is_file(), skill
         assert row["native_check"], skill
@@ -142,6 +139,9 @@ def test_csharp_authority_and_nonclaims_are_pinned() -> None:
     assert authority["semantic_helper_sha256"] == _sha256(
         ROOT / ".claude/skills/_csharp-semantic/CSharpSemanticFacts.cs"
     )
+    assert authority["structure_helper_sha256"] == _sha256(
+        ROOT / ".claude/skills/_csharp-semantic/csharp_structure_proposals.py"
+    )
     assert authority["reference_pack_assembly_count"] == 167
     limits = " ".join(payload["global_limits"]).lower()
     for boundary in (
@@ -153,9 +153,9 @@ def test_csharp_authority_and_nonclaims_are_pinned() -> None:
         "generated",
         "project/solution graphs",
         "framework registration",
-        "propose-boundary",
-        "propose-folder-reorganization",
-        "no structure proposal or 22/22",
+        "structure proposals",
+        "host mutation",
+        "abi/release compatibility",
     ):
         assert boundary in limits
 
@@ -170,7 +170,17 @@ def test_each_supported_csharp_skill_documents_entrypoint_and_limits() -> None:
         assert entrypoint in body, skill
         assert (ROOT / ".claude/skills" / skill / entrypoint).is_file(), skill
         assert by_name[skill]["disposition"] == "csharp-supported"
-    for skill in PENDING:
+
+
+def test_structure_promotion_requires_final_implementation_evidence() -> None:
+    payload = _payload()
+    by_name = {row["skill"]: row for row in payload["skills"]}
+    assert (ROOT / "tests/test_csharp_structure_proposals.py").is_file()
+    for skill in STRUCTURE:
         metadata, body = _skill(skill)
-        assert "csharp" not in metadata["scans"], skill
-        assert "C#" not in body and "csharp" not in body.lower(), skill
+        row = by_name[skill]
+        assert "csharp" in metadata["scans"]
+        assert "csharp-structure-acceptance-v1" in body
+        assert row["disposition"] == "csharp-supported"
+        assert row["closure_mode"] == "external-library"
+        assert (ROOT / ".claude/skills" / skill / "scripts/propose_csharp.py").is_file()
