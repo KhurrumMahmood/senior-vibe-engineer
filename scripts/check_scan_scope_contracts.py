@@ -28,6 +28,7 @@ VALID_BEHAVIOR_FAMILIES = {
 }
 VALID_EXECUTION_KINDS = {"deterministic", "hybrid"}
 VALID_SCOPE_CONFIG = {"shared", "custom", "not-supported"}
+VALID_ROLLOUT_STATUS = {"inactive", "active"}
 REQUIRED_ROW_FIELDS = {
     "skill",
     "execution_kind",
@@ -152,6 +153,30 @@ def validate_contract(root: Path, payload: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     if payload.get("schema_version") != 1:
         errors.append("schema_version must equal 1")
+    rollout = payload.get("adapter_rollout")
+    if not isinstance(rollout, dict):
+        errors.append("adapter_rollout must be an object")
+    else:
+        if rollout.get("status") not in VALID_ROLLOUT_STATUS:
+            errors.append("adapter_rollout.status is invalid")
+        if rollout.get("routing_modes_field") not in {
+            "current_modes",
+            "target_modes",
+        }:
+            errors.append("adapter_rollout.routing_modes_field is invalid")
+        for field in ("implementation", "conformance"):
+            relative = rollout.get(field)
+            if not isinstance(relative, str) or not relative:
+                errors.append(f"adapter_rollout.{field} must be a path")
+                continue
+            candidate = (root / relative).resolve()
+            try:
+                candidate.relative_to(root)
+            except ValueError:
+                errors.append(f"adapter_rollout.{field} escapes the project root")
+                continue
+            if not candidate.is_file():
+                errors.append(f"adapter_rollout.{field} does not exist: {relative}")
     rows = payload.get("skills")
     if not isinstance(rows, list):
         return [*errors, "skills must be a list"]

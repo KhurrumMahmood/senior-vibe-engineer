@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -95,6 +96,24 @@ def test_every_producer_target_mode_conforms_through_declared_adapter() -> None:
     exercised = set()
 
     for contract in payload["skills"]:
+        default_request = replace(
+            _request(contract["target_default_mode"]), requested_mode="auto"
+        )
+        default_result = envelope.build_finding_artifact(
+            detector=contract["skill"],
+            detector_version="fixture-v1",
+            raw_findings=[_raw(5)],
+            request=default_request,
+            contract=contract,
+            supported_modes_field="target_modes",
+            allow_compatible_widening=False,
+        )
+        assert default_result["scan"]["effective_mode"] == contract[
+            "target_default_mode"
+        ]
+        assert default_result["scan"]["status"] == "ready"
+        exercised.add((contract["skill"], "auto"))
+
         for mode in contract["target_modes"]:
             request = _request(mode)
             result = envelope.build_finding_artifact(
@@ -124,7 +143,7 @@ def test_every_producer_target_mode_conforms_through_declared_adapter() -> None:
             assert result["metrics"]["actionable_finding_count"] == expected
             exercised.add((contract["skill"], mode))
 
-    assert len(exercised) == sum(
+    assert len(exercised) == len(payload["skills"]) + sum(
         len(contract["target_modes"]) for contract in payload["skills"]
     )
 

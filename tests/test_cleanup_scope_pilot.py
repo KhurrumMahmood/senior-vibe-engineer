@@ -176,13 +176,18 @@ def test_installed_router_and_comment_scanner_distinguish_hunks_from_files(
     assert file_scope["raw_finding_count"] == 2
     assert file_scope["scope_filtered_count"] == 0
     assert file_scope["effective_mode"] == "changed-files"
+    file_scans = {
+        row["skill"]: row["scan"] for row in file_payload["recommendations"]
+    }
+    assert file_scans["find-duplication"]["effective_mode"] == "changed-files"
+    assert file_scans["find-duplication"]["status"] == "ready"
 
     scans = {row["skill"]: row["scan"] for row in line_payload["recommendations"]}
     assert scans["find-test-obligation-drift"]["effective_mode"] == "changed-files"
     assert scans["find-test-obligation-drift"]["status"] == "widened"
-    assert scans["find-duplication"]["effective_mode"] == "paths"
+    assert scans["find-duplication"]["effective_mode"] == "changed-files"
     assert scans["find-duplication"]["status"] == "widened"
-    assert scans["find-omnibus"]["effective_mode"] == "paths"
+    assert scans["find-omnibus"]["effective_mode"] == "changed-files"
 
     repository_result = _run(
         sys.executable,

@@ -60,6 +60,19 @@ def test_current_modes_do_not_overclaim_target_rollout() -> None:
         assert set(row["current_modes"]) <= set(row["target_modes"])
 
 
+def test_active_adapter_rollout_is_backed_by_real_implementation_and_conformance() -> None:
+    checker = _load_checker()
+    payload = checker.load_contract(CONTRACTS)
+
+    assert payload["adapter_rollout"] == {
+        "status": "active",
+        "routing_modes_field": "target_modes",
+        "implementation": ".claude/skills/which-cleanup/scripts/finding_envelope.py",
+        "conformance": "tests/test_finding_scope_conformance.py",
+    }
+    assert checker.validate_contract(ROOT, payload) == []
+
+
 def test_checker_rejects_missing_duplicate_and_stale_rows() -> None:
     checker = _load_checker()
     payload = checker.load_contract(CONTRACTS)

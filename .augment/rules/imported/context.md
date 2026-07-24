@@ -58,7 +58,8 @@ contract when a producer's target or diff semantics change.
 `which-cleanup/scripts/finding_envelope.py` owns the shared line-filter,
 path-seed, project-trigger, and scope-neutral adapters; producers must not grow
 independent hunk parsers. Target modes become router claims only after the
-all-producer and copied-library conformance gates pass.
+all-producer and copied-library conformance gates pass and the registry's
+`adapter_rollout` block activates them.
 
 ## Planning ladder
 

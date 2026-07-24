@@ -11,6 +11,12 @@
     ],
     "rule": "A diff either filters line-local findings, seeds wider analysis, or triggers project analysis. It never blindly clips semantic or project findings."
   },
+  "adapter_rollout": {
+    "status": "active",
+    "routing_modes_field": "target_modes",
+    "implementation": ".claude/skills/which-cleanup/scripts/finding_envelope.py",
+    "conformance": "tests/test_finding_scope_conformance.py"
+  },
   "skills": [
     {
       "skill": "find-async-lifecycle-drift",

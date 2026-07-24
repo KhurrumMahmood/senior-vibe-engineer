@@ -14,7 +14,18 @@ def load_scope_contracts(library_root: Path) -> dict[str, dict[str, Any]]:
         rows = payload["skills"]
         if payload.get("schema_version") != 1 or not isinstance(rows, list):
             raise TypeError("unsupported scope-contract schema")
-        contracts = {row["skill"]: row for row in rows}
+        rollout = payload.get("adapter_rollout")
+        active_modes = (
+            rollout.get("routing_modes_field")
+            if isinstance(rollout, dict) and rollout.get("status") == "active"
+            else "current_modes"
+        )
+        if active_modes not in {"current_modes", "target_modes"}:
+            raise TypeError("invalid active scope modes field")
+        contracts = {
+            row["skill"]: {**row, "_supported_modes_field": active_modes}
+            for row in rows
+        }
         if len(contracts) != len(rows):
             raise TypeError("duplicate scope-contract skill")
         return contracts
@@ -36,7 +47,7 @@ def recommendation_scan(
     request,
     contract: dict[str, Any] | None,
     *,
-    supported_modes_field: str = "current_modes",
+    supported_modes_field: str | None = None,
     allow_compatible_widening: bool = True,
 ) -> dict[str, Any]:
     """Return an honest effective mode for one recommended scanner."""
@@ -53,6 +64,10 @@ def recommendation_scan(
             "diff_semantics": None,
             "reason": "scope_contract_unavailable",
         }
+    if supported_modes_field is None:
+        supported_modes_field = contract.get(
+            "_supported_modes_field", "current_modes"
+        )
     if supported_modes_field not in {"current_modes", "target_modes"}:
         raise ValueError("supported modes field must be current_modes or target_modes")
     supported = contract[supported_modes_field]

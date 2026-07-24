@@ -268,7 +268,9 @@ artifact level, and keeps producer-specific evidence/detail inside each
 normalized finding. A new producer does not implement a second hunk parser or
 silently clip wider findings; add its contract row and make the all-producer
 conformance harness pass. Target modes are not routing claims until that
-rollout's real-family and copied-library gates are recorded in the active plan.
+rollout's real-family and copied-library gates are recorded in the active plan;
+the registry's `adapter_rollout` block then activates them without rewriting
+the native entrypoint-mode history.
 
 | Skill | What it detects | When |
 |---|---|---|
