@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7/F2C AC1-D1 reviewed-finding decision memory; AC1-S0 through AC1-S4 passed; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
-Last updated: 2026-07-23 (AC1-S4 all-producer scope conformance completed; AC1-D1 started)
+Current phase: P7/F2C AC1-C1 decision propagation, registry coverage, and deferred debt; AC1-S0 through AC1-D1 passed; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
+Last updated: 2026-07-23 (AC1-D1 reviewed-finding decision memory completed; AC1-C1 started)
 
 ## Objective
 
@@ -276,7 +276,7 @@ before changing status to `done`.
 | A3 — PHP/Ruby/Swift semantic read-only | `done_php_ruby_swift_tool_gap` | `4e3aa41`; PHP/Ruby branches retained; Swift research remains on `codex/f2-swift-semantic` | PHP `42f6236`; Ruby `b8f82cf` + ignored-fixture repair `10015fb`; publication `c7cee0b`; installed expectation `c00df4e`; Swift candidate `3e13061` removed from main by `20851c2` | PHP A3 `3 passed` plus preserved `112 passed`; Ruby A3 `14 passed` plus preserved `63 passed`; shared projection/router `94 passed`; committed installed routers `58 passed`; Swift root replay exceeded 360 seconds and its first semantic request remained unanswered after explicit indexing/workspace/readiness probes | PHP/Ruby accepted with explicit semantic boundaries; Swift's five rows remain pending under ML-026 and do not block independent PHP/Ruby downstream work |
 | A4 — PHP/Ruby/Swift proposal/guard | `done_php_ruby_swift_tool_gap` | `a3855b0`; PHP/Ruby branches retained; Swift deferred with ML-026 | PHP `0b38efa`; Ruby `98c80aa`; publication `2e7cc75` | PHP root `9 passed`; Ruby root `18 passed`; shared release/router `163 passed`; conformance `6 passed`; metadata `76/76`; artifact drift and commit hooks passed; committed installed routers `58 passed` | PHP/Ruby accepted without redetection; Swift opens only after a working A3 foundation |
 | A5 — Ruby mutation and Cohort A publication | `paused_for_ac1` | start from `2e7cc75`; serial | — | — | Preserve PHP's accepted move outcome; Ruby proves preview, authority, rollback, exact after-tree, and native checks; Swift remains separately tracked under ML-026 |
-| AC1 — Decision propagation and project coherence | `decision_memory_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10`, `c2c5b01`, `f8c5b2a`, `d630c8b`, `f8baf32` | Migration slice, reviewed plan, 30-producer contract, reusable request, scope pilot, and active all-producer adapters pass; S4 replay: `149 passed, 1 skipped`, `76/76` metadata, and all gates | AC1-D1 through M2 pass before A5 resumes; P8 still owns the complete prior-release stock-update replay |
+| AC1 — Decision propagation and project coherence | `coherence_audit_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10`, `c2c5b01`, `f8c5b2a`, `d630c8b`, `f8baf32`, `84ec7e5` | Migration, scope, and all-producer adapters pass; D1 adds append-only reviewed-finding memory, exact evidence-change resurfacing, and a real comment-drift loop. D1 replay: `205 passed, 1 skipped`; all hooks pass | AC1-C1 and M2 pass before A5 resumes; P8 still owns the complete prior-release stock-update replay |
 | B0 — Kotlin spine and C/C++ reuse decision | `pending_ac1` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
 | B1 — C/C++/Kotlin lexical-filesystem | `pending_b0` | TBD; three worktrees | — | — | Independent copied final outcomes under trustworthy language modes |
 | B2 — C/C++/Kotlin syntax | `pending_b1` | TBD; three worktrees | — | — | Native syntax facts and complete degraded-tool boundaries |
@@ -321,7 +321,7 @@ the concrete state-home and closeout incidents before broader language work:
   preservation of unrelated `.claude/`, `.engineering/`, and project files.
   Ambiguous or user-owned content requires an explicit human disposition and
   is never overwritten.
-- [ ] `/which-cleanup` preserves the originating diff selector and distinguishes
+- [x] `/which-cleanup` preserves the originating diff selector and distinguishes
   line-, file-, and project-scoped findings. A frozen fixture proves that the
   primary closeout verdict does not present unrelated pre-existing line
   findings as new work while retaining legitimate changed-file obligations.
@@ -372,8 +372,8 @@ weaken them.
 | AC1-S2 | One shared request resolves paths plus new-side changed-line ranges | `done:c2c5b01` | AC1-S1 | Efficient, diff-honest analysis |
 | AC1-S3 | Both cleanup routers and one real scanner prove selectable scope modes | `done:f8c5b2a` | AC1-S2 | Usable closeout journey without false attribution |
 | AC1-S4 | Every producer's declared modes work or fail honestly through the shared contract | `done:f8baf32` | AC1-S3 | Ecosystem-wide scope choice rather than one pilot |
-| AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `in_progress` | AC1-S3 | Avoid repeated compute and repeated human decisions |
-| AC1-C1 | Decision propagation, registry completeness, and deferred debt are auditable | `pending` | AC1-S4 and AC1-D1 | Project coherence in this kit and adopters |
+| AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `done:84ec7e5` | AC1-S3 | Avoid repeated compute and repeated human decisions |
+| AC1-C1 | Decision propagation, registry completeness, and deferred debt are auditable | `in_progress` | AC1-S4 and AC1-D1 | Project coherence in this kit and adopters |
 | AC1-M2 | A second real host-state migration proves skipped-release composition | `pending` | AC1-D1 or AC1-C1 supplies a real legacy move | Install/update lifecycle |
 | P8-U1 | A stock prior-release update journey passes at two exact public refs | `pending_p8` | final language release and AC1-M2 | Installation and repair UX |
 | P9-U2 | A convenience updater ships only if measured stock-path friction justifies it | `pending_p9` | P8-U1 measurements | Evidence-backed user-journey improvement |
@@ -559,44 +559,44 @@ Evidence:
 
 Acceptance:
 
-- [ ] The canonical committed human-decision surface is agent-neutral under
+- [x] The canonical committed human-decision surface is agent-neutral under
   `.engineering/quality/`; raw/local run artifacts remain separate. The schema
   and ownership boundary distinguish a raw finding from its reviewed decision.
-- [ ] The append-only event schema records detector ID/version, namespaced
+- [x] The append-only event schema records detector ID/version, namespaced
   finding kind, stable subject, evidence fingerprint and fingerprint version,
   disposition, rationale, reviewer, source scan, timestamps, and optional review
   trigger. Dispositions distinguish false positive, accepted debt, intentional
   exception, fixed, superseded, withdrawn, and review due.
-- [ ] A shared postprocessor—not one implementation per skill—supports validate,
+- [x] A shared postprocessor—not one implementation per skill—supports validate,
   record/withdraw, filter, and `--show-reviewed`. Missing, malformed, newer-
   schema, or version-incompatible decision data fails open by showing findings
   and an explicit warning; it never silently suppresses work.
-- [ ] A matching unchanged finding is absent from the default actionable list but
+- [x] A matching unchanged finding is absent from the default actionable list but
   remains counted and inspectable. Changed supporting evidence, detector
   fingerprint-semantics version, or subject identity re-surfaces it as review
   due. Ordinary toolkit releases do not invalidate decisions merely because a
   code version changed.
-- [ ] A prior `fixed` decision never suppresses a reappearing match; recurrence is
+- [x] A prior `fixed` decision never suppresses a reappearing match; recurrence is
   a regression. Conflicting active decisions, duplicate event IDs, or an invalid
   state transition fail open and are reported by validation.
-- [ ] Decision records do not copy secrets, complete source bodies, or unrelated
+- [x] Decision records do not copy secrets, complete source bodies, or unrelated
   project data. They retain the minimum normalized evidence needed for audit and
   fingerprinting; raw reports remain in their existing bounded artifact homes.
-- [ ] Scanner failures, incomplete coverage, unsupported-tool results, and
+- [x] Scanner failures, incomplete coverage, unsupported-tool results, and
   file-/project-level obligations can never be dismissed as if they were normal
   line findings.
-- [ ] The portable first version uses exact normalized evidence/context hashes
+- [x] The portable first version uses exact normalized evidence/context hashes
   and works across languages. AST/symbol normalization is an optional language
   adapter only after observed churn demonstrates need; the prior host-a Python
   prototype is reused selectively rather than made a universal prerequisite.
-- [ ] `find-comment-drift` proves the full record→filter→show→evidence-change
+- [x] `find-comment-drift` proves the full record→filter→show→evidence-change
   loop. A second semantic pilot is added only if it exercises a genuinely
   different stable-subject contract; otherwise it remains a tracked follow-up.
-- [ ] Every AC1-S4 producer can pass its normalized findings through the shared
+- [x] Every AC1-S4 producer can pass its normalized findings through the shared
   filter even when it has no decisions. AC1 does not require a new canonical
   store for every raw finding; it adds review memory, not a second copy of all
   scanner output.
-- [ ] The existing scan-level `triage_audit.py` either consumes the new decision
+- [x] The existing scan-level `triage_audit.py` either consumes the new decision
   events correctly or documents its distinct accountability role. The host-a-
   only idea-ledger adoption is corrected so it no longer implies this product
   already ships the capability.
@@ -605,7 +605,7 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | Decision ledger/filter tests + comment-drift final journey | — | — |
+| Decision schema, state transitions, filter, CLI, privacy, copied router, real comment-drift journey | `.venv/bin/python -m pytest -q tests/test_reviewed_findings.py tests/test_finding_scope_conformance.py tests/test_scan_request.py tests/test_scan_scope_contracts.py tests/test_cleanup_scope_pilot.py tests/test_triage_audit.py`; preserved real-family, router, repository-cleanup, and skill-comply suites | `205 passed, 1 skipped`; Ruff, decision validation, scope checker, diff check, and every staged hook passed | `84ec7e5` |
 
 #### AC1-C1 — Decision propagation, registry coverage, and deferred debt
 
@@ -1565,6 +1565,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P7/F2C AC1-D1 | Reviewed-finding decision memory completed | `84ec7e5` adds the agent-neutral `.engineering/quality` schema and one stdlib-only installed-router postprocessor for validate, record/withdraw, filter, and `--show-reviewed`. Only complete located line findings can be suppressed; exact evidence or subject change re-surfaces review, `fixed` recurrence is a regression, invalid/newer memory fails open, and decision events retain a hash rather than raw source. A real comment-drift record→filter→show→evidence-change loop, all 30 producer envelopes with no decisions, malformed/conflicting events, copied-router execution, and preserved routing/triage/family suites pass `205` tests with one intentional skip. The host-a-only AST pilot is scope-corrected rather than made a cross-language dependency. Begin AC1-C1. |
 | 2026-07-23 | P7/F2C AC1-S4 | All-producer scope adapters activated | `d630c8b` adds one artifact-level request plus normalized finding envelope and derives line-filter/path-seed/project-trigger/scope-neutral adapters from the 30 reviewed contracts. Every producer's auto/default and target modes, unclaimed-mode refusal, invalid/unlocated findings, and isolated copied layout pass. Real line, symbol/file, multi-site, and project/global fixtures pass `27`; they exposed the stale omnibus PHP/Ruby guard repaired at `a93825a`. `f8baf32` activates target modes without rewriting native entrypoint history. Full S4 replay: `149 passed, 1 skipped`; Ruff, scope checker, `76/76` metadata, diff checks, and hooks pass. Begin AC1-D1. |
 | 2026-07-23 | P7/F2C AC1-S3 | Selectable cleanup scope pilot completed | `f8c5b2a` keeps the normalized request self-contained in the installed router, projects one request through both cleanup entrypoints, filters `find-comment-drift` after one complete-file detection pass, widens non-line-local obligations transparently, retains deletion-only verification, refuses unsafe content-basis/path cases, and documents non-executing help. The exact targeted replay passes `210` tests with `1` intentional skip; Ruff, the 30-producer contract checker, diff checks, and every commit hook pass. Open AC1-S4; do not generalize from the one scanner without conformance evidence. |
 | 2026-07-23 | P7/F2C AC1-S2 | Shared scan request completed | `c2c5b01` plus `88bb6f0` resolve explicit/project and working-tree/staged/changed-from/commit/range selectors into one eager serializable request with new-side line ranges, content-basis safety, rename/deletion/binary facts, and structured failures. Focused closeout replay: `58 passed`; style and scope-contract gates pass. |
