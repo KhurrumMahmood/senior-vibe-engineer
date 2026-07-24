@@ -33,11 +33,24 @@ not_for: |
   fix in place).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /prevent-regression
+
+## Kotlin/JVM 2.4.10 exact-type guard
+
+Trigger this branch only from a fresh accepted Kotlin enum proposal and a
+second content-addressed migration acceptance. Keep sibling
+`_kotlin-semantic`, read
+[`../_kotlin-semantic/GUIDE.md`](../_kotlin-semantic/GUIDE.md), and enter through
+`scripts/stage_kotlin_state_guard.py`. It stages but never installs one
+compile-time exact-property-type assertion and proves an accepted buildable
+String reversion fails with the guard. It does not protect wire values,
+reflection, delegation, generated/plugin sources, Gradle variants,
+Java/framework/external callers, runtime behavior, JVM ABI, or general Kotlin
+lint coverage.
 
 ## C++20 branch
 

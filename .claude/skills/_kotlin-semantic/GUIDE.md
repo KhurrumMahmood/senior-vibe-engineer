@@ -37,3 +37,16 @@ Java sources/callers, expect/actual, `.kts`, framework registration, runtime
 reachability, deletion, behavioral equivalence, codemod safety, and mutation
 remain unavailable. Stale or mismatched facts produce a partial artifact with
 no promoted findings.
+
+## Accepted state proposal and guard
+
+These downstream consumers do not rerun detection. They require current facts,
+the exact upstream artifact, and separate content-addressed human acceptances:
+
+- `extract-enum`: `python3 -I -S "$SKILL_ROOT/scripts/collect_kotlin_state.py" --project-root "$PWD" --facts reports/kotlin-semantic/facts.json --findings reports/find-implicit-state/kotlin/findings.json --acceptance reports/find-implicit-state/kotlin/accepted-state.json --output-dir reports/extract-enum/kotlin/state`
+- `prevent-regression`: `python3 -I -S "$SKILL_ROOT/scripts/stage_kotlin_state_guard.py" --project-root "$PWD" --targets reports/extract-enum/kotlin/state/targets.json --accepted-migration reports/extract-enum/kotlin/state/accepted-migration.json --output-dir reports/prevent-regression/kotlin/state --kotlinc "$KOTLINC" --java "$JAVA"`
+
+The proposal is read-only. The guard is staged and native-verified but never
+installed. Human acceptance owns domain closure, serialization, Java/external
+callers, reflection, delegation, generated/plugin sources, Gradle variants,
+frameworks, and JVM ABI change; neither command creates that authority.

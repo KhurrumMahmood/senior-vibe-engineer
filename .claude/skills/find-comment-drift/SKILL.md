@@ -6,8 +6,8 @@ description: |
   Flags detached section banners, narration comments, missing or thin
   public class docstrings, stale terminology, JavaScript and TypeScript
   functions that deserve real JSDoc, thin ceremonial JSDoc, noisy HTML
-  comments, fragile doc references, bounded Go, Java, PHP, Ruby, Swift, Rust,
-  C, and C++ lexical-comment surfaces, and bounded Dart adjacent-doc/fixed-return
+  comments, fragile doc references, bounded Go, Java, Kotlin/JVM, PHP, Ruby,
+  Swift, Rust, C, and C++ lexical-comment surfaces, and bounded Dart adjacent-doc/fixed-return
   syntax.
 argument-hint: "[paths... | --scan-request FILE - no scope uses the legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
@@ -26,10 +26,21 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp, templates]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp, templates]
 ---
 
 # /find-comment-drift
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for manifest-selected authored `.kt` comments. Keep
+sibling `_kotlin`, read [`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter
+through `scripts/analyze_comments_kotlin.py`. It emits four lexical hygiene
+bands with exact comment spans and final advisory/clean artifacts. It does not
+associate comments with declarations or prove semantic/runtime drift; strings,
+tests, generated/vendor/build/tooling/symlink inputs, `.kts`, Java,
+annotations, plugins, Gradle variants, reflection, frameworks, and behavior
+remain outside the claim.
 
 ## Dart v1
 

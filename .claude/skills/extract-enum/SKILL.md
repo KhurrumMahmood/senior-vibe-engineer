@@ -1,6 +1,6 @@
 ---
 name: extract-enum
-description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or accepted Go, Java 17, PHP, Ruby, bounded Rust, or bounded Dart implicit-state evidence into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
+description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or accepted Go, Java 17, Kotlin/JVM, PHP, Ruby, bounded Rust, or bounded Dart implicit-state evidence into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
 argument-hint: "<implicit-state:ID or FILE::FIELD>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -28,11 +28,23 @@ not_for: |
   enumerations whose convention lacks fixture evidence.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /extract-enum
+
+## Kotlin/JVM 2.4.10 proposal
+
+Trigger this branch only from fresh pinned semantic facts, one exact
+`find-implicit-state` candidate, and content-addressed human acceptance. Keep
+sibling `_kotlin-semantic`, read
+[`../_kotlin-semantic/GUIDE.md`](../_kotlin-semantic/GUIDE.md), and enter through
+`scripts/collect_kotlin_state.py`. It emits one read-only, wire-preserving enum
+proposal; it does not mutate source. The deprecated K1 authority, reflection,
+delegation, generated/KAPT/KSP and plugin sources, Gradle variants,
+Java/framework/external callers, serialization, JVM ABI, and release safety
+remain explicit human gates.
 
 ## C++20 branch
 

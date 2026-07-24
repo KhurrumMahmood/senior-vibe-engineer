@@ -16,10 +16,13 @@ SPINE_REVISION = "c7c9b55686cf1b0738c052021329224a5ab2bf93"
 LEXICAL_REVISION = "28a49e8cb6af3bac81dc776e84b6be9a68a01d0e"
 SEMANTIC_REVISION = "bc08603b63e944d4dbf6e558553e2141d3d9275d"
 MOVE_REVISION = "5c4a97be223019e3b6ada967e904ed1ffacc9646"
+STATE_REVISION = "3d4751cef6aa620a4d9724f1d8070c6828064fa6"
+COMMENT_REVISION = "5c33e9383c969814805898590c1cb281ac88bcb5"
 LEXICAL_SKILLS = {
     "adapt-project",
     "audit-decisions",
     "explain-code",
+    "find-comment-drift",
     "find-complexity-hotspots",
     "find-concept-divergence",
     "find-duplication",
@@ -34,11 +37,9 @@ SEMANTIC_SKILLS = {
     "find-semantic-duplication",
     "rename-concept",
 }
+ACCEPTED_EVIDENCE_SKILLS = {"extract-enum", "prevent-regression"}
 PENDING_SKILLS = {
-    "extract-enum",
-    "find-comment-drift",
     "map-subsystem",
-    "prevent-regression",
     "propose-boundary",
     "propose-folder-reorganization",
     "unify-shadows",
@@ -47,6 +48,8 @@ ENTRYPOINTS = {
     "adapt-project": "scripts/discover_kotlin.py",
     "audit-decisions": "scripts/audit_kotlin.py",
     "explain-code": "scripts/explain_kotlin.py",
+    "extract-enum": "scripts/collect_kotlin_state.py",
+    "find-comment-drift": "scripts/analyze_comments_kotlin.py",
     "find-complexity-hotspots": "scripts/run_kotlin.py",
     "find-concept-divergence": "scripts/scan_kotlin.py",
     "find-dormant": "scripts/detect_kotlin_dormant.py",
@@ -58,6 +61,7 @@ ENTRYPOINTS = {
     "find-semantic-duplication": "scripts/detect_kotlin_semantic.py",
     "find-standard-gaps": "scripts/scan_coverage_kotlin.py",
     "move-path": "scripts/kotlin_source_move.py",
+    "prevent-regression": "scripts/stage_kotlin_state_guard.py",
     "rename-concept": "scripts/assess_kotlin_rename.py",
 }
 
@@ -88,11 +92,11 @@ def test_kotlin_partial_publication_keeps_unimplemented_outcomes_pending() -> No
     assert payload["minimum_jdk_version"] == "17.0.12"
     assert len(rows) == len(by_name) == 22
     assert Counter(row["disposition"] for row in rows) == {
-        "kotlin-supported": 15,
-        "kotlin-pending-implementation": 7,
+        "kotlin-supported": 18,
+        "kotlin-pending-implementation": 4,
     }
     assert set(payload["current_assertions"]["supported_skills"]) == (
-        LEXICAL_SKILLS | SEMANTIC_SKILLS | {"move-path"}
+        LEXICAL_SKILLS | SEMANTIC_SKILLS | ACCEPTED_EVIDENCE_SKILLS | {"move-path"}
     )
     assert set(payload["current_assertions"]["pending_skills"]) == PENDING_SKILLS
     assert {
@@ -105,8 +109,12 @@ def test_kotlin_partial_publication_keeps_unimplemented_outcomes_pending() -> No
         row = by_name[skill]
         assert row["disposition"] == "kotlin-supported"
         assert row["closure_mode"] == "external-library"
-        assert row["evidence_path"].endswith("kotlin-lexical-syntax-cohort.md")
-        assert row["reviewed_revision"] == LEXICAL_REVISION
+        if skill == "find-comment-drift":
+            assert row["evidence_path"].endswith("kotlin-find-comment-drift.md")
+            assert row["reviewed_revision"] == COMMENT_REVISION
+        else:
+            assert row["evidence_path"].endswith("kotlin-lexical-syntax-cohort.md")
+            assert row["reviewed_revision"] == LEXICAL_REVISION
     for skill in SEMANTIC_SKILLS:
         row = by_name[skill]
         assert row["disposition"] == "kotlin-supported"
@@ -114,6 +122,12 @@ def test_kotlin_partial_publication_keeps_unimplemented_outcomes_pending() -> No
         assert row["evidence_path"].endswith("kotlin-semantic-read-only.md")
         assert row["reviewed_revision"] == SEMANTIC_REVISION
         assert "K1" in " ".join(row["native_check"])
+    for skill in ACCEPTED_EVIDENCE_SKILLS:
+        row = by_name[skill]
+        assert row["disposition"] == "kotlin-supported"
+        assert row["closure_mode"] == "external-library"
+        assert row["evidence_path"].endswith("kotlin-state-proposal-guard.md")
+        assert row["reviewed_revision"] == STATE_REVISION
     move = by_name["move-path"]
     assert move["closure_mode"] == "stock-selected-install"
     assert move["evidence_path"].endswith("kotlin-move-path.md")
@@ -199,6 +213,9 @@ def test_each_published_kotlin_skill_declares_trigger_entrypoint_and_limits() ->
             assert "../_kotlin-semantic/GUIDE.md" in body, skill
             assert entrypoint in semantic_guide.read_text(encoding="utf-8"), skill
             assert "K1" in body, skill
+        elif skill in ACCEPTED_EVIDENCE_SKILLS:
+            assert "../_kotlin-semantic/GUIDE.md" in body, skill
+            assert entrypoint in semantic_guide.read_text(encoding="utf-8"), skill
         else:
             assert skill == "move-path"
             assert "content-addressed evidence" in body

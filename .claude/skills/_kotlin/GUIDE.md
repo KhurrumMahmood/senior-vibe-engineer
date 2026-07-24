@@ -12,6 +12,7 @@ Set `SKILL_ROOT=.agents/skills/on-demand/<skill>` and run one entrypoint:
 - `adapt-project`: `python3 -I -S "$SKILL_ROOT/scripts/discover_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --output-dir "$PWD/reports/adapt-project/kotlin" .`
 - `audit-decisions`: `python3 -I -S "$SKILL_ROOT/scripts/audit_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --target . --output-dir "$PWD/reports/audit-decisions/kotlin"`
 - `explain-code`: `python3 -I -S "$SKILL_ROOT/scripts/explain_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --target . --output "$PWD/reports/explanations/kotlin.md"`
+- `find-comment-drift`: `python3 -I -S "$SKILL_ROOT/scripts/analyze_comments_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --target src --output-dir "$PWD/reports/find-comment-drift/kotlin"`
 - `find-complexity-hotspots`: `python3 -I -S "$SKILL_ROOT/scripts/run_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --target src --output-dir "$PWD/reports/complexity-hotspots/kotlin"`
 - `find-concept-divergence`: `python3 -I -S "$SKILL_ROOT/scripts/scan_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --glossary "$PWD/.claude/contracts/concepts.json" --output "$PWD/reports/concept-divergence/kotlin/findings.jsonl" --report "$PWD/reports/concept-divergence/kotlin/report.md" .`
 - `find-duplication`: `python3 -I -S "$SKILL_ROOT/scripts/run_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --target src --output-dir "$PWD/reports/duplication/kotlin"`
