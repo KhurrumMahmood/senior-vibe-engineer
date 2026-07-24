@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7/F2C AC1 scope-contract planning and review; the migration vertical slice passed at `3bea2ae`; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
-Last updated: 2026-07-23 (AC1 scope, reviewed-finding memory, and update-path work packages added)
+Current phase: P7/F2C AC1-S2 shared scan request and Git diff facts; AC1-S0 passed at `0bc7df4` and AC1-S1 passed at `1340c10`; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
+Last updated: 2026-07-23 (AC1-S1 scope-contract inventory completed; AC1-S2 started)
 
 ## Objective
 
@@ -136,7 +136,7 @@ the committed integration revision.
 | F0 | Close Dart and normalize repository state | `done` | Root integrated serially; fresh non-context agents reviewed but did not publish shared truth | D5/D7 and D8 accepted; Dart published at 22/22; installed replay passed; anomaly branches retained; only useful checkouts remain |
 | F1 | Complete P6 reuse decisions | `done` | Three fresh non-context read-only comparison lanes; root owned the decision and shared reduction | `febc761`: promotion decision, frozen packet index, 65.80% lifecycle-surface reduction, Ruby/Rust semantics normalized, committed installed replay passed |
 | F2 | Complete PHP, Ruby, and Swift | `paused_for_f2c` | One fresh non-context worktree per language for the same family; maximum three; root integrates serially | All 22 jobs per language have accepted outcomes or strict reviewed exceptions; installed routes and native value suites pass |
-| F2C | Close the decision-propagation and project-coherence gaps reproduced in engineering-skills and host-a | `scope_contract_planning` | Root owns the contract and integration; up to three fresh non-context read-only inventories may audit decision impact, artifact homes, and host drift | AC1 criteria pass: one authoritative state-home decision, explicit propagation obligations, a versioned/reversible host-state migration path, diff-honest cleanup, register-or-exempt subsystem coverage, and durable deferred-debt projection |
+| F2C | Close the decision-propagation and project-coherence gaps reproduced in engineering-skills and host-a | `scan_request_in_progress` | Root owns the contract and integration; up to three fresh non-context read-only inventories may audit decision impact, artifact homes, and host drift | AC1 criteria pass: one authoritative state-home decision, explicit propagation obligations, a versioned/reversible host-state migration path, diff-honest cleanup, register-or-exempt subsystem coverage, and durable deferred-debt projection |
 | F3 | Complete C, C++, and Kotlin | `pending_f2c` | Kotlin spine first; then one worktree per language for the same family; maximum three | Separate C/C++ truth retained; Kotlin project boundary proven; all three languages meet the F2 outcome gate |
 | F4 | Complete C#/.NET last | `pending_f3` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | Roslyn/project facts, all 22 jobs, copied closures, native build/test/analyze, and installed routing pass |
 | F5 | Publish final language release | `pending_f4` | Root only | No coverage-level pending or partial rows; bounded supported contracts may still report explicit runtime partial configurations; public install/bootstrap/route/execute/cleanup/uninstall replay passes at one SHA |
@@ -276,7 +276,7 @@ before changing status to `done`.
 | A3 — PHP/Ruby/Swift semantic read-only | `done_php_ruby_swift_tool_gap` | `4e3aa41`; PHP/Ruby branches retained; Swift research remains on `codex/f2-swift-semantic` | PHP `42f6236`; Ruby `b8f82cf` + ignored-fixture repair `10015fb`; publication `c7cee0b`; installed expectation `c00df4e`; Swift candidate `3e13061` removed from main by `20851c2` | PHP A3 `3 passed` plus preserved `112 passed`; Ruby A3 `14 passed` plus preserved `63 passed`; shared projection/router `94 passed`; committed installed routers `58 passed`; Swift root replay exceeded 360 seconds and its first semantic request remained unanswered after explicit indexing/workspace/readiness probes | PHP/Ruby accepted with explicit semantic boundaries; Swift's five rows remain pending under ML-026 and do not block independent PHP/Ruby downstream work |
 | A4 — PHP/Ruby/Swift proposal/guard | `done_php_ruby_swift_tool_gap` | `a3855b0`; PHP/Ruby branches retained; Swift deferred with ML-026 | PHP `0b38efa`; Ruby `98c80aa`; publication `2e7cc75` | PHP root `9 passed`; Ruby root `18 passed`; shared release/router `163 passed`; conformance `6 passed`; metadata `76/76`; artifact drift and commit hooks passed; committed installed routers `58 passed` | PHP/Ruby accepted without redetection; Swift opens only after a working A3 foundation |
 | A5 — Ruby mutation and Cohort A publication | `paused_for_ac1` | start from `2e7cc75`; serial | — | — | Preserve PHP's accepted move outcome; Ruby proves preview, authority, rollback, exact after-tree, and native checks; Swift remains separately tracked under ML-026 |
-| AC1 — Decision propagation and project coherence | `scope_contract_planning` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae` | Self-host schema 1→2 apply then no-op status; focused/copy/install boundary `65 passed, 1 skipped`; Ruff and ADR link-check pass; the unrelated stale-proposed ADR aging audit remains red on 0016–0024 | Remaining AC1 criteria and the detailed work-package gate below pass before A5 resumes; P8 still owns the complete prior-release stock-update replay |
+| AC1 — Decision propagation and project coherence | `scan_request_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10` | Migration vertical slice plus scope/review plan and 30-producer current/target scope inventory pass; `38` focused scope/contract tests and the pre-commit contract gate pass | AC1-S2 through M2 pass before A5 resumes; P8 still owns the complete prior-release stock-update replay |
 | B0 — Kotlin spine and C/C++ reuse decision | `pending_ac1` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
 | B1 — C/C++/Kotlin lexical-filesystem | `pending_b0` | TBD; three worktrees | — | — | Independent copied final outcomes under trustworthy language modes |
 | B2 — C/C++/Kotlin syntax | `pending_b1` | TBD; three worktrees | — | — | Native syntax facts and complete degraded-tool boundaries |
@@ -367,9 +367,9 @@ weaken them.
 
 | ID | Outcome | Status | Depends on | Product goal protected |
 |---|---|---|---|---|
-| AC1-S0 | Scope/review-memory plan frozen and adversarially reviewed | `done:pending_commit` | migration slice `3bea2ae` | Prevent non-goal hardening and ambiguous completion |
-| AC1-S1 | Every finding-producing skill has an explicit scan-scope contract | `pending` | AC1-S0 | Language-neutral execution truth |
-| AC1-S2 | One shared request resolves paths plus new-side changed-line ranges | `pending` | AC1-S1 | Efficient, diff-honest analysis |
+| AC1-S0 | Scope/review-memory plan frozen and adversarially reviewed | `done:0bc7df4` | migration slice `3bea2ae` | Prevent non-goal hardening and ambiguous completion |
+| AC1-S1 | Every finding-producing skill has an explicit scan-scope contract | `done:1340c10` | AC1-S0 | Language-neutral execution truth |
+| AC1-S2 | One shared request resolves paths plus new-side changed-line ranges | `in_progress` | AC1-S1 | Efficient, diff-honest analysis |
 | AC1-S3 | Both cleanup routers and one real scanner prove selectable scope modes | `pending` | AC1-S2 | Usable closeout journey without false attribution |
 | AC1-S4 | Every producer's declared modes work or fail honestly through the shared contract | `pending` | AC1-S3 | Ecosystem-wide scope choice rather than one pilot |
 | AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `pending` | AC1-S3 | Avoid repeated compute and repeated human decisions |
@@ -406,35 +406,35 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | This section plus **AC1 plan review record** below | — | — |
+| Plan/review | This section plus **AC1 plan review record** below; commit hooks | Reviewed/repaired; hook suite passed | `0bc7df4` |
 
 #### AC1-S1 — Finding-producer scope contract
 
 Acceptance:
 
-- [ ] A machine-readable inventory accounts for every top-level `find-*` skill
+- [x] A machine-readable inventory accounts for every top-level `find-*` skill
   directory. Each row is either an executable finding producer or carries a
   reviewed `not-applicable` reason; the inventory checker fails on missing,
   duplicate, or stale skill rows.
-- [ ] Every producer declares supported modes from `diff-lines`,
+- [x] Every producer declares supported modes from `diff-lines`,
   `changed-files`, `paths`, and `project`; one supported default; finding
   granularity from `line`, `symbol`, `file`, `multi-site`, or `project`; and
   diff semantics from `filter-findings`, `seed-analysis`, `trigger-analysis`,
   or `not-applicable`.
-- [ ] The contract explains how legitimate obligations outside a changed hunk
+- [x] The contract explains how legitimate obligations outside a changed hunk
   remain visible. A semantic, multi-site, or project finding is never hunk-
   clipped merely because its primary line is unchanged.
-- [ ] Existing project-wide and per-skill roots/ignores are either consumed or
+- [x] Existing project-wide and per-skill roots/ignores are either consumed or
   explicitly declared unsupported by each producer. No producer silently calls
   itself project-scoped while bypassing the shared file-universe rules.
-- [ ] Scope precedence is explicit: safety exclusions and project containment
+- [x] Scope precedence is explicit: safety exclusions and project containment
   always apply; project/skill ignores apply by default; an explicit path does
   not silently override an ignore. Any deliberate include-ignored override is
   separately named, previewed, and limited to an in-project path.
-- [ ] The initial classifications receive a bounded human review by behavior
+- [x] The initial classifications receive a bounded human review by behavior
   family (line-local, symbol/file semantic, multi-site/history, project/global),
   rather than 76 bespoke skill-design exercises.
-- [ ] Contributor guidance explains when to add or revise a scope-contract row,
+- [x] Contributor guidance explains when to add or revise a scope-contract row,
   and conformance tests make a newly added `find-*` skill fail until accounted
   for.
 
@@ -442,7 +442,8 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | Scope-contract inventory + checker + focused tests | — | — |
+| Inventory completeness and schema | `.venv/bin/python scripts/check_scan_scope_contracts.py`; `.venv/bin/python -m pytest -q tests/test_scan_scope_contracts.py tests/test_scope.py` | `OK (30 find-* skills)`; `38 passed` | `1340c10` |
+| Commit guard and style | `.venv/bin/pre-commit run scan-scope-contract --all-files`; `.venv/bin/ruff check scripts/check_scan_scope_contracts.py tests/test_scan_scope_contracts.py` | Passed; passed | `1340c10` |
 
 #### AC1-S2 — Shared scan request and Git diff facts
 
@@ -459,6 +460,10 @@ Acceptance:
 - [ ] The resolver supports working tree (unstaged, staged, and untracked),
   staged, changed-from, one commit including a root commit, and a commit range.
   Explicit paths and project mode do not pretend to have changed-line ranges.
+- [ ] The request records the content basis for its new-side ranges. Staged,
+  commit, and range selectors detect when the current working-tree bytes differ
+  from that basis; `diff-lines` then refuses or degrades explicitly rather than
+  applying snapshot line numbers to different content.
 - [ ] Frozen fixtures cover ordinary edits, multiple hunks, added files,
   untracked files, deletion-only changes, renames, paths containing spaces,
   binary changes, invalid refs, and a non-Git explicit-path project. Unsafe
@@ -1525,6 +1530,7 @@ Evidence:
 
 | Date | Phase | Change | Reason/evidence | User decision |
 |---|---|---|---|---|
+| 2026-07-23 | P7/F2C AC1-S2 | Require each diff request to declare its content basis and detect staged/historical snapshot drift before line filtering | Staged hunk numbers describe the index, and commit/range hunk numbers describe a selected tree; a scanner normally reads the working tree. Without an equality/safety check, a valid hunk range could filter the wrong current lines when unstaged or later edits exist | Criteria strengthened during test-first implementation under the owner's instruction to add what final verification requires |
 | 2026-07-23 | P7/F2C AC1 | Pause Ruby A5 and execute the bounded coherence plan now; add explicit producer scope modes, ecosystem rollout, reviewed-finding memory, decision propagation, one second real migration, the later stock update replay, and a measured updater gate | The owner requested a verifiable plan, review, and immediate start after confirming that file scope, diff attribution, and previously reviewed false flags were still unresolved. The review added an all-producer rollout so one pilot cannot masquerade as ecosystem completion, while preserving the installer → languages → measured-journey product order | Owner said “plan all this out properly… review… and then… start working on it” |
 | 2026-07-23 | P7/F2C | Execute the lean schema-1→2 migration vertical slice before Ruby A5, then resume the original queue while the remaining AC1 criteria stay open | `3bea2ae` proves one real preview/apply/resume/restore lifecycle, migrates the self-host manifest, moves the legacy subsystem registry in disposable/copied hosts, and updates actual registry consumers. It does not claim the P8 multi-step release-upgrade journey | Owner said “Let's try it out” after approving the versioned migration design |
 | 2026-07-23 | P7/F2C-P8 | Add a bounded versioned host-state migration protocol and prior-release upgrade replay; keep toolkit distribution on stock installer/Git paths | The external-library bootstrap currently reuses any structurally valid checkout forever, while the manifest only detects an exact schema mismatch and refers to nonexistent migration guidance. Moving canonical host state from `.claude/` to `.engineering/` would otherwise strand or silently fork every existing consumer | Owner explicitly identified the need for a migration protocol and a general release-to-release update system |
@@ -1548,6 +1554,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P7/F2C AC1-S1 | Finding-producer scope contract completed | `1340c10` adds one source-of-truth registry for all 30 top-level `find-*` skills, reviewed by line-local, symbol/file semantic, multi-site/history, and project/global families. It separates observed current modes from target rollout modes, records shared/custom scope behavior, adds a checker and pre-commit guard, and documents contributor updates. Focused scope/contract replay: `38 passed`; checker, Ruff, and hook pass. AC1-S2 starts with content-basis safety added after implementation review. |
 | 2026-07-23 | P7/F2C AC1-S0 | Scope/review-memory plan completed and repaired after a separate adversarial pass | The detailed ledger distinguishes file universe, selector, analysis semantics, and review memory; defines S1-S4/D1/C1/M2 plus P8/P9 gates; and dispositions eight review questions. The review caught the missing all-producer rollout, scope precedence and multi-line gaps, stale/fixed-decision suppression risks, source-evidence privacy, missing installed-library handoff behavior, repeated-compute hazards, and marker-only migration risk. Begin AC1-S1 test-first. |
 | 2026-07-23 | P7/F2C | Schema-2 host-state migration vertical slice completed | `3bea2ae`: stock/Git distribution remains separate; `scripts/host_migrations.py` reports toolkit HEAD/dirty and host schema, previews exact operations, applies one ordered migration, resumes either side of the manifest write, refuses collisions/newer schemas/unsafe path shapes, and restores unchanged bytes from an ignored local journal. The self-host manifest is current at schema 2; canonical and warned-legacy cleanup consumers pass. Focused boundary: `65 passed, 1 skipped`, Ruff clean, ADR links clean. The repository-wide ADR aging audit is still red on eight pre-existing proposed decisions (0016–0024), tracked for the remaining AC1 self-audit rather than silently reclassified. Resume Ruby A5. |
 | 2026-07-23 | P7/F2C-P8 | Release/update analysis exposed a missing host-state lifecycle | Existing bootstrap clones once and reuses a merely structural checkout; manifest v1 detects mismatch but has no migration runner. AC1 now freezes code-vs-state version axes and dogfoods the first legacy-state move; P8 must replay a real prior-release upgrade before any convenience updater is considered. |
