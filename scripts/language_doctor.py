@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import os
 import re
@@ -43,6 +44,30 @@ FALLBACK_VERSION_PATTERN = re.compile(rf"(?<![0-9])({VERSION_TOKEN})(?![0-9])")
 
 class DoctorError(ValueError):
     """A doctor request is invalid or cannot be inspected safely."""
+
+
+def _project_markers(
+    profile: LanguageProfile,
+    root: Path,
+) -> tuple[dict[str, object], bool]:
+    present: list[str] = []
+    matches: dict[str, list[str]] = {}
+    for marker in profile.project_markers:
+        if glob.has_magic(marker):
+            matches[marker] = [
+                candidate.relative_to(root).as_posix()
+                for candidate in sorted(root.glob(marker))
+                if candidate.is_file() and not candidate.is_symlink()
+            ]
+        elif (root / marker).is_file() and not (root / marker).is_symlink():
+            present.append(marker)
+    payload: dict[str, object] = {
+        "declared": list(profile.project_markers),
+        "present": present,
+    }
+    if matches:
+        payload["matches"] = matches
+    return payload, bool(present or any(matches.values()))
 
 
 def _project_root(path: Path) -> Path:
@@ -225,15 +250,13 @@ def inspect_language(
 ) -> dict[str, object]:
     """Inspect one strict profile without changing the audited project."""
     root = _project_root(project_root)
-    present_markers = [
-        marker for marker in profile.project_markers if (root / marker).is_file()
-    ]
+    project_markers, project_metadata_present = _project_markers(profile, root)
     tools = [
         _inspect_tool(tool, root, timeout_seconds=timeout_seconds)
         for tool in profile.native_tools
     ]
     status, reasons = _capability_status(
-        tools, project_metadata_present=bool(present_markers)
+        tools, project_metadata_present=project_metadata_present
     )
     return {
         "schema_version": SCHEMA_VERSION,
@@ -242,10 +265,7 @@ def inspect_language(
         "project_root": str(root),
         "status": status,
         "status_reasons": reasons,
-        "project_markers": {
-            "declared": list(profile.project_markers),
-            "present": present_markers,
-        },
+        "project_markers": project_markers,
         "fact_tiers": list(profile.fact_tiers),
         "tools": tools,
         "explicit_limits": list(profile.explicit_limits),

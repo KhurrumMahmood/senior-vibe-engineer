@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "language": "csharp",
+  "suffixes": [".cs"],
+  "project_markers": ["*.csproj"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
+    "test_file_globs": ["*Test.cs", "*Tests.cs", "*.Tests.cs"],
+    "declaration_file_globs": [],
+    "configuration_files": []
+  },
+  "native_tools": [
+    {
+      "id": "dotnet",
+      "project_paths": [".dotnet/dotnet", "dotnet/dotnet"],
+      "system_commands": ["dotnet"],
+      "version_argv": ["{tool}", "--version"],
+      "minimum_version": "10.0.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem"],
+  "verification_commands": [
+    {
+      "id": "restore",
+      "argv": ["{tool:dotnet}", "restore", "{project_root}", "--configfile", "{project_root}/NuGet.Config", "--ignore-failed-sources", "--nologo"],
+      "requires": ["dotnet"]
+    },
+    {
+      "id": "build",
+      "argv": ["{tool:dotnet}", "build", "{project_root}", "--no-restore", "--configuration", "Release", "--nologo", "--verbosity", "minimal"],
+      "requires": ["dotnet"]
+    },
+    {
+      "id": "native-test",
+      "argv": ["{tool:dotnet}", "run", "--project", "{project_root}", "--configuration", "Release", "--no-build", "--no-restore", "--", "--self-test"],
+      "requires": ["dotnet"]
+    },
+    {
+      "id": "smoke",
+      "argv": ["{tool:dotnet}", "run", "--project", "{project_root}", "--configuration", "Release", "--no-build", "--no-restore"],
+      "requires": ["dotnet"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "Shared inventory recognizes the case-normalized .cs suffix; the complete provider gate accepts only exact lowercase .cs compile items in one root SDK-style .csproj pinned by global.json to an installed .NET 10 SDK. It does not claim solutions, multiple projects, project references, packages, workloads, analyzers, source generators, alternate target frameworks, conditional item groups, implicit compile items, wildcard compile items, ASP.NET, desktop, mobile, Unity, or legacy project formats.",
+    "NuGet.Config must clear all package sources. The provider restores only an ephemeral project copy and then uses dotnet build and dotnet run with --no-restore; no network access, dependency acquisition, host obj/bin mutation, or workload installation is permitted.",
+    "The SDK-bundled Roslyn compiler is authoritative only for the observed project compilation result. This foundation does not consume Roslyn APIs and exposes no declarations, symbols, references, calls, types, control flow, data flow, generated-source facts, or rewrite safety.",
+    "A *.csproj doctor match proves only that project metadata exists. Complete project evidence additionally requires one exact root project, an exact compile-item closure, a matching global.json SDK version, an offline NuGet configuration, native self-test success, and executable smoke success."
+  ]
+}
