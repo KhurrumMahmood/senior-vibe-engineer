@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7/F2C AC1-S4 all-producer scope conformance; AC1-S0 through AC1-S3 passed; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
-Last updated: 2026-07-23 (AC1-S3 cleanup scope pilot completed; AC1-S4 started)
+Current phase: P7/F2C AC1-D1 reviewed-finding decision memory; AC1-S0 through AC1-S4 passed; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
+Last updated: 2026-07-23 (AC1-S4 all-producer scope conformance completed; AC1-D1 started)
 
 ## Objective
 
@@ -276,7 +276,7 @@ before changing status to `done`.
 | A3 — PHP/Ruby/Swift semantic read-only | `done_php_ruby_swift_tool_gap` | `4e3aa41`; PHP/Ruby branches retained; Swift research remains on `codex/f2-swift-semantic` | PHP `42f6236`; Ruby `b8f82cf` + ignored-fixture repair `10015fb`; publication `c7cee0b`; installed expectation `c00df4e`; Swift candidate `3e13061` removed from main by `20851c2` | PHP A3 `3 passed` plus preserved `112 passed`; Ruby A3 `14 passed` plus preserved `63 passed`; shared projection/router `94 passed`; committed installed routers `58 passed`; Swift root replay exceeded 360 seconds and its first semantic request remained unanswered after explicit indexing/workspace/readiness probes | PHP/Ruby accepted with explicit semantic boundaries; Swift's five rows remain pending under ML-026 and do not block independent PHP/Ruby downstream work |
 | A4 — PHP/Ruby/Swift proposal/guard | `done_php_ruby_swift_tool_gap` | `a3855b0`; PHP/Ruby branches retained; Swift deferred with ML-026 | PHP `0b38efa`; Ruby `98c80aa`; publication `2e7cc75` | PHP root `9 passed`; Ruby root `18 passed`; shared release/router `163 passed`; conformance `6 passed`; metadata `76/76`; artifact drift and commit hooks passed; committed installed routers `58 passed` | PHP/Ruby accepted without redetection; Swift opens only after a working A3 foundation |
 | A5 — Ruby mutation and Cohort A publication | `paused_for_ac1` | start from `2e7cc75`; serial | — | — | Preserve PHP's accepted move outcome; Ruby proves preview, authority, rollback, exact after-tree, and native checks; Swift remains separately tracked under ML-026 |
-| AC1 — Decision propagation and project coherence | `producer_conformance_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10`, `c2c5b01`, `f8c5b2a` | Migration slice, reviewed plan, 30-producer contract, reusable request, and the installed/repository scope-mode pilot pass; final S3 replay: `210 passed, 1 skipped` plus all style/contract/commit gates | AC1-S4 through M2 pass before A5 resumes; P8 still owns the complete prior-release stock-update replay |
+| AC1 — Decision propagation and project coherence | `decision_memory_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10`, `c2c5b01`, `f8c5b2a`, `d630c8b`, `f8baf32` | Migration slice, reviewed plan, 30-producer contract, reusable request, scope pilot, and active all-producer adapters pass; S4 replay: `149 passed, 1 skipped`, `76/76` metadata, and all gates | AC1-D1 through M2 pass before A5 resumes; P8 still owns the complete prior-release stock-update replay |
 | B0 — Kotlin spine and C/C++ reuse decision | `pending_ac1` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
 | B1 — C/C++/Kotlin lexical-filesystem | `pending_b0` | TBD; three worktrees | — | — | Independent copied final outcomes under trustworthy language modes |
 | B2 — C/C++/Kotlin syntax | `pending_b1` | TBD; three worktrees | — | — | Native syntax facts and complete degraded-tool boundaries |
@@ -371,8 +371,8 @@ weaken them.
 | AC1-S1 | Every finding-producing skill has an explicit scan-scope contract | `done:1340c10` | AC1-S0 | Language-neutral execution truth |
 | AC1-S2 | One shared request resolves paths plus new-side changed-line ranges | `done:c2c5b01` | AC1-S1 | Efficient, diff-honest analysis |
 | AC1-S3 | Both cleanup routers and one real scanner prove selectable scope modes | `done:f8c5b2a` | AC1-S2 | Usable closeout journey without false attribution |
-| AC1-S4 | Every producer's declared modes work or fail honestly through the shared contract | `in_progress` | AC1-S3 | Ecosystem-wide scope choice rather than one pilot |
-| AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `pending` | AC1-S3 | Avoid repeated compute and repeated human decisions |
+| AC1-S4 | Every producer's declared modes work or fail honestly through the shared contract | `done:f8baf32` | AC1-S3 | Ecosystem-wide scope choice rather than one pilot |
+| AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `in_progress` | AC1-S3 | Avoid repeated compute and repeated human decisions |
 | AC1-C1 | Decision propagation, registry completeness, and deferred debt are auditable | `pending` | AC1-S4 and AC1-D1 | Project coherence in this kit and adopters |
 | AC1-M2 | A second real host-state migration proves skipped-release composition | `pending` | AC1-D1 or AC1-C1 supplies a real legacy move | Install/update lifecycle |
 | P8-U1 | A stock prior-release update journey passes at two exact public refs | `pending_p8` | final language release and AC1-M2 | Installation and repair UX |
@@ -526,23 +526,23 @@ Evidence:
 
 Acceptance:
 
-- [ ] Every executable producer from AC1-S1 consumes the shared request directly
+- [x] Every executable producer from AC1-S1 consumes the shared request directly
   or through one declared adapter. Claimed modes are executable behavior, not
   documentation-only metadata; unsupported modes return an explicit structured
   refusal and the coordinator selects only supported modes.
-- [ ] A conformance harness exercises every producer's default plus each claimed
+- [x] A conformance harness exercises every producer's default plus each claimed
   non-default mode using a minimal fixture/fake finding envelope. At least one
   real scanner from each behavior family proves its final user-facing artifact:
   line-local, symbol/file semantic, multi-site/history, and project/global.
-- [ ] A normalized finding artifact carries the originating scan request once;
+- [x] A normalized finding artifact carries the originating scan request once;
   each finding envelope carries namespaced kind, stable subject, path, optional
   line range, evidence fields, completeness/error state, and producer-specific
   detail. The protocol does not repeat a potentially large request per finding
   or force one universal finding taxonomy.
-- [ ] The rollout reuses the external on-demand library. The default ambient
+- [x] The rollout reuses the external on-demand library. The default ambient
   install remains exactly three routers, and a copied-library conformance run
   proves no repository-relative imports or hidden host configuration are needed.
-- [ ] Contributor docs and every generated catalog/matrix that publishes scope
+- [x] Contributor docs and every generated catalog/matrix that publishes scope
   fields are refreshed from the same committed truth (none are invented merely
   to satisfy this criterion). Drift/conformance checks fail if a producer is
   added or its claimed modes change without matching implementation evidence.
@@ -551,7 +551,9 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | All-producer scope conformance + four final-artifact fixtures | — | — |
+| All 30 producers: auto/default, every target mode, structured refusal, invalid/unlocated envelopes, copied isolated adapter | `.venv/bin/python -m pytest -q tests/test_finding_scope_conformance.py tests/test_scan_scope_contracts.py` | Passed; active rollout guarded by the scope-contract checker | `d630c8b`, `f8baf32` |
+| Real line-local, symbol/file, multi-site/history, and project/global final artifacts | `.venv/bin/python -m pytest -q tests/test_cleanup_scope_pilot.py tests/test_omnibus_typescript.py tests/test_find_duplication_typescript.py tests/test_perimeter_gaps.py` | `27 passed`; caught and repaired one stale omnibus language guard | `a93825a` |
+| Complete S4 routing/install/conformance replay | S4 suites plus installed routers and both cleanup-router suites; targeted Ruff; scope checker; metadata lint; diff check | `149 passed, 1 skipped`; all checks passed; `OK (30 find-* skills)`; `76/76` | `f8baf32` |
 
 #### AC1-D1 — Reviewed-finding decision memory
 
@@ -1563,6 +1565,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P7/F2C AC1-S4 | All-producer scope adapters activated | `d630c8b` adds one artifact-level request plus normalized finding envelope and derives line-filter/path-seed/project-trigger/scope-neutral adapters from the 30 reviewed contracts. Every producer's auto/default and target modes, unclaimed-mode refusal, invalid/unlocated findings, and isolated copied layout pass. Real line, symbol/file, multi-site, and project/global fixtures pass `27`; they exposed the stale omnibus PHP/Ruby guard repaired at `a93825a`. `f8baf32` activates target modes without rewriting native entrypoint history. Full S4 replay: `149 passed, 1 skipped`; Ruff, scope checker, `76/76` metadata, diff checks, and hooks pass. Begin AC1-D1. |
 | 2026-07-23 | P7/F2C AC1-S3 | Selectable cleanup scope pilot completed | `f8c5b2a` keeps the normalized request self-contained in the installed router, projects one request through both cleanup entrypoints, filters `find-comment-drift` after one complete-file detection pass, widens non-line-local obligations transparently, retains deletion-only verification, refuses unsafe content-basis/path cases, and documents non-executing help. The exact targeted replay passes `210` tests with `1` intentional skip; Ruff, the 30-producer contract checker, diff checks, and every commit hook pass. Open AC1-S4; do not generalize from the one scanner without conformance evidence. |
 | 2026-07-23 | P7/F2C AC1-S2 | Shared scan request completed | `c2c5b01` plus `88bb6f0` resolve explicit/project and working-tree/staged/changed-from/commit/range selectors into one eager serializable request with new-side line ranges, content-basis safety, rename/deletion/binary facts, and structured failures. Focused closeout replay: `58 passed`; style and scope-contract gates pass. |
 | 2026-07-23 | P7/F2C AC1-S1 | Finding-producer scope contract completed | `1340c10` adds one source-of-truth registry for all 30 top-level `find-*` skills, reviewed by line-local, symbol/file semantic, multi-site/history, and project/global families. It separates observed current modes from target rollout modes, records shared/custom scope behavior, adds a checker and pre-commit guard, and documents contributor updates. Focused scope/contract replay: `38 passed`; checker, Ruff, and hook pass. AC1-S2 starts with content-basis safety added after implementation review. |
