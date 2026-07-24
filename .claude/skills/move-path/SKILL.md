@@ -1,6 +1,6 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked Kotlin supports one same-package authored .kt source-location move with compiler-proved JVM identity; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move; checked Ruby supports one evidence-authorized plain-gem module file move with Prism-attributed edits; checked Dart supports one evidence-authorized private library file or leaf-directory move with analyzer-resolved directive rewrites and public-barrel preservation. TypeScript/TSX source imports are never rewritten in v1.
+description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked Kotlin supports one same-package authored .kt source-location move with compiler-proved JVM identity; checked C# supports one same-namespace, same-filename authored .cs implementation-file location move in one strict dependency-free net10.0 executable project; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move; checked Ruby supports one evidence-authorized plain-gem module file move with Prism-attributed edits; checked Dart supports one evidence-authorized private library file or leaf-directory move with analyzer-resolved directive rewrites and public-barrel preservation. TypeScript/TSX source imports are never rewritten in v1.
 argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -23,6 +23,9 @@ best_for: |
   file or directory move in a regular Cargo library target.
   Use the checked-Ruby mode only for one reviewed plain-gem module file move
   with explicit before/after constant identities and native test/smoke outputs.
+  Use the checked-C# mode only for one reviewed same-filename implementation
+  file location move in one strict dependency-free net10.0 executable project
+  whose namespace, type, assembly, source bytes, and native outcomes stay exact.
   Use the checked-Dart mode only for one reviewed private `lib/src` library
   file or leaf-directory move in a dependency-free Dart 3.12 package with a
   pre-existing package configuration, direct native test/smoke, and declared
@@ -36,7 +39,7 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [c, cpp, dart, go, java, javascript, kotlin, php, ruby, rust, swift, typescript]
+scans: [c, cpp, csharp, dart, go, java, javascript, kotlin, php, ruby, rust, swift, typescript]
 ---
 
 # /move-path
@@ -53,6 +56,34 @@ are mandatory. The adapter refuses `@file`/multifile identity, reflection or
 callable/path/resource use, delegation/framework markers, generated/plugin or
 `.kts` inputs, Gradle variants, Java/external consumers, package/ABI changes,
 and multiple or directory moves.
+
+## Checked C# source-location move
+
+Use the copied standalone `scripts/csharp_source_move.py` only for one authored
+`.cs` implementation file below `src/` in one strict, dependency-free
+`net10.0` executable project. Keep the filename, source bytes, file-scoped
+namespace, internal top-level type identity, `AssemblyName`, and
+`RootNamespace` unchanged. The only accepted project edit replaces the exact
+explicit `Compile Include` source path with its destination.
+
+Dry-run requires one root SDK-style `.csproj`, an exact authored `src/` plus
+`tests/` compile closure, an exact stable .NET 10 `global.json`, and a
+`NuGet.Config` that clears every source. It runs offline restore, build, direct
+self-test, and exact-output smoke in disposable copies for both the current and
+virtual after-tree, then writes content-addressed `evidence.json`. Apply must
+receive that evidence and its exact SHA-256, recompute it, mutate
+transactionally, repeat the disposable native boundary, reject old-path or
+exact-tree drift, and restore the complete byte/mode/symlink snapshot on any
+post-mutation failure. Run `--check` against the approved after-state.
+
+Stop before writes for namespace, type, filename, source-byte, assembly, public
+API/ABI, or external-consumer claims; public/partial/file-local types;
+reflection, runtime path, resource, interop, or preprocessor uncertainty
+involving the moved identity; generated, vendor, build, tooling, test, script,
+mixed-language, or symlink sources; packages, project references, generators,
+analyzers, workloads, imported build metadata, solutions, multiple projects,
+multiple moves, and directory moves. This branch proves one closed executable
+outcome; it is not a library compatibility or general C# refactoring engine.
 
 ## C++20 branch
 
@@ -73,7 +104,7 @@ Directory or public-header moves, symbol renames, arbitrary build systems,
 inactive macro variants, ABI guarantees, and external completeness are refused.
 
 You are the orchestrator for safe batched standalone TypeScript/TSX path
-moves, plus opt-in bounded checked-Dart, JavaScript, Go, Java, PHP, Ruby, Rust, and SwiftPM modes. The deterministic
+moves, plus opt-in bounded checked-C#, checked-Dart, JavaScript, Go, Java, PHP, Ruby, Rust, and SwiftPM modes. The deterministic
 script owns filesystem moves, path normalization, reference resolution, patch
 generation, and verification. Your job is to prepare or inspect the plan, run
 dry-run first, review uncertainty buckets and ignored-import risk, then apply
@@ -322,6 +353,42 @@ inside the audited host.
 The installed/on-demand command resolves either supported agent location and
 therefore does not assume a repository-local `.claude/skills` tree.
 
+For C#, invoke the copied standalone adapter. Dry-run produces the reviewed
+evidence hash; apply must repeat that exact hash explicitly:
+
+<!-- installed-command:csharp-move:start -->
+```bash
+MOVE_PLAN="${MOVE_PLAN:-moves.json}"
+MOVE_MODE="${MOVE_MODE:---dry-run}" # --dry-run | --apply | --check
+MOVE_REPORT_DIR="${MOVE_REPORT_DIR:-reports/move-path}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/move-path" \
+  ".agents/skills/move-path" \
+  ".claude/skills/move-path"
+do
+  if [ -f "${SKILL_CANDIDATE}/scripts/csharp_source_move.py" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "C# move-path closure is not installed" >&2
+  exit 2
+fi
+CSHARP_ARGS=(--plan "${MOVE_PLAN}" --project-root "$(pwd)" \
+  --report-dir "${MOVE_REPORT_DIR}" "${MOVE_MODE}" --json)
+if [ "${MOVE_MODE}" = "--apply" ]; then
+  : "${APPROVED_EVIDENCE_SHA256:?Set from the reviewed dry-run evidence}"
+  CSHARP_ARGS+=(--evidence "${MOVE_REPORT_DIR}/evidence.json" \
+    --approve-evidence-sha256 "${APPROVED_EVIDENCE_SHA256}")
+elif [ "${MOVE_MODE}" = "--check" ]; then
+  CSHARP_ARGS+=(--evidence "${MOVE_REPORT_DIR}/evidence.json")
+fi
+python3 "${SKILL_ROOT}/scripts/csharp_source_move.py" "${CSHARP_ARGS[@]}"
+```
+<!-- installed-command:csharp-move:end -->
+
 <!-- installed-command:java-move:start -->
 ```bash
 MOVE_PLAN="${MOVE_PLAN:-moves.json}"
@@ -534,6 +601,31 @@ For checked JavaScript, add this opt-in branch to the plan:
 }
 ```
 
+For the bounded C# implementation-file location move, pin the exact project,
+SDK, closed-artifact scope, identity, and executable outcomes:
+
+```json
+{
+  "version": 1,
+  "moves": [
+    {"from": "src/Invoice.cs", "to": "src/billing/Invoice.cs", "mode": "file"}
+  ],
+  "rewrite": {"code_imports": "update-csharp-project"},
+  "csharp": {
+    "dotnet": "/absolute/path/to/dotnet",
+    "project": "CSharpMovePilot.csproj",
+    "sdk_version": "10.0.302",
+    "assembly_name": "CSharpMovePilot",
+    "namespace": "CSharpMovePilot",
+    "type_identity": "CSharpMovePilot.Invoice",
+    "artifact_scope": "closed-executable",
+    "external_consumers": "none",
+    "native_test_expected_stdout": "csharp-move-tests:ok\n",
+    "smoke_expected_stdout": "invoice:INV-42:125:csharp-move\n"
+  }
+}
+```
+
 For the bounded Go package move, use:
 
 ```json
@@ -704,6 +796,11 @@ describing the old layout rather than linking to the current identity.
    analyzer-resolved directive edit and the declared public barrel, then pass
    the content-addressed evidence hash explicitly to apply. Any partial or
    stale evidence is a stop, not permission to fall back to text replacement.
+   In checked-C# mode, require a `complete` dry-run, review the one exact
+   `Compile Include` edit, source-location move, complete source/project
+   closure, preserved namespace/type/assembly/source-byte identity, and both
+   disposable native outcomes. Pass the content-addressed evidence hash
+   explicitly to apply; stale or partial evidence is a stop.
 5. Run `--apply` only after the dry-run report matches the intended
    transform.
 6. Run `--check` after manual follow-up edits or before commit.
@@ -724,7 +821,7 @@ language adapters:
 - `--stage` stages changed old and new paths after apply; otherwise the tool
   leaves the index alone.
 
-The standalone Ruby and Dart adapters use filesystem rename after the content-addressed
+The standalone C#, Ruby, and Dart adapters use filesystem rename after the content-addressed
 current-tree check. They have no dirty-touched or `--stage` mode; the user owns Git
 staging after a complete apply/check.
 
