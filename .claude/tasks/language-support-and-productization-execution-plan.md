@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7/F2C AC1-M2 second real host-state migration and skipped-release composition; AC1-S0 through AC1-C1 passed; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
-Last updated: 2026-07-23 (AC1-C1 project coherence audit completed; AC1-M2 started)
+Current phase: P7/F2C Ruby A5 mutation and Cohort A publication; AC1-S0 through AC1-M2 passed; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
+Last updated: 2026-07-23 (AC1-M2 completed; Ruby A5 resumed)
 
 ## Objective
 
@@ -275,9 +275,9 @@ before changing status to `done`.
 | A2 — PHP/Ruby/Swift syntax | `done` | `98dff01`; retired `codex/f2-{php,ruby,swift}-syntax` worktrees; branches retained | PHP `682a4df`; Ruby `23cc7f2` + metrics correction `c4b2036`; Swift `f8cc3a4`; publication `f7c9311` | PHP `42 passed`; Ruby `19 passed`; Swift `32 passed, 1 deselected`; shared publication surface `77 passed`; router/release suite `163 passed` after one stale catalog assertion; committed installed routers `58 passed` | Native token/compiler facts remain syntax-scoped; no syntax-as-semantics promotion |
 | A3 — PHP/Ruby/Swift semantic read-only | `done_php_ruby_swift_tool_gap` | `4e3aa41`; PHP/Ruby branches retained; Swift research remains on `codex/f2-swift-semantic` | PHP `42f6236`; Ruby `b8f82cf` + ignored-fixture repair `10015fb`; publication `c7cee0b`; installed expectation `c00df4e`; Swift candidate `3e13061` removed from main by `20851c2` | PHP A3 `3 passed` plus preserved `112 passed`; Ruby A3 `14 passed` plus preserved `63 passed`; shared projection/router `94 passed`; committed installed routers `58 passed`; Swift root replay exceeded 360 seconds and its first semantic request remained unanswered after explicit indexing/workspace/readiness probes | PHP/Ruby accepted with explicit semantic boundaries; Swift's five rows remain pending under ML-026 and do not block independent PHP/Ruby downstream work |
 | A4 — PHP/Ruby/Swift proposal/guard | `done_php_ruby_swift_tool_gap` | `a3855b0`; PHP/Ruby branches retained; Swift deferred with ML-026 | PHP `0b38efa`; Ruby `98c80aa`; publication `2e7cc75` | PHP root `9 passed`; Ruby root `18 passed`; shared release/router `163 passed`; conformance `6 passed`; metadata `76/76`; artifact drift and commit hooks passed; committed installed routers `58 passed` | PHP/Ruby accepted without redetection; Swift opens only after a working A3 foundation |
-| A5 — Ruby mutation and Cohort A publication | `paused_for_ac1` | start from `2e7cc75`; serial | — | — | Preserve PHP's accepted move outcome; Ruby proves preview, authority, rollback, exact after-tree, and native checks; Swift remains separately tracked under ML-026 |
-| AC1 — Decision propagation and project coherence | `second_migration_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10`, `c2c5b01`, `f8c5b2a`, `d630c8b`, `f8baf32`, `84ec7e5`, `390d200` | Migration, scope, all-producer adapters, reviewed-finding memory, decision-impact disposal, portable register-or-exempt coverage, and read-only self-audit pass. C1 replay: `193 passed, 1 skipped`; all hooks pass | AC1-M2 passes before A5 resumes; P8 still owns the complete prior-release stock-update replay |
-| B0 — Kotlin spine and C/C++ reuse decision | `pending_ac1` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
+| A5 — Ruby mutation and Cohort A publication | `ready_after_ac1` | start from `5d0608c`; serial | — | — | Preserve PHP's accepted move outcome; Ruby proves preview, authority, rollback, exact after-tree, and native checks; Swift remains separately tracked under ML-026 |
+| AC1 — Decision propagation and project coherence | `done` | owner-authorized trial started from `6344816`; root/exclusive coherence work completed before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10`, `c2c5b01`, `f8c5b2a`, `d630c8b`, `f8baf32`, `84ec7e5`, `390d200`, `9789804`, `83f90f3`, `5d0608c` | All scoped coherence packages pass. M2 adds the real subsystem-map move, schema 1→2→3 composition, exact and journal-safe restore, canonical producers/readers including Python, and a fresh three-router bootstrap plus committed external-library journey; final review replay: migration/Python `36 passed`, router/matrix `125 passed`, committed journey `1 passed`; hooks pass except the separately tracked eight aged proposed ADR findings | Resume A5; P8 still owns the public two-ref stock-update replay |
+| B0 — Kotlin spine and C/C++ reuse decision | `pending_a5` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
 | B1 — C/C++/Kotlin lexical-filesystem | `pending_b0` | TBD; three worktrees | — | — | Independent copied final outcomes under trustworthy language modes |
 | B2 — C/C++/Kotlin syntax | `pending_b1` | TBD; three worktrees | — | — | Native syntax facts and complete degraded-tool boundaries |
 | B3 — C/C++/Kotlin semantic read-only | `pending_b2` | TBD; three worktrees | — | — | Trustworthy compile/project configuration and independent semantic outcomes |
@@ -292,22 +292,22 @@ AC1 is a product-coherence gate, not a new knowledge-graph or workflow
 platform. It dogfoods the existing `propagate-convention-change` ledger idea on
 the concrete state-home and closeout incidents before broader language work:
 
-- [ ] Consolidate or explicitly supersede the conflicting state-location
+- [x] Consolidate or explicitly supersede the conflicting state-location
   decisions. The accepted decision, implementation defaults, contributor
   guidance, and tests name one canonical home for durable host state and one
   canonical home for raw local runs, with a bounded compatibility fallback.
-- [ ] A decision-impact record can enumerate required cascading updates across
+- [x] A decision-impact record can enumerate required cascading updates across
   code, skills, docs, tests, generated projections, configuration, and host
   migration. Every obligation has exactly one auditable disposition:
   `complete`, `deferred` with a tracked work item, or `not-applicable` with a
   reason. A decision is not reported fully embodied while a required
   obligation is undisposed.
-- [ ] Freeze a minimal release/migration contract. A release identifies its
+- [x] Freeze a minimal release/migration contract. A release identifies its
   exact Git ref, current host-state schema, oldest readable schema, and ordered
   migration IDs. `status` can distinguish toolkit-code drift from host-state
   drift without network access or writes; an older tool encountering a newer
   host schema refuses mutation rather than guessing.
-- [ ] Host-state migration is preview-first, explicit, ordered, idempotent, and
+- [x] Host-state migration is preview-first, explicit, ordered, idempotent, and
   resumable. Each step declares its source/target schema, owned paths, collision
   rules, verification, and rollback/restore action. The schema marker advances
   only after that step verifies; failure leaves the last verified schema and a
@@ -325,15 +325,15 @@ the concrete state-home and closeout incidents before broader language work:
   line-, file-, and project-scoped findings. A frozen fixture proves that the
   primary closeout verdict does not present unrelated pre-existing line
   findings as new work while retaining legitimate changed-file obligations.
-- [ ] Registry coverage has a portable `register-or-exempt` result driven by
+- [x] Registry coverage has a portable `register-or-exempt` result driven by
   declared first-party roots/project profile rather than host-specific folder
   names. A new coherent surface cannot disappear merely because it was never
   added to the registry.
-- [ ] A read-only self-audit inventories remaining legacy artifact homes,
+- [x] A read-only self-audit inventories remaining legacy artifact homes,
   incorrect ADR references, local-host/upstream skill divergence, and open
   propagation obligations. Anything not repaired in AC1 is projected into a
   durable backlog/status surface and remains discoverable after a fresh clone.
-- [ ] The bounded path works in this repository and a disposable host fixture
+- [x] The bounded path works in this repository and a disposable host fixture
   representing the reproduced host-a failure. No production host is mutated, and
   no broad semantic graph, autonomous rewrite engine, or new package manager is
   introduced.
@@ -374,7 +374,7 @@ weaken them.
 | AC1-S4 | Every producer's declared modes work or fail honestly through the shared contract | `done:f8baf32` | AC1-S3 | Ecosystem-wide scope choice rather than one pilot |
 | AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `done:84ec7e5` | AC1-S3 | Avoid repeated compute and repeated human decisions |
 | AC1-C1 | Decision propagation, registry completeness, and deferred debt are auditable | `done:390d200` | AC1-S4 and AC1-D1 | Project coherence in this kit and adopters |
-| AC1-M2 | A second real host-state migration proves skipped-release composition | `in_progress` | AC1-C1 supplied project-authored subsystem maps as a real legacy move | Install/update lifecycle |
+| AC1-M2 | A second real host-state migration proves skipped-release composition | `done:5d0608c` | AC1-C1 supplied project-authored subsystem maps as a real legacy move | Install/update lifecycle |
 | P8-U1 | A stock prior-release update journey passes at two exact public refs | `pending_p8` | final language release and AC1-M2 | Installation and repair UX |
 | P9-U2 | A convenience updater ships only if measured stock-path friction justifies it | `pending_p9` | P8-U1 measurements | Evidence-backed user-journey improvement |
 
@@ -642,24 +642,25 @@ Evidence:
 
 Acceptance:
 
-- [ ] The second migration moves a real legacy toolkit-owned surface exposed by
+- [x] The second migration moves a real legacy toolkit-owned surface exposed by
   AC1-S1, AC1-D1, or AC1-C1. A fabricated marker-only migration is forbidden.
   Candidate surfaces include legacy scope descriptors or a legacy reviewed-
   finding ledger, but the selected source must have real compatibility evidence.
-- [ ] Schema 1 hosts compose migration 1→2 and 2→3 in order; schema 2 hosts apply
+- [x] Schema 1 hosts compose migration 1→2 and 2→3 in order; schema 2 hosts apply
   only 2→3; schema 3 replays are no-ops; older tools refuse schema 3 mutation.
-- [ ] Plan/apply/verify/restore, collision refusal, interruption before and after
+- [x] Plan/apply/verify/restore, collision refusal, interruption before and after
   each schema-marker write, and byte/logical preservation of user-owned and
   unrelated state are proven.
-- [ ] A transformed legacy data format retains every review rationale and source
-  identity or refuses with an explicit human disposition; migration never drops
-  unknown records to make validation pass.
+- [x] No data-format transform is used: the complete directory tree is moved
+  byte-for-byte with modes preserved. Unknown/inconsistent application records
+  and unsafe path shapes are refused rather than normalized or dropped.
 
 Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | Two-step migration fixture and host migration suite | — | — |
+| Real project-authored subsystem-map move; schema 1→2→3 and schema-2-only apply; schema-3 no-op; older-tool, collision, unsafe-shape, record-order, interruption, and reverse-restore refusal cases | `.venv/bin/python -m pytest -q tests/test_host_migrations.py`; `.venv/bin/python -m pytest -q tests/test_engineering_home.py tests/test_map_subsystem_python.py`; focused language cohorts and copied native closures | final migration/Python replay `36 passed`; core/coherence `56 passed`; TS/Go/Java/PHP `25 passed`; C/C++/Swift `29 passed`; Ruby/Rust/Dart `28 passed`; copied native closures `5 passed` | `9789804`, `83f90f3`, `5d0608c` |
+| Committed router-only/external-library execution | `.venv/bin/python -m pytest -q tests/test_portability_on_demand_journeys.py`; `.venv/bin/python -m pytest -q tests/test_installed_routers.py tests/test_which_shape.py tests/test_which_skill_recommendations.py tests/test_multilanguage_expansion_matrix.py` | committed clone `1 passed`; router/matrix `125 passed`; bootstrap creates the journal-ignore prerequisite; exactly three ambient routers retained | `5d0608c` |
 
 #### P8-U1 — Stock prior-release update journey
 
@@ -1565,6 +1566,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P7/F2C AC1-M2 | Second real host-state migration and adversarial closeout completed | `9789804` migrates project-authored subsystem maps to `.engineering`, composes schema 1→2→3, updates every active language producer and reader, and preserves exactly three ambient routers. `83f90f3` makes reverse restore remove only migration-created empty parents. A fresh-context adversarial review then found three user-impacting gaps; `5d0608c` closes them by validating journal parent paths before restore, making router bootstrap initialize the local-journal ignore rule, and enforcing canonical/symlink-safe Python renderer output. Final focused replay: migration/Python `36 passed`, router/matrix `125 passed`, committed external-library journey `1 passed`, metadata/catalog/matrix/self-audit and hooks green except the eight pre-existing aged proposed ADR findings. Resume Ruby A5 from `5d0608c`; P8/P9 remain deferred to their measured release-journey gates. |
 | 2026-07-23 | P7/F2C AC1-C1 | Decision propagation, portable subsystem completeness, and deferred-debt self-audit completed | `390d200` adds one eight-surface decision-impact record, a host-declared register-or-exempt profile, distinct completeness/integrity checks, conflicting-home and unclassified-reference detection, scope/idea/optional skill-tree audits, and the durable `agent-neutral-subsystem-maps` migration intake. The post-implementation review caught two gaps before closeout: ADR/precedent drift was named but not actually reported, and equal-specificity subsystem owners were treated as one registration. Both now have regression tests. The preserved boundary passes `193 passed, 1 skipped`; self-audit and all hooks pass. The eight pre-existing aged proposed ADRs remain reported to their existing validator rather than being silently reclassified. Begin AC1-M2 with the real project-authored subsystem-map move. |
 | 2026-07-23 | P7/F2C AC1-D1 | Reviewed-finding decision memory completed | `84ec7e5` adds the agent-neutral `.engineering/quality` schema and one stdlib-only installed-router postprocessor for validate, record/withdraw, filter, and `--show-reviewed`. Only complete located line findings can be suppressed; exact evidence or subject change re-surfaces review, `fixed` recurrence is a regression, invalid/newer memory fails open, and decision events retain a hash rather than raw source. A real comment-drift record→filter→show→evidence-change loop, all 30 producer envelopes with no decisions, malformed/conflicting events, copied-router execution, and preserved routing/triage/family suites pass `205` tests with one intentional skip. The host-a-only AST pilot is scope-corrected rather than made a cross-language dependency. Begin AC1-C1. |
 | 2026-07-23 | P7/F2C AC1-S4 | All-producer scope adapters activated | `d630c8b` adds one artifact-level request plus normalized finding envelope and derives line-filter/path-seed/project-trigger/scope-neutral adapters from the 30 reviewed contracts. Every producer's auto/default and target modes, unclaimed-mode refusal, invalid/unlocated findings, and isolated copied layout pass. Real line, symbol/file, multi-site, and project/global fixtures pass `27`; they exposed the stale omnibus PHP/Ruby guard repaired at `a93825a`. `f8baf32` activates target modes without rewriting native entrypoint history. Full S4 replay: `149 passed, 1 skipped`; Ruff, scope checker, `76/76` metadata, diff checks, and hooks pass. Begin AC1-D1. |
