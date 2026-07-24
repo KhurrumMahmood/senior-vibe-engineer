@@ -117,7 +117,7 @@ artifact — devs read and edit it during planning. The drift
 detector can validate semantic shape without YAML's strictness.
 
 **Frontmatter on existing atlas files** (e.g. each
-`.claude/docs/subsystems/<name>.md` declares its own importance).
+`.engineering/docs/subsystems/<name>.md` declares its own importance).
 Distributes the signal but makes "what's important?" a derived
 query rather than a glance at one file. Rejected — the audit
 wants a one-stop authoritative map; distribution defeats the

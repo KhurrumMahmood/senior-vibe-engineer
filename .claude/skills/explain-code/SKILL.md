@@ -235,8 +235,11 @@ strip `.py`. Examples:
 
 ### Form B — subsystem name
 Pattern: kebab-case, `<layer>-<domain>` (e.g. `services-agentic-discovery-service`,
-`views-crawling`). Resolves against `.claude/docs/subsystems/<name>.md` if
+`views-crawling`). Resolves against `.engineering/docs/subsystems/<name>.md` if
 a map exists; the map's "target" front-matter field gives the path.
+On a schema-2 host, fall back once to `.claude/docs/subsystems/<name>.md` with
+an explicit migration warning. If both files exist, stop and ask for the
+host-state migration/collision to be resolved rather than merging them.
 
 If neither a map page nor a matching path resolves, ask the user once
 to confirm the path. Do NOT guess.
@@ -273,7 +276,7 @@ listing the annotatable symbols, ranked.
 
 Two paths:
 
-1. **Map page exists.** Read `.claude/docs/subsystems/<name>.md`.
+1. **Map page exists.** Read `.engineering/docs/subsystems/<name>.md`.
    Lift the public-surface symbols from the "Public surface" section
    and the open-questions list from "Open questions". Produce
    `targets.json` with those symbols, prioritizing any that appear
@@ -489,7 +492,7 @@ of truth.
 | Stage 3 cannot write `unexplained.txt` or `surprises.txt` | Stop before effectiveness logging and report the exact write failure |
 | Scout returns `annotation_incomplete` on first try | Re-dispatch once with a stricter "respond only with file-write confirmation" nudge |
 | Two scouts produce contradictory caller lists | Both may be right (method name shadowed across classes) — note the conflict in the doc and move on |
-| Map-page reference for a subsystem with no `.claude/docs/subsystems/<name>.md` | Fall back to AST inventory; do not silently produce a different output |
+| Map-page reference for a subsystem with no `.engineering/docs/subsystems/<name>.md` | Fall back to AST inventory; do not silently produce a different output |
 | `--refresh` semantics | Not supported — re-runs always overwrite. The git history of `<target-slug>.md` is the diff. |
 
 ## Replay case

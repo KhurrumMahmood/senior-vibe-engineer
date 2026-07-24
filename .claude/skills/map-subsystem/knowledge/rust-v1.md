@@ -12,7 +12,7 @@ python .claude/skills/map-subsystem/scripts/map_rust.py \
   --name billing \
   --target crates/billing-core \
   --project-root . \
-  --output .claude/docs/subsystems/billing.md \
+  --output .engineering/docs/subsystems/billing.md \
   --evidence reports/map/billing/rust-map.json
 ```
 
@@ -23,13 +23,13 @@ python .claude/skills/map-subsystem/scripts/map_rust.py \
   --name billing \
   --target crates/billing-core \
   --project-root . \
-  --output .claude/docs/subsystems/billing.md \
+  --output .engineering/docs/subsystems/billing.md \
   --evidence reports/map/billing/rust-map.json \
   --verify-artifacts
 ```
 
 `--target` must be the directory of a workspace package. Outputs are restricted
-to `.claude/docs/subsystems/` and `reports/map/`. For hermetic or concurrent
+to `.engineering/docs/subsystems/` and `reports/map/`. For hermetic or concurrent
 runs, pass an external `--cargo-target-dir`.
 
 ## Stable evidence chain

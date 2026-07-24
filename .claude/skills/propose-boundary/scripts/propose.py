@@ -100,7 +100,22 @@ def _resolve_target(target: str, project_root: Path) -> tuple[Path, str, list[Pa
     p = (project_root / target).resolve()
     if not p.exists():
         # try as subsystem name → docs/subsystems/<name>.md
-        subsystem_doc = project_root / ".claude" / "docs" / "subsystems" / f"{target}.md"
+        subsystem_doc = (
+            project_root / ".engineering" / "docs" / "subsystems" / f"{target}.md"
+        )
+        legacy = project_root / ".claude" / "docs" / "subsystems" / f"{target}.md"
+        if subsystem_doc.exists() and legacy.exists():
+            raise ValueError(
+                "both canonical and legacy subsystem maps exist; run the "
+                "engineering-skills host-state migration and resolve the collision"
+            )
+        if not subsystem_doc.exists() and legacy.exists():
+            print(
+                f"WARNING: reading legacy subsystem map {legacy}; run the "
+                "engineering-skills host-state migration",
+                file=sys.stderr,
+            )
+            subsystem_doc = legacy
         if subsystem_doc.exists():
             files = _files_from_subsystem_doc(subsystem_doc, project_root)
             return subsystem_doc, "subsystem", files
@@ -760,7 +775,8 @@ def _log_skill_use(*, target: str, artifact: str | None, elapsed: float,
         }
         with log_path.open("a") as fh:
             fh.write(json.dumps(event) + "\n")
-    except Exception:  # noqa: BLE001 — telemetry logging must never break the skill
+    # Telemetry logging must never break the skill.
+    except Exception:  # noqa: BLE001
         pass  # noqa: silent-catch: telemetry write is best-effort — must never break the skill
 
 

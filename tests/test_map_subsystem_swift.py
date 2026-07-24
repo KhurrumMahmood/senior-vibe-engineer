@@ -44,7 +44,10 @@ def _fingerprints(host: Path) -> dict[str, str]:
     rows = {}
     for path in sorted(host.rglob("*")):
         relative = path.relative_to(host)
-        if any(part in {"reports", ".claude", ".agents", "index-build"} for part in relative.parts):
+        if any(
+            part in {"reports", ".claude", ".engineering", ".agents", "index-build"}
+            for part in relative.parts
+        ):
             continue
         if path.is_symlink():
             rows[relative.as_posix()] = f"symlink:{os.readlink(path)}"
@@ -65,7 +68,7 @@ def _map(
     output: Path | None = None,
     evidence: Path | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
-    output = output or host / ".claude" / "docs" / "subsystems" / f"{name}.md"
+    output = output or host / ".engineering" / "docs" / "subsystems" / f"{name}.md"
     evidence = evidence or host / "reports" / "map" / name / "swift-map.json"
     argv = [
         sys.executable,

@@ -223,7 +223,7 @@ def test_checked_javascript_semantic_outputs_are_final_read_only_and_cover_suffi
     assert duplication_payload["semantic_evidence"]["checked_javascript"] is True
     assert all("caller_callee" != finding.get("reason_code") for finding in duplication_payload["findings"])
 
-    map_output = ".claude/docs/subsystems/javascript-semantic.md"
+    map_output = ".engineering/docs/subsystems/javascript-semantic.md"
     map_evidence = "reports/map/javascript-semantic.json"
     mapped = _node(
         SKILLS / "map-subsystem" / "scripts" / "map_typescript.mjs",

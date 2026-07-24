@@ -60,7 +60,7 @@ def _map(
     evidence: Path | None = None,
     minimum_jdk: str | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
-    output = output or host / ".claude" / "docs" / "subsystems" / f"{name}.md"
+    output = output or host / ".engineering" / "docs" / "subsystems" / f"{name}.md"
     evidence = evidence or host / "reports" / "map" / name / "java-map.json"
     args = [
         JAVA,
@@ -204,7 +204,9 @@ def test_java_map_preserves_partial_failed_and_unsupported_states(tmp_path: Path
     assert partial_payload["status"] == "partial"
     assert partial_payload["failure_kind"] == "unresolved_compilation"
     assert partial_payload["exported_surface"] == []
-    assert "Incomplete compiler evidence" in (partial_host / ".claude" / "docs" / "subsystems" / "partial.md").read_text(encoding="utf-8")
+    assert "Incomplete compiler evidence" in (
+        partial_host / ".engineering" / "docs" / "subsystems" / "partial.md"
+    ).read_text(encoding="utf-8")
 
     malformed_host = _copy_host(tmp_path, "malformed")
     (malformed_host / "src" / "main" / "java" / "example" / "features" / "Broken.java").write_text(

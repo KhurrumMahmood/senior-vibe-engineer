@@ -37,8 +37,9 @@ PROJECT_SUBDIR = "project"  # durable per-project adaptation state (adapter/prof
 # Schema version of the .engineering/ layout. Readers check it; a mismatch is
 # the signal to run the previewable migration path, never a guessed write.
 # Version 2 moves the shared subsystem registry from the agent-specific
-# `.claude/` tree to the agent-neutral state home.
-MANIFEST_VERSION = 2
+# `.claude/` tree to the agent-neutral state home. Version 3 does the same for
+# project-authored subsystem map documents.
+MANIFEST_VERSION = 3
 
 # One-time legacy-fallback warnings, keyed by the canonical path we *wanted*.
 _warned: set[str] = set()
@@ -72,13 +73,43 @@ def subsystem_registry_path(root: Path | str) -> Path:
     return engineering_dir(root) / "subsystems.yaml"
 
 
+def subsystem_maps_dir(root: Path | str) -> Path:
+    """Canonical directory for project-authored subsystem map documents."""
+    return engineering_dir(root) / DOCS_SUBDIR / "subsystems"
+
+
 def resolve_subsystem_registry(root: Path | str) -> tuple[Path, bool]:
     """Canonical registry, with one bounded legacy `.claude/` fallback."""
     project_root = Path(root)
+    canonical = subsystem_registry_path(project_root)
+    legacy = project_root / ".claude" / "subsystems.yaml"
+    if canonical.exists() and legacy.exists():
+        raise ValueError(
+            "both canonical and legacy subsystem registries exist; run the "
+            "host-state migration and resolve the collision"
+        )
     return resolve(
         project_root,
         "subsystems.yaml",
-        legacy=project_root / ".claude" / "subsystems.yaml",
+        legacy=legacy,
+    )
+
+
+def resolve_subsystem_maps_dir(root: Path | str) -> tuple[Path, bool]:
+    """Canonical subsystem maps, with one bounded legacy fallback."""
+    project_root = Path(root)
+    canonical = subsystem_maps_dir(project_root)
+    legacy = project_root / ".claude" / "docs" / "subsystems"
+    if canonical.exists() and legacy.exists():
+        raise ValueError(
+            "both canonical and legacy subsystem map directories exist; run "
+            "the host-state migration and resolve the collision"
+        )
+    return resolve(
+        project_root,
+        DOCS_SUBDIR,
+        "subsystems",
+        legacy=legacy,
     )
 
 

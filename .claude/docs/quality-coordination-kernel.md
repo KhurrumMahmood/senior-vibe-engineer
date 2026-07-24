@@ -226,7 +226,9 @@ fit Quick or Feature tiers.
   mechanisms that should migrate consistently when the pattern changes.
 - `.claude/docs/architectural-smells.md` — smell taxonomy.
 - `.claude/docs/architecture.md` — codebase architecture.
-- `.claude/docs/subsystems/<name>.md` — per-subsystem inventory.
+- `.engineering/docs/subsystems/<name>.md` — agent-neutral, per-subsystem
+  inventory. Schema-2 hosts may be read through the warned legacy fallback at
+  `.claude/docs/subsystems/<name>.md` until migration 0002 is applied.
 - `.claude/docs/workflows/<name>.md` — per-workflow topology.
 - `ai-docs/decisions/` — ADR registry.
 - `ai-docs/plans/` — in-flight plans.

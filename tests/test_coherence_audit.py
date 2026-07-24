@@ -274,10 +274,7 @@ def test_self_audit_passes_and_keeps_deferred_work_discoverable() -> None:
         for row in result["decision_impacts"]
         if row["decision"] == "0021-engineering-folder-state-home"
     )
-    assert impact["deferred_work_items"] == [
-        "agent-neutral-subsystem-maps",
-        "versioned-host-state-migrations",
-    ]
+    assert impact["deferred_work_items"] == ["versioned-host-state-migrations"]
     maps = next(
         row
         for row in result["legacy_homes_and_references"]

@@ -1,7 +1,7 @@
 # Installation and on-demand library development
 
 Status: contributor guide for the accepted router-only topology, shipped
-schema-2 host-state migration slice, and proposed host-instruction integration
+schema-3 host-state migration chain, and proposed host-instruction integration
 follow-up
 
 ## Sources of truth and working records
@@ -69,17 +69,22 @@ HOST_PYTHON="${ENGINEERING_SKILLS_PYTHON:-${LIBRARY_ROOT}/.venv/bin/python}"
 "${HOST_PYTHON}" "${LIBRARY_ROOT}/scripts/host_migrations.py" \
   --project-root "$PWD" apply
 "${HOST_PYTHON}" "${LIBRARY_ROOT}/scripts/host_migrations.py" \
-  --project-root "$PWD" restore 0001-subsystem-registry-home
+  --project-root "$PWD" restore 0002-subsystem-maps-home
 ```
 
-Schema 2 contains one real migration:
-`0001-subsystem-registry-home`. It moves a regular toolkit-owned
-`.claude/subsystems.yaml` to `.engineering/subsystems.yaml` without changing
-its bytes, preserves every unrelated file, and records the migration in the
-committed manifest. It refuses destination collisions, symlinks/non-regular
-path shapes, malformed manifests/journals, a missing `/local/` ignore rule, and
-hosts newer than the running toolkit. The readers prefer the canonical path
-and retain one warned legacy fallback for schema-1 hosts.
+The current schema is 3 and contains two real ordered migrations:
+
+1. `0001-subsystem-registry-home` moves the regular toolkit-owned
+   `.claude/subsystems.yaml` to `.engineering/subsystems.yaml`.
+2. `0002-subsystem-maps-home` moves the toolkit-authored
+   `.claude/docs/subsystems/` tree to `.engineering/docs/subsystems/`.
+
+Both moves preserve bytes and directory modes, preserve unrelated files, and
+record the migration in the committed manifest. The runner refuses destination
+collisions, symlinks/non-regular path shapes, malformed or inconsistent
+manifests/journals, a missing `/local/` ignore rule, and hosts newer than the
+running toolkit. Readers prefer the canonical paths and retain one visible,
+bounded legacy fallback for older hosts. Producers write only canonical paths.
 
 The recovery journal lives under `.engineering/local/migrations/` and therefore
 does not travel with a clone. The committed manifest is the durable application
@@ -87,9 +92,11 @@ record; restore data is deliberately machine-local. A process stop before or
 after the manifest write can be resumed by running `apply` again. A repeated
 successful `apply` is a no-op.
 
-This first slice proves a one-step release migration. The P8 prior-release
-replay still owns the multi-step skipped-release proof and the integrated stock
-router/library update journey. Do not describe those as shipped yet.
+The focused migration suite proves schema 1→2→3 skipped-release composition,
+schema-2-only upgrade, schema-3 no-op replay, interruption recovery around both
+schema writes, exact reverse restore, and older-tool refusal. P8 still owns the
+public two-ref stock-router/library update journey and its measured user
+experience; do not describe that integrated release journey as shipped yet.
 
 ## Product principle
 

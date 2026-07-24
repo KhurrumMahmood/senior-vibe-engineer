@@ -70,7 +70,7 @@ def _fingerprints(host: Path) -> dict[str, str]:
     rows: dict[str, str] = {}
     for path in sorted(host.rglob("*")):
         relative = path.relative_to(host)
-        if any(part in {".agents", ".claude", "reports"} for part in relative.parts):
+        if any(part in {".agents", ".claude", ".engineering", "reports"} for part in relative.parts):
             continue
         if path.is_symlink():
             rows[relative.as_posix()] = f"symlink:{os.readlink(path)}"
@@ -94,7 +94,7 @@ def _map(
     expected_source_sha256: str | None = None,
     run_native: bool = True,
 ) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
-    output = output or host / ".claude" / "docs" / "subsystems" / f"{name}.md"
+    output = output or host / ".engineering" / "docs" / "subsystems" / f"{name}.md"
     evidence = evidence or host / "reports" / "map" / name / "ruby-map.json"
     argv = [
         sys.executable,

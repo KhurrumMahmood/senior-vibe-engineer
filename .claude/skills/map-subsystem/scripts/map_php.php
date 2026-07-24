@@ -82,7 +82,7 @@ function map_php_parse_options(array $argv): array
 function map_php_usage(): string
 {
     return 'usage: map_php.php --name <kebab-name> --target <psr4-directory> '
-        . '--project-root <root> --output .claude/docs/subsystems/<name>.md '
+        . '--project-root <root> --output .engineering/docs/subsystems/<name>.md '
         . '--evidence reports/map/<name>/php-map.json [--composer composer] '
         . '[--minimum-php 8.1.0] [--minimum-composer 2.2.0]';
 }
@@ -179,11 +179,11 @@ function map_php_path_has_symlink(string $root, string $candidate): bool
 /** @param array<string, mixed> $options */
 function map_php_validate_artifact_paths(array $options): void
 {
-    $docs = $options['root'] . DIRECTORY_SEPARATOR . '.claude' . DIRECTORY_SEPARATOR . 'docs'
+    $docs = $options['root'] . DIRECTORY_SEPARATOR . '.engineering' . DIRECTORY_SEPARATOR . 'docs'
         . DIRECTORY_SEPARATOR . 'subsystems';
     $reports = $options['root'] . DIRECTORY_SEPARATOR . 'reports' . DIRECTORY_SEPARATOR . 'map';
     if (!map_php_is_inside($docs, $options['output']) || $options['output'] === $docs) {
-        throw new InvalidArgumentException('output must stay below .claude/docs/subsystems');
+        throw new InvalidArgumentException('output must stay below .engineering/docs/subsystems');
     }
     if (!map_php_is_inside($reports, $options['evidence']) || $options['evidence'] === $reports) {
         throw new InvalidArgumentException('evidence must stay below reports/map');

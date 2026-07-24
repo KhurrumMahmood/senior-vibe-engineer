@@ -590,7 +590,7 @@ function main() {
   const outputPath = safeArtifactPath(
     projectRoot,
     args.output,
-    path.join(projectRoot, ".claude", "docs", "subsystems"),
+    path.join(projectRoot, ".engineering", "docs", "subsystems"),
     "artifact output",
   );
   const evidencePath = safeArtifactPath(

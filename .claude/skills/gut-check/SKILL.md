@@ -40,7 +40,7 @@ This skill is host-project-agnostic. When porting / regenerating:
 
 - No hardcoded paths beyond the conventional ones every project hosting
   this skill ecosystem already exposes: `ai-docs/decisions/`,
-  `.claude/docs/architectural-smells.md`, `.claude/docs/subsystems/`,
+  `.claude/docs/architectural-smells.md`, `.engineering/docs/subsystems/`,
   `.claude/docs/precedents.yml` (optional — see "Optional inputs"
   below).
 - No project-specific ADR ids in worked examples — use placeholders
@@ -128,8 +128,11 @@ Write toward these gates from Stage 0.
     an ADR when its slug matches a smell you're emitting).
   - `.claude/docs/architectural-smells.md` — use this vocabulary when
     naming a smell.
-  - `.claude/docs/subsystems/<slug>.md` (architecture mode only, when
+  - `.engineering/docs/subsystems/<slug>.md` (architecture mode only, when
     the inline summary names a known subsystem).
+    On a schema-2 host, use `.claude/docs/subsystems/<slug>.md` only when the
+    canonical file is absent, and surface a host-state migration warning. If
+    both exist, stop rather than treating them as separate authorities.
 - **Optional inputs:**
   - `.claude/docs/precedents.yml` — implementation case law. If the
     host project ships this file, precedent-conflict matching feeds the
@@ -212,7 +215,7 @@ ln -sfn "scan-${TS}" reports/gut-check/latest
    - `.claude/docs/architectural-smells.md` — full file. Use its
      named smells as the vocabulary when citing.
    - **Architecture mode only**: if the summary names a known
-     subsystem, try to read `.claude/docs/subsystems/<slug>.md`.
+     subsystem, try to read `.engineering/docs/subsystems/<slug>.md`.
 
 If the target doesn't resolve (bad path, empty inline summary, can't
 read), stop and write a `reports/gut-check/scan-<TS>/<slug>.md`

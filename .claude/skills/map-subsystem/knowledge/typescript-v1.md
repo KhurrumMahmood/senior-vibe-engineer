@@ -37,7 +37,7 @@ complete dependency graph.
 - Exclusions are checked project-root-relatively after normalization. Directory
   symlinks are never traversed; a symlink target is rejected rather than used
   to bypass project containment or an exclusion.
-- The Markdown map must be under `.claude/docs/subsystems/`; JSON evidence must
+- The Markdown map must be under `.engineering/docs/subsystems/`; JSON evidence must
   be under `reports/map/`; and an optional effectiveness log must be under
   `reports/_meta/`. Existing or ancestor symlinks in any artifact path are
   rejected, so a report command cannot overwrite source through a logical path.

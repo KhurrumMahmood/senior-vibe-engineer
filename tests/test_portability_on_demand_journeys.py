@@ -72,6 +72,31 @@ def _fresh_handoff(tmp_path: Path, host: Path) -> tuple[Path, dict]:
     payload = json.loads(routed.stdout)
     assert payload["recommendation"] == "map-subsystem"
     assert payload["handoff"]["available"] is True
+
+    engineering = host / ".engineering"
+    engineering.mkdir(exist_ok=True)
+    (engineering / ".gitignore").write_text("/local/\n", encoding="utf-8")
+    migration = library / "scripts" / "host_migrations.py"
+    preview = _run(
+        sys.executable,
+        str(migration),
+        "--project-root",
+        str(host),
+        "plan",
+        cwd=host,
+    )
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    assert json.loads(preview.stdout)["status"] == "ready"
+    applied = _run(
+        sys.executable,
+        str(migration),
+        "--project-root",
+        str(host),
+        "apply",
+        cwd=host,
+    )
+    assert applied.returncode == 0, applied.stdout + applied.stderr
+    assert json.loads(applied.stdout)["status"] == "applied"
     return library, payload["handoff"]
 
 
@@ -98,7 +123,7 @@ def test_bootstrapped_library_map_subsystem_completes_and_reports_partial(
                 encoding="utf-8",
             )
         library, handoff = _fresh_handoff(case, host)
-        output = host / ".claude" / "docs" / "subsystems" / f"{expected}.md"
+        output = host / ".engineering" / "docs" / "subsystems" / f"{expected}.md"
         evidence = host / "reports" / "map" / expected / "typescript-map.json"
 
         def closure(context, host=host, output=output, evidence=evidence):
@@ -141,6 +166,12 @@ def test_bootstrapped_library_map_subsystem_completes_and_reports_partial(
         assert result.native_results[0].status == "passed"
         assert result.source_changes == ()
         assert {event.event for event in result.artifact_events} == {"created"}
+        manifest = json.loads((host / ".engineering" / "manifest.json").read_text())
+        assert manifest["version"] == 3
+        assert manifest["applied_migrations"] == [
+            "0001-subsystem-registry-home",
+            "0002-subsystem-maps-home",
+        ]
         assert all(Path(path).is_relative_to(library) for path in result.absolute_closure_paths)
         assert {path.name for path in (host / ".agents" / "skills").iterdir()} == set(
             ROUTERS

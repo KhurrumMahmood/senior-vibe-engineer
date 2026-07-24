@@ -53,7 +53,7 @@ def _map(
     evidence: Path | None = None,
     minimum_go: str | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
-    output = output or host / ".claude" / "docs" / "subsystems" / f"{name}.md"
+    output = output or host / ".engineering" / "docs" / "subsystems" / f"{name}.md"
     evidence = evidence or host / "reports" / "map" / name / "go-map.json"
     args = [
         GO,

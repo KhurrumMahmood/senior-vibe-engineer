@@ -84,7 +84,7 @@ Write toward these gates from Stage 0.
   need PyYAML via `scripts/_lib`, so they are not stdlib-only.
 - **Read:** `ai-docs/decisions/`, `.claude/docs/canonical-patterns.md`,
   `.claude/docs/architectural-smells.md`,
-  `.claude/docs/subsystems/` (file list only — full reads in /impact-feature).
+  `.engineering/docs/subsystems/` (file list only — full reads in /impact-feature).
 - **Write:** `ai-docs/plans/<name>.md` (scaffold + §1-2 + status bump).
 
 ## Pipeline
@@ -122,7 +122,15 @@ Load the constraint context:
 ```bash
 .venv/bin/python scripts/decisions.py audit --json
 .venv/bin/python scripts/decisions.py list --json
-ls .claude/docs/subsystems/ 2>/dev/null || echo "no subsystem docs"
+SUBSYSTEM_MAP_DIR=.engineering/docs/subsystems
+if [ -d "$SUBSYSTEM_MAP_DIR" ] && [ -d .claude/docs/subsystems ]; then
+    echo "ERROR: canonical and legacy subsystem map directories both exist; resolve the migration collision" >&2
+    exit 2
+elif [ ! -d "$SUBSYSTEM_MAP_DIR" ] && [ -d .claude/docs/subsystems ]; then
+    echo "WARNING: using legacy subsystem maps; run the host-state migration" >&2
+    SUBSYSTEM_MAP_DIR=.claude/docs/subsystems
+fi
+ls "$SUBSYSTEM_MAP_DIR" 2>/dev/null || echo "no subsystem docs"
 ```
 
 The subsystems directory is host-side and may be absent — absence is

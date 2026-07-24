@@ -149,7 +149,7 @@ class MapJava {
     private static IllegalArgumentException usage() {
         return new IllegalArgumentException(
             "usage: map_java.java --name <kebab-name> --target <package-directory> --project-root <root> "
-                + "--output .claude/docs/subsystems/<name>.md --evidence reports/map/<name>/java-map.json [--minimum-jdk 17]"
+                + "--output .engineering/docs/subsystems/<name>.md --evidence reports/map/<name>/java-map.json [--minimum-jdk 17]"
         );
     }
 
@@ -174,10 +174,10 @@ class MapJava {
     }
 
     private static void validateArtifactPaths(Options options) {
-        Path docs = options.root().resolve(".claude/docs/subsystems");
+        Path docs = options.root().resolve(".engineering/docs/subsystems");
         Path reports = options.root().resolve("reports/map");
         if (!options.output().startsWith(docs) || options.output().equals(docs)) {
-            throw new IllegalArgumentException("output must stay below .claude/docs/subsystems");
+            throw new IllegalArgumentException("output must stay below .engineering/docs/subsystems");
         }
         if (!options.evidence().startsWith(reports) || options.evidence().equals(reports)) {
             throw new IllegalArgumentException("evidence must stay below reports/map");

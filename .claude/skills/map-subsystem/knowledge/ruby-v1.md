@@ -18,7 +18,7 @@ python3 .agents/skills/map-subsystem/scripts/map_ruby.py \
   --name billing \
   --target lib/billing \
   --project-root "$PWD" \
-  --output .claude/docs/subsystems/billing.md \
+  --output .engineering/docs/subsystems/billing.md \
   --evidence reports/map/billing/ruby-map.json \
   --ruby "$(command -v ruby)" \
   --bundle "$(command -v bundle)" \
@@ -49,7 +49,7 @@ test and smoke use `ruby --disable-gems -I<host>/lib`.
 
 Generated, vendor, build, test, signature, and symlink roles remain visible but
 do not become selected production nodes. Directory and file symlinks are never
-traversed. Artifact paths are contained below `.claude/docs/subsystems/` and
+traversed. Artifact paths are contained below `.engineering/docs/subsystems/` and
 `reports/map/`, reject symlink traversal, and replace the Markdown/JSON pair
 atomically. A caller can supply `--expected-source-sha256` to reject a stale
 snapshot, and the provider rehashes source/configuration inputs after analysis

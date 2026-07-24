@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-INTERNAL_PARTS = {".agents", ".claude", ".git", "reports"}
+INTERNAL_PARTS = {".agents", ".claude", ".engineering", ".git", "reports"}
 EXCLUDED_PARTS = {
     "build": "build",
     "dist": "build",
@@ -296,10 +296,10 @@ def _validate_paths(
         targets.append(candidate)
     output = Path(os.path.abspath(args.output))
     evidence = Path(os.path.abspath(args.evidence))
-    docs = root / ".claude" / "docs" / "subsystems"
+    docs = root / ".engineering" / "docs" / "subsystems"
     reports = root / "reports" / "map"
     if output == docs or not _inside(output, docs):
-        raise UserError("output must stay below .claude/docs/subsystems")
+        raise UserError("output must stay below .engineering/docs/subsystems")
     if evidence == reports or not _inside(evidence, reports):
         raise UserError("evidence must stay below reports/map")
     if output == evidence:

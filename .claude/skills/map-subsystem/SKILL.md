@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .claude/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .engineering/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -8,7 +8,7 @@ tier: maintenance
 job: map
 best_for: |
   Producing or refreshing a durable inventory doc for a subsystem at
-  `.claude/docs/subsystems/<name>.md` — file list, public surface,
+  `.engineering/docs/subsystems/<name>.md` — file list, public surface,
   responsibility table, dependency graph, convention-compliance
   score. MAP skill in the maintenance nervous system.
 not_for: |
@@ -36,7 +36,7 @@ MAP_NAME="${MAP_NAME:-dart-subsystem}"
 MAP_TARGET="${MAP_TARGET:-lib}"
 python3 "${SKILL_ROOT}/scripts/map_dart.py" \
   --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$PWD" \
-  --output "$PWD/.claude/docs/subsystems/${MAP_NAME}.md" \
+  --output "$PWD/.engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "$PWD/reports/map/${MAP_NAME}/dart-map.json"
 ```
 
@@ -51,8 +51,16 @@ explicit runtime partial or unavailable boundary; they are never inferred.
 
 You are the **orchestrator** for a MAP skill. Given a subsystem name or
 path, you produce (or refresh) a durable inventory doc at
-`.claude/docs/subsystems/<name>.md`. You do not edit production code
+`.engineering/docs/subsystems/<name>.md`. You do not edit production code
 and you do not refactor.
+
+Before writing in the normal router-plus-external-library journey, run
+`scripts/host_migrations.py status` from that current library. Continue only
+when it reports `current`; if it reports `ready`, preview and explicitly apply
+the migrations first, and if it reports `blocked`, stop with its recovery
+instruction. Always stop when both `.claude/docs/subsystems/` and
+`.engineering/docs/subsystems/` exist. Never create the canonical directory
+beside an unmigrated legacy directory.
 
 This is the MAP job in the five-jobs nervous system (see
 `.claude/docs/skill-catalog.md`). The output feeds every downstream
@@ -63,7 +71,7 @@ cheaply refreshable.
 Procedural detail lives in one knowledge file:
 
 - `knowledge/output-format.md` — the exact shape of
-  `.claude/docs/subsystems/<name>.md` + worked example.
+  `.engineering/docs/subsystems/<name>.md` + worked example.
 - `knowledge/typescript-v1.md` — the narrow Compiler API model, resolver,
   exclusions, completeness states, and unavailable TypeScript fields.
 - `knowledge/go-v1.md` — the active-build Go package-map facts, exclusions,
@@ -159,7 +167,7 @@ node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
   --target "${MAP_TARGET}" \
   --project-root "$(pwd)" \
   --tsconfig "${MAP_TSCONFIG}" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/typescript-map.json" \
   --effectiveness-log "reports/_meta/effectiveness.jsonl"
 ```
@@ -204,7 +212,7 @@ fi
 node "${SKILL_ROOT}/scripts/map_typescript.mjs" \
   --target "${MAP_TARGET}" --project-root "$(pwd)" \
   --tsconfig "${JSCONFIG}" --language javascript \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/javascript-map.json"
 ```
 <!-- installed-command:javascript-map:end -->
@@ -273,7 +281,7 @@ go run "${SKILL_ROOT}/scripts/map_go.go" \
   --name "${MAP_NAME}" \
   --target "${MAP_TARGET}" \
   --project-root "$(pwd)" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/go-map.json"
 ```
 <!-- installed-command:go-map:end -->
@@ -307,7 +315,7 @@ if [ -z "${SKILL_ROOT}" ] || ! command -v java >/dev/null 2>&1; then
 fi
 java "${SKILL_ROOT}/scripts/map_java.java" \
   --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/java-map.json"
 ```
 <!-- installed-command:java-map:end -->
@@ -333,7 +341,7 @@ unsafe/excluded targets, and absent PSR-4 configuration are explicit
 ### Installed PHP map command
 
 Run this from the host root after the selected skill is installed. It writes
-only `.claude/docs/subsystems/<name>.md` and `reports/map/<name>/php-map.json`;
+only `.engineering/docs/subsystems/<name>.md` and `reports/map/<name>/php-map.json`;
 it neither follows source/artifact symlinks nor changes host source. Run the
 host's own PHP tests separately before and after mapping.
 
@@ -364,7 +372,7 @@ if ! command -v "${COMPOSER_BIN}" >/dev/null 2>&1; then
 fi
 "${PHP_BIN}" "${SKILL_ROOT}/scripts/map_php.php" \
   --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/php-map.json" \
   --composer "${COMPOSER_BIN}"
 ```
@@ -392,7 +400,7 @@ MAP_TARGET="${MAP_TARGET:-src}"
 SKILL_ROOT=".agents/skills/on-demand/map-subsystem"
 python3 "${SKILL_ROOT}/scripts/map_c.py" \
   --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$PWD" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/c-map.json" \
   --clang "$(command -v clang)" --clangd "$(command -v clangd)"
 make test
@@ -443,13 +451,13 @@ if [ -z "${SKILL_ROOT}" ]; then
 fi
 python3 "${SKILL_ROOT}/scripts/map_cpp.py" \
   --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/cpp-map.json" \
   --clangxx "$(command -v clang++)" --clangd "$(command -v clangd)" \
   --make "$(command -v make)"
 python3 "${SKILL_ROOT}/scripts/map_cpp.py" \
   --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/cpp-map.json" --verify-artifacts
 ```
 <!-- installed-command:cpp-map:end -->
@@ -489,7 +497,7 @@ if [ -z "${SKILL_ROOT}" ]; then
 fi
 python3 "${SKILL_ROOT}/scripts/map_ruby.py" \
   --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/ruby-map.json" \
   --ruby "$(command -v ruby)" --bundle "$(command -v bundle)"
 ```
@@ -531,13 +539,13 @@ if [ -z "${SKILL_ROOT}" ]; then
 fi
 python3 "${SKILL_ROOT}/scripts/map_rust.py" \
   --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/rust-map.json" \
   --cargo "$(command -v cargo)" --rustc "$(command -v rustc)" \
   --rust-analyzer "$(command -v rust-analyzer)"
 python3 "${SKILL_ROOT}/scripts/map_rust.py" \
   --name "${MAP_NAME}" --target "${MAP_TARGET}" --project-root "$(pwd)" \
-  --output ".claude/docs/subsystems/${MAP_NAME}.md" \
+  --output ".engineering/docs/subsystems/${MAP_NAME}.md" \
   --evidence "reports/map/${MAP_NAME}/rust-map.json" --verify-artifacts
 ```
 <!-- installed-command:rust-map:end -->
@@ -610,7 +618,7 @@ Directories and files both work. The subsystem name is derived from
 the path (path segments joined with `-`, minus `core-`).
 
 ### `--refresh` flag
-Indicates a re-run against an existing `.claude/docs/subsystems/<name>.md`.
+Indicates a re-run against an existing `.engineering/docs/subsystems/<name>.md`.
 The skill MUST produce a diff section at the top of the new doc
 summarizing what changed since the previous version's "Regenerated"
 timestamp.
@@ -620,7 +628,7 @@ timestamp.
 - **Target:** a single subsystem (one file or one directory package).
 - **Worktree:** current working directory.
 - **Python:** `.venv/bin/python` (never bare `python`).
-- **Output:** `.claude/docs/subsystems/<name>.md`, scratch artifacts
+- **Output:** `.engineering/docs/subsystems/<name>.md`, scratch artifacts
   under `reports/map/<name>/`, and one effectiveness row under
   `reports/_meta/`. Never touches production code.
 
@@ -639,10 +647,10 @@ NAME="<resolved subsystem name>"
 TARGET="<resolved subsystem path>"
 TS=$(date -u +%Y%m%d-%H%M%S)
 REFRESH=0  # set to 1 when --refresh was passed
-OUTPUT_PATH=".claude/docs/subsystems/${NAME}.md"
+OUTPUT_PATH=".engineering/docs/subsystems/${NAME}.md"
 MAP_DIR="reports/map/${NAME}"
 SCRATCH="${MAP_DIR}/scan-${TS}"
-mkdir -p "${SCRATCH}" reports/_meta .claude/docs/subsystems
+mkdir -p "${SCRATCH}" reports/_meta .engineering/docs/subsystems
 ln -sfn "scan-${TS}" "${MAP_DIR}/latest"
 PRIOR_DOC="$([ -f "$OUTPUT_PATH" ] && printf '%s' "$OUTPUT_PATH" || true)"
 ```

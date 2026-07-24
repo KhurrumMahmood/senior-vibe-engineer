@@ -99,10 +99,10 @@ def _validate_paths(args: argparse.Namespace) -> tuple[Path, Path, Path, Path]:
 
     output = Path(args.output).resolve(strict=False)
     evidence = Path(args.evidence).resolve(strict=False)
-    allowed_output = root / ".claude" / "docs" / "subsystems"
+    allowed_output = root / ".engineering" / "docs" / "subsystems"
     allowed_evidence = root / "reports" / "map"
     if not _is_within(output, allowed_output):
-        raise UserError("output must stay under .claude/docs/subsystems")
+        raise UserError("output must stay under .engineering/docs/subsystems")
     if not _is_within(evidence, allowed_evidence):
         raise UserError("evidence must stay under reports/map")
     for artifact, base in ((output, root), (evidence, root)):
@@ -125,7 +125,10 @@ def _source_manifest(root: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(root)
-        if any(part in {".build", "reports", ".claude", ".agents"} for part in relative.parts):
+        if any(
+            part in {".build", "reports", ".claude", ".engineering", ".agents"}
+            for part in relative.parts
+        ):
             continue
         if path.is_symlink():
             result[relative.as_posix()] = f"symlink:{os.readlink(path)}"

@@ -5,7 +5,7 @@ job: map
 problem_class: "subsystem MAP — durable inventory doc"
 intent: >
   Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, or
-  bounded Go package subsystem at .claude/docs/subsystems/<name>.md. The
+  bounded Go package subsystem at .engineering/docs/subsystems/<name>.md. The
   TypeScript v1 branch uses the host-pinned Compiler API and named tsconfig to
   inventory exported surface, resolved inbound/outbound imports, barrel
   boundaries, workflow participation, and diagnostic completeness without

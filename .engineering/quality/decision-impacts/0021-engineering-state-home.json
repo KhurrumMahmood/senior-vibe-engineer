@@ -12,12 +12,12 @@
     },
     {
       "surface": "skill-prose",
-      "disposition": "deferred:agent-neutral-subsystem-maps",
-      "source_links": [
-        "ai-docs/decisions/0021-engineering-folder-state-home.md",
-        ".claude/skills/map-subsystem/SKILL.md"
-      ],
-      "review_trigger": "AC1-M2 selects and implements the second real host-state migration"
+      "disposition": "complete",
+      "evidence": [
+        ".claude/skills/map-subsystem/SKILL.md",
+        ".claude/skills/_common/engineering_home.py",
+        ".claude/skills/propose-boundary/scripts/propose.py"
+      ]
     },
     {
       "surface": "durable-docs",
@@ -37,12 +37,11 @@
     },
     {
       "surface": "generated-projections",
-      "disposition": "deferred:agent-neutral-subsystem-maps",
-      "source_links": [
+      "disposition": "complete",
+      "evidence": [
         ".claude/skills/which-skill/catalog.json",
         "scripts/build_router_catalog.py"
-      ],
-      "review_trigger": "Regenerate router/catalog claims in the AC1-M2 subsystem-map migration"
+      ]
     },
     {
       "surface": "host-configuration-state",
@@ -55,12 +54,11 @@
     },
     {
       "surface": "migration",
-      "disposition": "deferred:agent-neutral-subsystem-maps",
-      "source_links": [
+      "disposition": "complete",
+      "evidence": [
         "scripts/host_migrations.py",
-        ".claude/tasks/language-support-and-productization-execution-plan.md"
-      ],
-      "review_trigger": "AC1-M2 proves schema-1 to schema-3 skipped-release composition"
+        "tests/test_host_migrations.py"
+      ]
     },
     {
       "surface": "release",
@@ -89,14 +87,17 @@
     {
       "legacy": ".claude/docs/subsystems/",
       "canonical": ".engineering/docs/subsystems/",
-      "owner": "idea:agent-neutral-subsystem-maps",
-      "removal_condition": "AC1-M2 migrates existing maps, updates producers/consumers, and regenerates catalog claims",
-      "review_trigger": "AC1-M2 second real migration",
+      "owner": "scripts/host_migrations.py migration 0002-subsystem-maps-home",
+      "removal_condition": "P8-U1 proves supported hosts have upgraded and OLDEST_READABLE_SCHEMA advances to 3",
+      "review_trigger": "P8-U1 stock prior-release update replay",
       "allowed_reference_prefixes": [
         ".claude/skills/",
+        ".claude/docs/installation-and-on-demand-library.md",
         ".claude/docs/quality-coordination-kernel.md",
         ".claude/docs/skill-catalog.md",
-        "ai-docs/decisions/0016-importance-map-shape.md"
+        "ai-docs/decisions/0016-importance-map-shape.md",
+        "scripts/host_migrations.py",
+        "tests/"
       ]
     },
     {

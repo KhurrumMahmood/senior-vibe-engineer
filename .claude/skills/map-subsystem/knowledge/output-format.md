@@ -1,6 +1,6 @@
 # /map-subsystem — output format
 
-Every `.claude/docs/subsystems/<name>.md` follows the same shape so a
+Every `.engineering/docs/subsystems/<name>.md` follows the same shape so a
 reader can scan it without the skill loaded. `scripts/render_doc.py`
 produces this layout from the Stage 1–5 scratch files; this doc is the
 canonical reference for what it emits.

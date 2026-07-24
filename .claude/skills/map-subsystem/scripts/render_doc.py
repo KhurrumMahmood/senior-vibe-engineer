@@ -2,7 +2,7 @@
 """Render a subsystem inventory doc from the Stage 1–5 scratch files.
 
 Reads the scratch artifacts produced by the /map-subsystem pipeline
-and emits ``.claude/docs/subsystems/<name>.md`` in the format specified
+and emits ``.engineering/docs/subsystems/<name>.md`` in the format specified
 by ``knowledge/output-format.md``. Also appends one line to
 ``reports/_meta/effectiveness.jsonl``.
 
@@ -26,7 +26,7 @@ Input files (all produced in the scratch dir):
 
 Output:
 
-    .claude/docs/subsystems/<name>.md      — the rendered doc
+    .engineering/docs/subsystems/<name>.md      — the rendered doc
     reports/_meta/effectiveness.jsonl      — one appended line
 
 Stdlib-only; invoke with ``.venv/bin/python`` from the repo root.
@@ -37,8 +37,8 @@ Usage:
         --name views-crawling \\
         --target core/views/crawling.py \\
         --scratch reports/map/views-crawling/ \\
-        --output .claude/docs/subsystems/views-crawling.md \\
-        [--prior-doc .claude/docs/subsystems/views-crawling.md.prev] \\
+        --output .engineering/docs/subsystems/views-crawling.md \\
+        [--prior-doc .engineering/docs/subsystems/views-crawling.md.prev] \\
         [--header "Single-file view module covering ..."] \\
         [--effectiveness-log reports/_meta/effectiveness.jsonl]
 """

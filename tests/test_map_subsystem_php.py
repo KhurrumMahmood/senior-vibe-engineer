@@ -55,6 +55,7 @@ def _fingerprints(host: Path) -> dict[str, str]:
         for path in sorted(host.rglob("*"))
         if path.is_file()
         and ".claude" not in path.relative_to(host).parts
+        and ".engineering" not in path.relative_to(host).parts
         and ".agents" not in path.relative_to(host).parts
         and "reports" not in path.relative_to(host).parts
     }
@@ -72,7 +73,7 @@ def _map(
     minimum_composer: str | None = None,
     composer: Path = COMPOSER,
 ) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
-    output = output or host / ".claude" / "docs" / "subsystems" / f"{name}.md"
+    output = output or host / ".engineering" / "docs" / "subsystems" / f"{name}.md"
     evidence = evidence or host / "reports" / "map" / name / "php-map.json"
     args = [
         str(PHP),

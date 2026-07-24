@@ -13,6 +13,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EH_PATH = REPO_ROOT / ".claude" / "skills" / "_common" / "engineering_home.py"
 
@@ -44,9 +46,14 @@ def test_manifest_and_project_dir_resolve_under_engineering(tmp_path):
     assert eh.subsystem_registry_path(tmp_path) == (
         tmp_path / ".engineering" / "subsystems.yaml"
     )
+    assert eh.subsystem_maps_dir(tmp_path) == (
+        tmp_path / ".engineering" / "docs" / "subsystems"
+    )
 
 
-def test_subsystem_registry_prefers_canonical_then_falls_back(tmp_path, capsys):
+def test_subsystem_registry_falls_back_and_rejects_conflicting_homes(
+    tmp_path, capsys
+):
     legacy = tmp_path / ".claude" / "subsystems.yaml"
     legacy.parent.mkdir(parents=True)
     legacy.write_text("subsystems: {}\n", encoding="utf-8")
@@ -59,9 +66,24 @@ def test_subsystem_registry_prefers_canonical_then_falls_back(tmp_path, capsys):
     canonical = tmp_path / ".engineering" / "subsystems.yaml"
     canonical.parent.mkdir(parents=True)
     canonical.write_text("subsystems: {}\n", encoding="utf-8")
-    path, used_legacy = eh.resolve_subsystem_registry(tmp_path)
-    assert path == canonical
-    assert used_legacy is False
+    with pytest.raises(ValueError, match="both canonical and legacy"):
+        eh.resolve_subsystem_registry(tmp_path)
+
+
+def test_subsystem_maps_fall_back_and_reject_conflicting_homes(tmp_path, capsys):
+    legacy = tmp_path / ".claude" / "docs" / "subsystems"
+    legacy.mkdir(parents=True)
+    (legacy / "billing.md").write_text("# Billing\n", encoding="utf-8")
+
+    path, used_legacy = eh.resolve_subsystem_maps_dir(tmp_path)
+    assert path == legacy
+    assert used_legacy is True
+    assert "move it to" in capsys.readouterr().err
+
+    canonical = tmp_path / ".engineering" / "docs" / "subsystems"
+    canonical.mkdir(parents=True)
+    with pytest.raises(ValueError, match="both canonical and legacy"):
+        eh.resolve_subsystem_maps_dir(tmp_path)
 
 
 def test_read_manifest_absent_returns_none(tmp_path):

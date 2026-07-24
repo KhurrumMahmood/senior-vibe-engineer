@@ -112,10 +112,10 @@ def _validate_paths(args: argparse.Namespace) -> tuple[Path, Path, Path, Path]:
         raise UserError("target must stay inside project root")
     output = Path(args.output).resolve(strict=False)
     evidence = Path(args.evidence).resolve(strict=False)
-    docs = root / ".claude" / "docs" / "subsystems"
+    docs = root / ".engineering" / "docs" / "subsystems"
     reports = root / "reports" / "map"
     if output == docs or not _inside(output, docs):
-        raise UserError("output must stay below .claude/docs/subsystems")
+        raise UserError("output must stay below .engineering/docs/subsystems")
     if evidence == reports or not _inside(evidence, reports):
         raise UserError("evidence must stay below reports/map")
     if _has_symlink(output.parent, root) or _has_symlink(evidence.parent, root):
@@ -163,7 +163,17 @@ def _candidates(root: Path) -> list[Path]:
     rows = []
     for path in root.rglob("*"):
         relative = path.relative_to(root)
-        if any(part in {".agents", ".claude", ".git", ".native-build", "reports"} for part in relative.parts):
+        if any(
+            part in {
+                ".agents",
+                ".claude",
+                ".engineering",
+                ".git",
+                ".native-build",
+                "reports",
+            }
+            for part in relative.parts
+        ):
             continue
         if (path.is_file() or path.is_symlink()) and path.suffix in CPP_SUFFIXES:
             rows.append(path)

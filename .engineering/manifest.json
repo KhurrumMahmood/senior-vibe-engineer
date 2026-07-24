@@ -1,6 +1,7 @@
 {
   "applied_migrations": [
-    "0001-subsystem-registry-home"
+    "0001-subsystem-registry-home",
+    "0002-subsystem-maps-home"
   ],
   "skills": {
     "default": "active",
@@ -10,5 +11,5 @@
       "find-route-sprawl": "ES2 has no HTTP route surface (stdlib CLI toolkit; only skill route fixtures)."
     }
   },
-  "version": 2
+  "version": 3
 }

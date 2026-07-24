@@ -55,7 +55,7 @@ def _fingerprints(host: Path) -> dict[str, str]:
     for path in sorted(host.rglob("*")):
         relative = path.relative_to(host)
         if any(
-            part in {".native-build", ".claude", ".agents", "reports"}
+            part in {".native-build", ".claude", ".engineering", ".agents", "reports"}
             for part in relative.parts
         ):
             continue
@@ -78,7 +78,7 @@ def _map(
     minimum_clangd: str | None = None,
     output: Path | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
-    output = output or host / ".claude" / "docs" / "subsystems" / f"{name}.md"
+    output = output or host / ".engineering" / "docs" / "subsystems" / f"{name}.md"
     evidence = host / "reports" / "map" / name / "c-map.json"
     argv = [
         sys.executable,

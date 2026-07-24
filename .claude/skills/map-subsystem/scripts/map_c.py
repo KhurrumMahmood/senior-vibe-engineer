@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-INTERNAL_PARTS = {".agents", ".claude", ".git", "reports"}
+INTERNAL_PARTS = {".agents", ".claude", ".engineering", ".git", "reports"}
 LIMITATIONS = [
     "macro expansion and macro-generated declarations are not mapped",
     "inactive preprocessor branches are not mapped",
@@ -104,10 +104,10 @@ def _validate_paths(args: argparse.Namespace) -> tuple[Path, Path, Path, Path]:
         raise UserError("target must stay inside project root")
     output = Path(args.output).resolve(strict=False)
     evidence = Path(args.evidence).resolve(strict=False)
-    docs = root / ".claude" / "docs" / "subsystems"
+    docs = root / ".engineering" / "docs" / "subsystems"
     reports = root / "reports" / "map"
     if output == docs or not _inside(output, docs):
-        raise UserError("output must stay below .claude/docs/subsystems")
+        raise UserError("output must stay below .engineering/docs/subsystems")
     if evidence == reports or not _inside(evidence, reports):
         raise UserError("evidence must stay below reports/map")
     if _has_symlink(output.parent, root) or _has_symlink(evidence.parent, root):

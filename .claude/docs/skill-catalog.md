@@ -241,7 +241,7 @@ workflow spans routes, views, templates, JavaScript, and docs.
 
 | Skill | What it does | When |
 |---|---|---|
-| `/map-subsystem` | Produces/refreshes `.claude/docs/subsystems/<name>.md` — file list, public surface, responsibility table, dependency graph, convention-compliance score. No refactor intent. | Before any edit to an unfamiliar subsystem; on demand to refresh a stale map. |
+| `/map-subsystem` | Produces/refreshes `.engineering/docs/subsystems/<name>.md` — file list, public surface, responsibility table, dependency graph, convention-compliance score. No refactor intent. | Before any edit to an unfamiliar subsystem; on demand to refresh a stale map. |
 | `/map-product-workflow` | Produces/refreshes `.claude/docs/workflows/<name>.md` — workflow steps, routes, APIs, view/template ownership, JS boot globals, status providers, docs references, compatibility redirects. | At the start of a product area, when inheriting a large UI surface, or after major workflow work. |
 | `/refactor-subsystem` (Phase 1 only) | Excavates the inventory as the first phase of a multi-file refactor. Has archaeology, chunking, SOLID audit. | When excavation and refactor are a single intent. For excavation alone, prefer `/map-subsystem`. |
 
@@ -519,7 +519,7 @@ features can extend the spec rather than re-mapping.
 
 **Greenfield project.** PR3's `/init-project` will scaffold conventions
 + initial decisions + baseline subsystem maps. Until then, manually
-seed `.claude/docs/subsystems/`, `ai-docs/decisions/0001-*.md`, and the
+seed `.engineering/docs/subsystems/`, `ai-docs/decisions/0001-*.md`, and the
 canonical-patterns / architectural-smells docs.
 
 **Inheriting a large project.** Run `/map-product-workflow` for the main

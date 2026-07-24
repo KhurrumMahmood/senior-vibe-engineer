@@ -133,7 +133,7 @@ func main() {
 	var target, projectRoot, output, evidence, name, minimumGo string
 	flag.StringVar(&target, "target", "", "Go package directory within the project root")
 	flag.StringVar(&projectRoot, "project-root", ".", "host project root")
-	flag.StringVar(&output, "output", "", "durable Markdown map beneath .claude/docs/subsystems/")
+	flag.StringVar(&output, "output", "", "durable Markdown map beneath .engineering/docs/subsystems/")
 	flag.StringVar(&evidence, "evidence", "", "JSON evidence beneath reports/map/")
 	flag.StringVar(&name, "name", "", "durable subsystem map name")
 	flag.StringVar(&minimumGo, "minimum-go", defaultMinimumGo, "minimum required Go version")
@@ -152,7 +152,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	outputPath, err := artifactPath(root, output, filepath.Join(".claude", "docs", "subsystems"), "artifact output")
+	outputPath, err := artifactPath(root, output, filepath.Join(".engineering", "docs", "subsystems"), "artifact output")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)

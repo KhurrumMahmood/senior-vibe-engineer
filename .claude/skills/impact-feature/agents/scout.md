@@ -48,7 +48,7 @@ You are **not** scaffolding a spec. You produce ONE markdown file at
 - Plan path: `{{plan_path}}` — read §1-2 to understand scope; do NOT
   expand scope beyond what's in §1.
 - Subsystem: `{{subsystem}}` (matches a file under
-  `.claude/docs/subsystems/<subsystem>.md` if present)
+  `.engineering/docs/subsystems/<subsystem>.md` if present)
 - Project root (absolute): `{{project_root}}`
 - Skill root: `{{skill_root}}`
 - Write your output here: `{{output_path}}`
@@ -60,10 +60,13 @@ Read in this order, skipping any that don't exist:
 1. `{{plan_path}}` — plan §1-2. The "in scope" list bounds your
    investigation. If you find impact OUTSIDE that scope, note it but
    do not expand the scout's scope to match.
-2. `{{project_root}}/.claude/docs/subsystems/{{subsystem}}.md` — the
+2. `{{project_root}}/.engineering/docs/subsystems/{{subsystem}}.md` — the
    inventory + responsibility table. Treat as ground truth for what
    the subsystem currently does. If missing, scan the relevant code
    directory yourself and form your own one-sentence summary.
+   On a schema-2 host only, fall back to
+   `{{project_root}}/.claude/docs/subsystems/{{subsystem}}.md` and record a
+   migration warning in the output; never treat both homes as independent maps.
 3. `{{project_root}}/.claude/docs/workflows/{{subsystem}}.md` — the
    user-visible workflow doc, if the subsystem owns one. May not
    exist for pure-backend subsystems.

@@ -35,7 +35,7 @@ source it could not read.
 - Feature name: `{{feature_name}}` (kebab-case slug from
   `/plan-feature`)
 - Subsystem: `{{subsystem}}` (matches a file under
-  `.claude/docs/subsystems/<subsystem>.md` if present)
+  `.engineering/docs/subsystems/<subsystem>.md` if present)
 - Project root (absolute): `{{project_root}}`
 - Skill root: `{{skill_root}}`
 - Write your output here: `{{output_path}}`
@@ -44,11 +44,14 @@ source it could not read.
 
 Read in this order, skipping any that don't exist:
 
-1. `{{project_root}}/.claude/docs/subsystems/{{subsystem}}.md` — the
+1. `{{project_root}}/.engineering/docs/subsystems/{{subsystem}}.md` — the
    inventory + responsibility table for this subsystem. Treat as the
    ground truth for what the subsystem *currently does*. If missing,
    note it explicitly in the report (the orchestrator may need to run
    `/map-subsystem` first).
+   On a schema-2 host only, fall back to
+   `{{project_root}}/.claude/docs/subsystems/{{subsystem}}.md` and record a
+   migration warning; never merge two independently present copies.
 2. `{{project_root}}/.claude/docs/workflows/{{subsystem}}.md` — the
    user-visible workflow doc, if the subsystem owns one. May not exist
    for pure-backend subsystems.
@@ -68,7 +71,7 @@ Read in this order, skipping any that don't exist:
 #### I1. Read the subsystem doc end-to-end
 
 If a subsystem doc exists at
-`.claude/docs/subsystems/{{subsystem}}.md`, read it. Note in your head:
+`.engineering/docs/subsystems/{{subsystem}}.md`, read it. Note in your head:
 "The subsystem owns X, integrates with Y, and exposes Z." If no doc
 exists, scan the relevant code directory yourself (use `ls` and
 `Glob`) and form the same one-sentence summary from the file names and
@@ -242,7 +245,7 @@ subsystem" callouts. Keep tight.)
    multiple subsystems, list it but don't recommend — that's the
    orchestrator's job.
 4. **Flag missing subsystem docs explicitly.** If
-   `.claude/docs/subsystems/{{subsystem}}.md` doesn't exist, say so
+   `.engineering/docs/subsystems/{{subsystem}}.md` doesn't exist, say so
    in the report's Notes section. The orchestrator may need to run
    `/map-subsystem {{subsystem}}` before re-running `/plan-feature`.
 5. **Do not edit production code.** This skill is read-only against

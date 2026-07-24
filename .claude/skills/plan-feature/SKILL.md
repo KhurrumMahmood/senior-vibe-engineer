@@ -89,7 +89,7 @@ Write toward these gates from Stage 0.
    across two or more workflows, ESCALATE to the System-tier chain.
    Don't widen `/plan-feature`'s scope — the System tier exists for
    exactly this case.
-5. **Reuse over invention.** If `.claude/docs/subsystems/<name>.md`
+5. **Reuse over invention.** If `.engineering/docs/subsystems/<name>.md`
    already documents the integration point, point at it; don't re-
    document. The spec carries deltas, not duplications.
 
@@ -114,7 +114,7 @@ the spec id and report directory name. Examples:
 `crawl-job-pause-resume`.
 
 Optional `--subsystems <a,b,c>` — comma-separated subsystem doc names
-under `.claude/docs/subsystems/`. If omitted, the orchestrator infers
+under `.engineering/docs/subsystems/`. If omitted, the orchestrator infers
 the candidate subsystems from the feature name and asks the user to
 confirm before fanning out scouts (the inference is intentionally
 shallow — confirm-before-dispatch is the gate that keeps the scout
@@ -145,7 +145,15 @@ ln -sfn "scan-${TS}" reports/plan-feature/latest
 If `--subsystems` was not provided:
 
 ```bash
-ls .claude/docs/subsystems/ | sed 's/\.md$//'
+SUBSYSTEM_MAP_DIR=.engineering/docs/subsystems
+if [ -d "$SUBSYSTEM_MAP_DIR" ] && [ -d .claude/docs/subsystems ]; then
+    echo "ERROR: canonical and legacy subsystem map directories both exist; resolve the migration collision" >&2
+    exit 2
+elif [ ! -d "$SUBSYSTEM_MAP_DIR" ] && [ -d .claude/docs/subsystems ]; then
+    echo "WARNING: using legacy subsystem maps; run the host-state migration" >&2
+    SUBSYSTEM_MAP_DIR=.claude/docs/subsystems
+fi
+ls "$SUBSYSTEM_MAP_DIR" | sed 's/\.md$//'
 ```
 
 Pick 1-3 candidates whose names overlap with the feature slug; present
@@ -194,8 +202,16 @@ Read in this order (skip any missing file gracefully):
 
 ```bash
 # Per touched subsystem
+SUBSYSTEM_MAP_DIR=.engineering/docs/subsystems
+if [ -d "$SUBSYSTEM_MAP_DIR" ] && [ -d .claude/docs/subsystems ]; then
+    echo "ERROR: canonical and legacy subsystem map directories both exist; resolve the migration collision" >&2
+    exit 2
+elif [ ! -d "$SUBSYSTEM_MAP_DIR" ] && [ -d .claude/docs/subsystems ]; then
+    echo "WARNING: using legacy subsystem maps; run the host-state migration" >&2
+    SUBSYSTEM_MAP_DIR=.claude/docs/subsystems
+fi
 for sub in ${SUBSYSTEMS}; do
-    cat ".claude/docs/subsystems/${sub}.md" 2>/dev/null
+    cat "${SUBSYSTEM_MAP_DIR}/${sub}.md" 2>/dev/null
     cat ".claude/docs/workflows/${sub}.md" 2>/dev/null  # may not exist
 done
 

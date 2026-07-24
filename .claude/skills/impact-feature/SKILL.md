@@ -78,7 +78,7 @@ Write toward these gates from Stage 0.
   frontmatter through PyYAML from `requirements.txt`; the venv is part
   of the contract.
 - **Read:** `ai-docs/plans/<name>.md`,
-  `.claude/docs/subsystems/`, `.claude/docs/workflows/`.
+  `.engineering/docs/subsystems/`, `.claude/docs/workflows/`.
 - **Write:** `reports/impact-feature/scan-<TS>/scout/<subsystem>.md`,
   `reports/impact-feature/scan-<TS>/impact.md`,
   `ai-docs/plans/<name>.md` (§3-4 + status bump).
@@ -103,10 +103,18 @@ and recommend the next-stage skill.
 ### Stage 1 — Identify touched subsystems
 
 Read the plan's §1 "In scope" list. Map each in-scope artifact to the
-matching subsystem doc under `.claude/docs/subsystems/`:
+matching subsystem doc under `.engineering/docs/subsystems/`:
 
 ```bash
-ls .claude/docs/subsystems/ | sed 's/\.md$//'
+SUBSYSTEM_MAP_DIR=.engineering/docs/subsystems
+if [ -d "$SUBSYSTEM_MAP_DIR" ] && [ -d .claude/docs/subsystems ]; then
+    echo "ERROR: canonical and legacy subsystem map directories both exist; resolve the migration collision" >&2
+    exit 2
+elif [ ! -d "$SUBSYSTEM_MAP_DIR" ] && [ -d .claude/docs/subsystems ]; then
+    echo "WARNING: using legacy subsystem maps; run the host-state migration" >&2
+    SUBSYSTEM_MAP_DIR=.claude/docs/subsystems
+fi
+ls "$SUBSYSTEM_MAP_DIR" | sed 's/\.md$//'
 ```
 
 Present the candidate subsystem list to the user and wait for

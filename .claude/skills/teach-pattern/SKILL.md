@@ -118,8 +118,10 @@ Topic resolution priority:
    → smell.
 3. If topic matches a heading in `.claude/docs/canonical-patterns.md`
    → pattern.
-4. If topic matches a `.claude/docs/subsystems/<topic>.md` → subsystem
-   convention briefing.
+4. If topic matches a `.engineering/docs/subsystems/<topic>.md` → subsystem
+   convention briefing. On a schema-2 host, fall back to
+   `.claude/docs/subsystems/<topic>.md` with a migration warning; if both
+   exist, stop rather than selecting one silently.
 5. Else free-form: grep all four sources for the topic words, pick the
    strongest match, note the kind.
 

@@ -147,7 +147,12 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=30)
     args = parser.parse_args()
     root = Path(os.path.realpath(args.project_root.resolve(strict=True)))
-    output = _safe(root, args.output, root / ".claude" / "docs" / "subsystems", "output")
+    output = _safe(
+        root,
+        args.output,
+        root / ".engineering" / "docs" / "subsystems",
+        "output",
+    )
     evidence = _safe(root, args.evidence, root / "reports" / "map", "evidence")
     provider = _provider()
     facts = provider.load_or_collect(

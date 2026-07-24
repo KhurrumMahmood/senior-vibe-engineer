@@ -50,6 +50,7 @@ def _snapshot(root: Path) -> dict[str, str]:
         and not path.is_symlink()
         and "reports" not in path.parts
         and ".claude" not in path.parts
+        and ".engineering" not in path.parts
     }
 
 
@@ -162,7 +163,7 @@ def test_three_final_outcomes_positive_clean_exclusions_and_hash_agreement(
                 "--name",
                 f"{name}-core",
                 "--output",
-                f".claude/docs/subsystems/{name}-core.md",
+                f".engineering/docs/subsystems/{name}-core.md",
                 "--evidence",
                 f"reports/map/{name}-core/dart-map.json",
                 "--facts",
@@ -190,7 +191,7 @@ def test_three_final_outcomes_positive_clean_exclusions_and_hash_agreement(
         dormant = json.loads((dormant_dir / "findings.json").read_text())
         scan = json.loads((dormant_dir / "scan.json").read_text())
         mapped = json.loads((project / f"reports/map/{name}-core/dart-map.json").read_text())
-        markdown = (project / f".claude/docs/subsystems/{name}-core.md").read_text()
+        markdown = (project / f".engineering/docs/subsystems/{name}-core.md").read_text()
         assessment = json.loads((project / "reports/rename-concept/assessment.json").read_text())
         assert dormant["summary"]["certain_delete"] == 0
         assert scan["certain_delete"] == 0
@@ -502,7 +503,7 @@ def test_copied_isolated_closure_and_provider_sharing_economics(
             "--name",
             "copied",
             "--output",
-            ".claude/docs/subsystems/copied.md",
+            ".engineering/docs/subsystems/copied.md",
             "--evidence",
             "reports/map/copied/dart-map.json",
             "--facts",

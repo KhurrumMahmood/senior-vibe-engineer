@@ -120,7 +120,10 @@ def _source_bytes(host: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     for path in sorted(host.rglob("*")):
         relative = path.relative_to(host)
-        if any(part in {".agents", ".claude", "reports", "target"} for part in relative.parts):
+        if any(
+            part in {".agents", ".claude", ".engineering", "reports", "target"}
+            for part in relative.parts
+        ):
             continue
         if path.is_symlink():
             result[relative.as_posix()] = f"symlink:{os.readlink(path)}"
@@ -140,7 +143,7 @@ def _map(
     rust_analyzer: str | None = None,
     verify: bool = False,
 ) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
-    output = host / ".claude" / "docs" / "subsystems" / f"{name}.md"
+    output = host / ".engineering" / "docs" / "subsystems" / f"{name}.md"
     evidence = host / "reports" / "map" / name / "rust-map.json"
     argv = [
         sys.executable,

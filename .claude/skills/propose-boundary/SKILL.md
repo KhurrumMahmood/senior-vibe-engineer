@@ -428,7 +428,7 @@ directory (`.claude/skills/<name>/`). The helper auto-detects which.
 /propose-boundary <subsystem-name>
 ```
 
-If `.claude/docs/subsystems/<subsystem-name>.md` exists, the helper
+If `.engineering/docs/subsystems/<subsystem-name>.md` exists, the helper
 reads it for the file list and uses that as the target. Otherwise the
 orchestrator treats the argument as a path and falls through to Form A.
 

@@ -41,7 +41,7 @@ def _map(
     name: str = "features",
     tsconfig: str = "tsconfig.json",
 ) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
-    output = host / ".claude" / "docs" / "subsystems" / f"{name}.md"
+    output = host / ".engineering" / "docs" / "subsystems" / f"{name}.md"
     evidence = host / "reports" / "map" / name / "typescript-map.json"
     result = _run(
         "node",
@@ -275,7 +275,7 @@ def test_typescript_map_refuses_source_or_symlinked_artifact_paths(tmp_path: Pat
     os.symlink(host / "src", host / "reports")
     linked_report = _map_with_paths(
         host,
-        output=host / ".claude" / "docs" / "subsystems" / "safe.md",
+        output=host / ".engineering" / "docs" / "subsystems" / "safe.md",
         evidence=host / "reports" / "map" / "unsafe" / "typescript-map.json",
     )
     assert linked_report.returncode == 2
@@ -304,7 +304,7 @@ def test_stock_install_runs_documented_map_command_without_checkout_runtime(tmp_
     command = _documented_command(installed, "typescript-map")
     result = _run("bash", "-c", command, cwd=host)
     assert result.returncode == 0, result.stdout + result.stderr
-    output = host / ".claude" / "docs" / "subsystems" / "typescript-features.md"
+    output = host / ".engineering" / "docs" / "subsystems" / "typescript-features.md"
     evidence = host / "reports" / "map" / "typescript-features" / "typescript-map.json"
     payload = _load(evidence)
     assert output.is_file()

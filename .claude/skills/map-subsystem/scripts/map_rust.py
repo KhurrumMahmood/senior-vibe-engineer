@@ -29,8 +29,14 @@ from urllib.parse import unquote, urlparse
 
 SCHEMA_VERSION = "rust-map-v1"
 ANALYZER = "cargo-metadata+compiler-json+rust-analyzer-lsp"
-EXCLUDED_SNAPSHOT_PARTS = {".git", ".agents", ".claude", "reports"}
-OUTPUT_PREFIX = Path(".claude/docs/subsystems")
+EXCLUDED_SNAPSHOT_PARTS = {
+    ".git",
+    ".agents",
+    ".claude",
+    ".engineering",
+    "reports",
+}
+OUTPUT_PREFIX = Path(".engineering/docs/subsystems")
 EVIDENCE_PREFIX = Path("reports/map")
 RUST_IDENT = r"[A-Za-z_][A-Za-z0-9_]*"
 
@@ -662,7 +668,7 @@ def _source_inventory(
         retained_directories = sorted(
             name
             for name in directory_names
-            if name not in {".git", ".agents", ".claude", "reports"}
+            if name not in {".git", ".agents", ".claude", ".engineering", "reports"}
         )
         directory_names[:] = []
         for name in retained_directories:

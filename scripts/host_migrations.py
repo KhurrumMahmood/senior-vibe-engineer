@@ -12,6 +12,7 @@ import base64
 import hashlib
 import json
 import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -29,15 +30,43 @@ import engineering_home as eh  # noqa: E402
 CURRENT_SCHEMA = eh.MANIFEST_VERSION
 OLDEST_READABLE_SCHEMA = 1
 SUBSYSTEM_REGISTRY_MIGRATION_ID = "0001-subsystem-registry-home"
-MIGRATION_IDS = (SUBSYSTEM_REGISTRY_MIGRATION_ID,)
+SUBSYSTEM_MAPS_MIGRATION_ID = "0002-subsystem-maps-home"
 
 LEGACY_REGISTRY = Path(".claude/subsystems.yaml")
 CANONICAL_REGISTRY = Path(".engineering/subsystems.yaml")
+LEGACY_SUBSYSTEM_MAPS = Path(".claude/docs/subsystems")
+CANONICAL_SUBSYSTEM_MAPS = Path(".engineering/docs/subsystems")
 MANIFEST = Path(".engineering/manifest.json")
 LOCAL_IGNORE = Path(".engineering/.gitignore")
-JOURNAL = Path(
-    f".engineering/local/migrations/{SUBSYSTEM_REGISTRY_MIGRATION_ID}.json"
+
+_DECLARED_MIGRATIONS: tuple[dict[str, Any], ...] = (
+    {
+        "id": SUBSYSTEM_REGISTRY_MIGRATION_ID,
+        "from_schema": 1,
+        "to_schema": 2,
+        "source": LEGACY_REGISTRY,
+        "destination": CANONICAL_REGISTRY,
+        "kind": "file",
+    },
+    {
+        "id": SUBSYSTEM_MAPS_MIGRATION_ID,
+        "from_schema": 2,
+        "to_schema": 3,
+        "source": LEGACY_SUBSYSTEM_MAPS,
+        "destination": CANONICAL_SUBSYSTEM_MAPS,
+        "kind": "directory",
+    },
 )
+MIGRATIONS = tuple(
+    row for row in _DECLARED_MIGRATIONS if row["to_schema"] <= CURRENT_SCHEMA
+)
+MIGRATION_IDS = tuple(row["id"] for row in MIGRATIONS)
+MIGRATION_BY_ID = {row["id"]: row for row in MIGRATIONS}
+MIGRATION_BY_FROM = {row["from_schema"]: row for row in MIGRATIONS}
+
+
+def _journal_path(migration_id: str) -> Path:
+    return Path(f".engineering/local/migrations/{migration_id}.json")
 
 
 def _sha256(raw: bytes) -> str:
@@ -72,11 +101,11 @@ def _json_bytes(payload: dict[str, Any]) -> bytes:
 
 
 def _write_journal(root: Path, journal: dict[str, Any]) -> None:
-    _atomic_write(root / JOURNAL, _json_bytes(journal))
+    _atomic_write(root / _journal_path(journal["migration_id"]), _json_bytes(journal))
 
 
-def _read_journal(root: Path) -> dict[str, Any] | None:
-    path = root / JOURNAL
+def _read_journal(root: Path, migration_id: str) -> dict[str, Any] | None:
+    path = root / _journal_path(migration_id)
     if not path.is_file() or path.is_symlink():
         return None
     try:
@@ -123,7 +152,7 @@ def _applied_ids(manifest: dict[str, Any] | None) -> list[str]:
     return list(value)
 
 
-def _path_problem(root: Path, relative: Path) -> str | None:
+def _path_problem(root: Path, relative: Path, kind: str = "file") -> str | None:
     current = root
     for part in relative.parts[:-1]:
         current = current / part
@@ -134,9 +163,36 @@ def _path_problem(root: Path, relative: Path) -> str | None:
     path = root / relative
     if path.is_symlink():
         return f"path is a symlink: {relative}"
-    if path.exists() and not path.is_file():
+    if path.exists() and kind == "file" and not path.is_file():
         return f"path is not a regular file: {relative}"
+    if path.exists() and kind == "directory" and not path.is_dir():
+        return f"path is not a directory: {relative}"
+    if path.is_dir():
+        for item in sorted(path.rglob("*")):
+            if item.is_symlink():
+                return f"directory contains a symlink: {item.relative_to(root)}"
+            if not item.is_file() and not item.is_dir():
+                return f"directory contains a non-regular entry: {item.relative_to(root)}"
     return None
+
+
+def _content_digest(path: Path, kind: str) -> str:
+    if kind == "file":
+        return _sha256(path.read_bytes())
+    digest = hashlib.sha256()
+    digest.update(b"directory-v1\0")
+    for item in sorted(path.rglob("*")):
+        relative = item.relative_to(path).as_posix().encode()
+        mode = str(stat.S_IMODE(item.stat(follow_symlinks=False).st_mode)).encode()
+        if item.is_dir():
+            digest.update(b"d\0" + relative + b"\0" + mode + b"\0")
+        elif item.is_file():
+            digest.update(b"f\0" + relative + b"\0" + mode + b"\0")
+            digest.update(item.read_bytes())
+            digest.update(b"\0")
+        else:  # guarded by _path_problem; keep direct callers fail-closed
+            raise ValueError(f"unsupported directory entry: {item}")
+    return digest.hexdigest()
 
 
 def _git_state() -> tuple[str | None, bool | None]:
@@ -182,6 +238,180 @@ def _base_report(root: Path, current: int) -> dict[str, Any]:
     }
 
 
+def _validate_local_ignore(root: Path) -> list[dict[str, str]]:
+    path = root / LOCAL_IGNORE
+    if not path.is_file() or path.is_symlink():
+        return [
+            _block(
+                "missing-local-ignore",
+                f"an upgradeable host must provide regular {LOCAL_IGNORE}",
+            )
+        ]
+    rules = {
+        line.strip()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    if not ({"/local/", "local/"} & rules):
+        return [
+            _block(
+                "local-journal-not-ignored",
+                f"{LOCAL_IGNORE} must ignore /local/ before migration",
+            )
+        ]
+    return []
+
+
+def _journal_shape_errors(
+    journal: dict[str, Any], migration: dict[str, Any]
+) -> list[dict[str, str]]:
+    expected = {
+        "migration_id": migration["id"],
+        "from_schema": migration["from_schema"],
+        "to_schema": migration["to_schema"],
+        "source": str(migration["source"]),
+        "destination": str(migration["destination"]),
+        "content_kind": migration["kind"],
+    }
+    mismatches = [
+        key for key, value in expected.items() if journal.get(key) != value
+    ]
+    if journal.get("journal_version") != 2:
+        mismatches.append("journal_version")
+    if not isinstance(journal.get("moved_path"), bool):
+        mismatches.append("moved_path")
+    if mismatches:
+        return [
+            _block(
+                "inconsistent-journal",
+                f"{migration['id']} has mismatched fields: {', '.join(sorted(set(mismatches)))}",
+            )
+        ]
+    return []
+
+
+def _resume_errors(
+    root: Path, migration: dict[str, Any], journal: dict[str, Any]
+) -> list[dict[str, str]]:
+    errors = _journal_shape_errors(journal, migration)
+    if errors:
+        return errors
+    source = root / migration["source"]
+    destination = root / migration["destination"]
+    state = journal.get("state")
+    moved = journal["moved_path"]
+    if state not in {"prepared", "moved"}:
+        return [_block("inconsistent-journal", f"unexpected journal state: {state}")]
+    if not moved:
+        if source.exists() or source.is_symlink() or destination.exists() or destination.is_symlink():
+            return [
+                _block(
+                    "inconsistent-journal",
+                    f"{migration['id']} recorded no move but a migration path now exists",
+                )
+            ]
+        return []
+    expected = journal.get("content_sha256")
+    source_ready = (
+        state == "prepared"
+        and source.exists()
+        and not destination.exists()
+        and _content_digest(source, migration["kind"]) == expected
+    )
+    destination_ready = (
+        not source.exists()
+        and destination.exists()
+        and _content_digest(destination, migration["kind"]) == expected
+    )
+    if source_ready or destination_ready:
+        return []
+    return [
+        _block(
+            "inconsistent-journal",
+            f"{migration['id']} paths do not match its prepared/moved digest",
+        )
+    ]
+
+
+def _plan_step(root: Path, migration: dict[str, Any]) -> dict[str, Any]:
+    blockers: list[dict[str, str]] = []
+    for relative, kind in (
+        (migration["source"], migration["kind"]),
+        (migration["destination"], migration["kind"]),
+        (_journal_path(migration["id"]), "file"),
+    ):
+        if problem := _path_problem(root, relative, kind):
+            blockers.append(_block("unsafe-path-shape", problem))
+
+    journal_path = root / _journal_path(migration["id"])
+    journal = _read_journal(root, migration["id"])
+    if (journal_path.exists() or journal_path.is_symlink()) and journal is None:
+        blockers.append(
+            _block("invalid-journal", f"cannot read migration journal {_journal_path(migration['id'])}")
+        )
+    operations: list[dict[str, Any]] = []
+    recovered = False
+    if journal is not None and journal.get("state") in {"prepared", "moved"}:
+        blockers.extend(_resume_errors(root, migration, journal))
+        operations.append(
+            {
+                "action": "resume",
+                "migration_id": migration["id"],
+                "from_state": journal.get("state"),
+            }
+        )
+        recovered = True
+    elif journal is not None and journal.get("state") not in {"restored"}:
+        blockers.append(
+            _block(
+                "application-record-ahead",
+                f"{migration['id']} journal is {journal.get('state')} before schema {migration['to_schema']}",
+            )
+        )
+    else:
+        source = root / migration["source"]
+        destination = root / migration["destination"]
+        if destination.exists() or destination.is_symlink():
+            blockers.append(
+                _block(
+                    "canonical-path-occupied",
+                    f"refusing to overwrite pre-existing {migration['destination']}",
+                )
+            )
+        elif source.exists() or source.is_symlink():
+            if not blockers:
+                operations.append(
+                    {
+                        "action": "move",
+                        "from": str(migration["source"]),
+                        "to": str(migration["destination"]),
+                        "sha256": _content_digest(source, migration["kind"]),
+                    }
+                )
+    operations.append(
+        {
+            "action": "update-manifest",
+            "path": str(MANIFEST),
+            "from_schema": migration["from_schema"],
+            "to_schema": migration["to_schema"],
+        }
+    )
+    return {"blockers": blockers, "operations": operations, "recovered": recovered}
+
+
+def _completed_recovery(
+    root: Path, current: int, applied: list[str]
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    migration = next((row for row in MIGRATIONS if row["to_schema"] == current), None)
+    if migration is None or migration["id"] not in applied:
+        return None
+    journal = _read_journal(root, migration["id"])
+    if journal is None or journal.get("state") not in {"prepared", "moved"}:
+        return None
+    errors = _resume_errors(root, migration, journal)
+    return migration, {"journal": journal, "blockers": errors}
+
+
 def plan(project_root: Path | str) -> dict[str, Any]:
     """Return the exact no-write plan for upgrading ``project_root``."""
     root = Path(project_root).resolve()
@@ -196,14 +426,6 @@ def plan(project_root: Path | str) -> dict[str, Any]:
         return report
 
     report = _base_report(root, current)
-    journal_path = root / JOURNAL
-    journal = _read_journal(root)
-    if (journal_path.exists() or journal_path.is_symlink()) and journal is None:
-        report["status"] = "blocked"
-        report["blockers"] = [
-            _block("invalid-journal", f"cannot read migration journal {JOURNAL}")
-        ]
-        return report
     if current > CURRENT_SCHEMA:
         report["status"] = "newer-than-tool"
         report["blockers"] = [
@@ -222,169 +444,142 @@ def plan(project_root: Path | str) -> dict[str, Any]:
             )
         ]
         return report
-    if current == CURRENT_SCHEMA:
-        for relative in (LEGACY_REGISTRY, CANONICAL_REGISTRY, MANIFEST, JOURNAL):
-            if problem := _path_problem(root, relative):
-                report["blockers"].append(_block("unsafe-path-shape", problem))
-        if SUBSYSTEM_REGISTRY_MIGRATION_ID not in applied:
-            report["blockers"].append(
-                _block(
-                    "missing-application-record",
-                    "schema is current but the required migration ID is absent",
-                )
-            )
-        if (root / LEGACY_REGISTRY).exists() or (root / LEGACY_REGISTRY).is_symlink():
-            report["blockers"].append(
-                _block("legacy-path-remains", str(LEGACY_REGISTRY))
-            )
-        if report["blockers"]:
-            report["status"] = "blocked"
-            return report
-        if journal is not None and journal.get("state") in {"prepared", "moved"}:
-            canonical = root / CANONICAL_REGISTRY
-            content_matches = (
-                not journal.get("moved_registry")
-                or (
-                    canonical.is_file()
-                    and not canonical.is_symlink()
-                    and _sha256(canonical.read_bytes()) == journal.get("content_sha256")
-                )
-            )
-            if (
-                journal.get("migration_id") == SUBSYSTEM_REGISTRY_MIGRATION_ID
-                and content_matches
-            ):
-                report["status"] = "ready"
-                report["recovered"] = True
-                report["operations"] = [
-                    {
-                        "action": "finalize-journal",
-                        "migration_id": SUBSYSTEM_REGISTRY_MIGRATION_ID,
-                    }
-                ]
-                return report
-            report["status"] = "blocked"
-            report["blockers"] = [
-                _block("inconsistent-journal", "current schema has an incomplete journal")
-            ]
-            return report
-        report["status"] = "current"
-        return report
-
-    if current != 1:
+    if current not in MIGRATION_BY_FROM and current != CURRENT_SCHEMA:
         report["status"] = "blocked"
         report["blockers"] = [
             _block("missing-migration-chain", f"no migration from schema {current}")
         ]
         return report
 
-    report["pending_migrations"] = [SUBSYSTEM_REGISTRY_MIGRATION_ID]
-    for relative in (
-        LEGACY_REGISTRY,
-        CANONICAL_REGISTRY,
-        MANIFEST,
-        LOCAL_IGNORE,
-        JOURNAL,
-    ):
-        if problem := _path_problem(root, relative):
-            report["blockers"].append(_block("unsafe-path-shape", problem))
+    if problem := _path_problem(root, MANIFEST):
+        report["blockers"].append(_block("unsafe-path-shape", problem))
+    if current < CURRENT_SCHEMA:
+        report["blockers"].extend(_validate_local_ignore(root))
 
-    ignore_path = root / LOCAL_IGNORE
-    if not ignore_path.is_file() or ignore_path.is_symlink():
+    required = {row["id"] for row in MIGRATIONS if row["to_schema"] <= current}
+    future = {row["id"] for row in MIGRATIONS if row["to_schema"] > current}
+    unknown = sorted(set(applied) - set(MIGRATION_IDS))
+    for migration_id in unknown:
         report["blockers"].append(
             _block(
-                "missing-local-ignore",
-                f"schema-1 host must provide regular {LOCAL_IGNORE} before migration",
+                "unknown-application-record",
+                f"manifest records unknown migration {migration_id}",
             )
         )
-    else:
-        ignore_rules = {
-            line.strip()
-            for line in ignore_path.read_text(encoding="utf-8").splitlines()
-            if line.strip() and not line.lstrip().startswith("#")
-        }
-        if not ({"/local/", "local/"} & ignore_rules):
-            report["blockers"].append(
-                _block(
-                    "local-journal-not-ignored",
-                    f"{LOCAL_IGNORE} must ignore /local/ before migration",
-                )
+    duplicates = sorted(
+        migration_id for migration_id in set(applied) if applied.count(migration_id) > 1
+    )
+    for migration_id in duplicates:
+        report["blockers"].append(
+            _block(
+                "duplicate-application-record",
+                f"manifest records migration {migration_id} more than once",
             )
-    if SUBSYSTEM_REGISTRY_MIGRATION_ID in applied:
+        )
+    for migration_id in sorted(required - set(applied)):
+        report["blockers"].append(
+            _block(
+                "missing-application-record",
+                f"schema {current} requires migration record {migration_id}",
+            )
+        )
+    for migration_id in sorted(future & set(applied)):
         report["blockers"].append(
             _block(
                 "application-record-ahead",
-                "migration ID is recorded while the host schema is still 1",
+                f"migration {migration_id} is recorded before its target schema",
             )
         )
-
-    legacy = root / LEGACY_REGISTRY
-    canonical = root / CANONICAL_REGISTRY
-    resumable = (
-        journal is not None
-        and journal.get("migration_id") == SUBSYSTEM_REGISTRY_MIGRATION_ID
-        and journal.get("state") in {"prepared", "moved"}
-        and not legacy.exists()
-        and canonical.is_file()
-        and not canonical.is_symlink()
-        and journal.get("content_sha256") == _sha256(canonical.read_bytes())
-    )
-    if resumable:
-        report["operations"].append(
-            {
-                "action": "resume",
-                "migration_id": SUBSYSTEM_REGISTRY_MIGRATION_ID,
-                "from_state": journal["state"],
-            }
-        )
-        report["recovered"] = True
-    elif canonical.exists() or canonical.is_symlink():
+    expected_applied = [
+        row["id"] for row in MIGRATIONS if row["to_schema"] <= current
+    ]
+    if (
+        not unknown
+        and not duplicates
+        and set(applied) == set(expected_applied)
+        and applied != expected_applied
+    ):
         report["blockers"].append(
             _block(
-                "canonical-path-occupied",
-                f"refusing to overwrite pre-existing {CANONICAL_REGISTRY}",
+                "out-of-order-application-record",
+                "manifest migration records do not match declared order",
             )
         )
-    elif legacy.exists() or legacy.is_symlink():
-        if not report["blockers"]:
-            raw = legacy.read_bytes()
-            report["operations"].append(
-                {
-                    "action": "move",
-                    "from": str(LEGACY_REGISTRY),
-                    "to": str(CANONICAL_REGISTRY),
-                    "sha256": _sha256(raw),
-                }
+
+    for migration in MIGRATIONS:
+        journal_path = root / _journal_path(migration["id"])
+        journal = _read_journal(root, migration["id"])
+        if (journal_path.exists() or journal_path.is_symlink()) and journal is None:
+            report["blockers"].append(
+                _block("invalid-journal", f"cannot read migration journal {_journal_path(migration['id'])}")
+            )
+        if migration["to_schema"] <= current:
+            for relative, kind in (
+                (migration["source"], migration["kind"]),
+                (migration["destination"], migration["kind"]),
+            ):
+                if problem := _path_problem(root, relative, kind):
+                    report["blockers"].append(_block("unsafe-path-shape", problem))
+            source = root / migration["source"]
+            if source.exists() or source.is_symlink():
+                report["blockers"].append(
+                    _block("legacy-path-remains", str(migration["source"]))
+                )
+        elif journal is not None and journal.get("state") == "applied":
+            report["blockers"].append(
+                _block(
+                    "application-record-ahead",
+                    f"journal {migration['id']} is applied before schema {migration['to_schema']}",
+                )
             )
 
-    report["operations"].append(
-        {
-            "action": "update-manifest",
-            "path": str(MANIFEST),
-            "from_schema": 1,
-            "to_schema": 2,
-        }
-    )
-    report["status"] = "blocked" if report["blockers"] else "ready"
+    recovery = _completed_recovery(root, current, applied)
+    if recovery is not None:
+        migration, details = recovery
+        report["blockers"].extend(details["blockers"])
+        report["operations"].append(
+            {"action": "finalize-journal", "migration_id": migration["id"]}
+        )
+        report["recovered"] = True
+
+    for migration in MIGRATIONS:
+        if migration["from_schema"] < current:
+            continue
+        report["pending_migrations"].append(migration["id"])
+        step = _plan_step(root, migration)
+        report["blockers"].extend(step["blockers"])
+        report["operations"].extend(step["operations"])
+        report["recovered"] = report["recovered"] or step["recovered"]
+
+    if report["blockers"]:
+        report["status"] = "blocked"
+    elif report["operations"]:
+        report["status"] = "ready"
+    else:
+        report["status"] = "current"
     return report
 
 
 def _prepare_journal(
     root: Path,
+    migration: dict[str, Any],
     manifest_raw: bytes | None,
     content_sha256: str | None,
     moved: bool,
 ) -> dict[str, Any]:
     journal = {
-        "journal_version": 1,
-        "migration_id": SUBSYSTEM_REGISTRY_MIGRATION_ID,
+        "journal_version": 2,
+        "migration_id": migration["id"],
         "state": "prepared",
-        "from_schema": 1,
-        "to_schema": 2,
+        "from_schema": migration["from_schema"],
+        "to_schema": migration["to_schema"],
+        "source": str(migration["source"]),
+        "destination": str(migration["destination"]),
+        "content_kind": migration["kind"],
         "manifest_existed": manifest_raw is not None,
         "manifest_before_base64": _b64(manifest_raw),
         "content_sha256": content_sha256,
-        "moved_registry": moved,
+        "moved_path": moved,
     }
     _write_journal(root, journal)
     return journal
@@ -394,12 +589,13 @@ def _finish_manifest(
     root: Path,
     manifest: dict[str, Any] | None,
     journal: dict[str, Any],
+    migration: dict[str, Any],
 ) -> dict[str, Any]:
     updated = dict(manifest or {})
     applied = _applied_ids(updated)
-    if SUBSYSTEM_REGISTRY_MIGRATION_ID not in applied:
-        applied.append(SUBSYSTEM_REGISTRY_MIGRATION_ID)
-    updated["version"] = CURRENT_SCHEMA
+    if migration["id"] not in applied:
+        applied.append(migration["id"])
+    updated["version"] = migration["to_schema"]
     updated["applied_migrations"] = applied
     raw = _write_manifest(root, updated)
     journal["state"] = "applied"
@@ -408,53 +604,96 @@ def _finish_manifest(
     return updated
 
 
+def _apply_one(root: Path, migration: dict[str, Any]) -> bool:
+    manifest, manifest_raw = _read_manifest(root)
+    if _schema(manifest) != migration["from_schema"]:
+        raise RuntimeError(f"host is not at schema {migration['from_schema']}")
+    journal = _read_journal(root, migration["id"])
+    recovered = journal is not None and journal.get("state") in {"prepared", "moved"}
+    source = root / migration["source"]
+    destination = root / migration["destination"]
+    if recovered:
+        assert journal is not None
+        errors = _resume_errors(root, migration, journal)
+        if errors:
+            raise RuntimeError(errors)
+    else:
+        moved = source.exists()
+        content_sha256 = _content_digest(source, migration["kind"]) if moved else None
+        journal = _prepare_journal(
+            root, migration, manifest_raw, content_sha256, moved
+        )
+
+    assert journal is not None
+    if journal["moved_path"] and source.exists():
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(source, destination)
+    journal["state"] = "moved"
+    _write_journal(root, journal)
+    _finish_manifest(root, manifest, journal, migration)
+
+    verified, _ = _read_manifest(root)
+    if _schema(verified) != migration["to_schema"] or migration["id"] not in _applied_ids(verified):
+        raise RuntimeError(f"migration verification failed for {migration['id']}")
+    if source.exists() or source.is_symlink():
+        raise RuntimeError(f"legacy path remains after {migration['id']}")
+    if journal["moved_path"]:
+        if (
+            not destination.exists()
+            or _content_digest(destination, migration["kind"])
+            != journal["content_sha256"]
+        ):
+            raise RuntimeError(f"destination verification failed for {migration['id']}")
+    return recovered
+
+
+def _finalize_completed(root: Path, migration: dict[str, Any]) -> None:
+    manifest, raw = _read_manifest(root)
+    journal = _read_journal(root, migration["id"])
+    assert manifest is not None and raw is not None and journal is not None
+    if _schema(manifest) != migration["to_schema"] or migration["id"] not in _applied_ids(manifest):
+        raise RuntimeError(f"cannot finalize {migration['id']} without its manifest record")
+    errors = _resume_errors(root, migration, journal)
+    if errors:
+        raise RuntimeError(errors)
+    journal["state"] = "applied"
+    journal["manifest_after_sha256"] = _sha256(raw)
+    _write_journal(root, journal)
+
+
 def apply(project_root: Path | str) -> dict[str, Any]:
     """Apply all pending migrations, or return a no-write blocked report."""
     root = Path(project_root).resolve()
-    report = plan(root)
-    if report["status"] != "ready":
-        return report
+    initial = plan(root)
+    if initial["status"] != "ready":
+        return initial
 
-    manifest, manifest_raw = _read_manifest(root)
-    if report["current_schema"] == CURRENT_SCHEMA and report["recovered"]:
-        journal = _read_journal(root)
-        assert journal is not None and manifest_raw is not None
-        journal["state"] = "applied"
-        journal["manifest_after_sha256"] = _sha256(manifest_raw)
-        _write_journal(root, journal)
-        verified = plan(root)
-        if verified["status"] != "current":
-            raise RuntimeError(f"journal recovery verification failed: {verified['blockers']}")
-        verified["status"] = "applied"
-        verified["recovered"] = True
-        verified["operations"] = report["operations"]
-        return verified
+    recovered = initial["recovered"]
+    while True:
+        manifest, _ = _read_manifest(root)
+        current = _schema(manifest)
+        applied = _applied_ids(manifest)
+        recovery = _completed_recovery(root, current, applied)
+        if recovery is not None:
+            migration, details = recovery
+            if details["blockers"]:
+                raise RuntimeError(details["blockers"])
+            _finalize_completed(root, migration)
+            recovered = True
+            continue
+        if current == CURRENT_SCHEMA:
+            break
+        migration = MIGRATION_BY_FROM.get(current)
+        if migration is None:
+            raise RuntimeError(f"no migration from schema {current}")
+        recovered = _apply_one(root, migration) or recovered
 
-    legacy = root / LEGACY_REGISTRY
-    canonical = root / CANONICAL_REGISTRY
-    journal = _read_journal(root)
-    if report["recovered"]:
-        assert journal is not None
-        journal["state"] = "moved"
-        _write_journal(root, journal)
-    else:
-        moved = legacy.is_file()
-        content_sha256 = _sha256(legacy.read_bytes()) if moved else None
-        journal = _prepare_journal(root, manifest_raw, content_sha256, moved)
-        if moved:
-            canonical.parent.mkdir(parents=True, exist_ok=True)
-            os.replace(legacy, canonical)
-            journal["state"] = "moved"
-            _write_journal(root, journal)
-
-    assert journal is not None
-    _finish_manifest(root, manifest, journal)
     verified = plan(root)
     if verified["status"] != "current":
         raise RuntimeError(f"migration verification failed: {verified['blockers']}")
     verified["status"] = "applied"
-    verified["recovered"] = report["recovered"]
-    verified["operations"] = report["operations"]
+    verified["recovered"] = recovered
+    verified["operations"] = initial["operations"]
     return verified
 
 
@@ -462,11 +701,22 @@ def restore(project_root: Path | str, migration_id: str) -> dict[str, Any]:
     """Restore the exact pre-migration manifest/path state for the last step."""
     root = Path(project_root).resolve()
     report = plan(root)
-    if migration_id != SUBSYSTEM_REGISTRY_MIGRATION_ID:
+    migration = MIGRATION_BY_ID.get(migration_id)
+    if migration is None:
         report["status"] = "blocked"
         report["blockers"] = [_block("unknown-migration", migration_id)]
         return report
-    journal = _read_journal(root)
+    manifest, _ = _read_manifest(root)
+    if _schema(manifest) != migration["to_schema"]:
+        report["status"] = "blocked"
+        report["blockers"] = [
+            _block(
+                "not-last-migration",
+                f"restore {migration_id} only from schema {migration['to_schema']}",
+            )
+        ]
+        return report
+    journal = _read_journal(root, migration_id)
     if journal is None or journal.get("state") != "applied":
         report["status"] = "blocked"
         report["blockers"] = [
@@ -486,26 +736,26 @@ def restore(project_root: Path | str, migration_id: str) -> dict[str, Any]:
         ]
         return report
 
-    legacy = root / LEGACY_REGISTRY
-    canonical = root / CANONICAL_REGISTRY
-    if journal.get("moved_registry"):
+    source = root / migration["source"]
+    destination = root / migration["destination"]
+    if journal.get("moved_path"):
         expected = journal.get("content_sha256")
-        if legacy.exists() or legacy.is_symlink():
+        if source.exists() or source.is_symlink():
             report["status"] = "blocked"
-            report["blockers"] = [_block("legacy-path-occupied", str(LEGACY_REGISTRY))]
+            report["blockers"] = [_block("legacy-path-occupied", str(migration["source"]))]
             return report
         if (
-            not canonical.is_file()
-            or canonical.is_symlink()
-            or _sha256(canonical.read_bytes()) != expected
+            not destination.exists()
+            or destination.is_symlink()
+            or _content_digest(destination, migration["kind"]) != expected
         ):
             report["status"] = "blocked"
             report["blockers"] = [
-                _block("canonical-content-changed", str(CANONICAL_REGISTRY))
+                _block("canonical-content-changed", str(migration["destination"]))
             ]
             return report
-        legacy.parent.mkdir(parents=True, exist_ok=True)
-        os.replace(canonical, legacy)
+        source.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(destination, source)
 
     manifest_before = _unb64(journal.get("manifest_before_base64"))
     if journal.get("manifest_existed"):
@@ -520,9 +770,7 @@ def restore(project_root: Path | str, migration_id: str) -> dict[str, Any]:
     if restored["status"] != "ready":
         raise RuntimeError(f"restore verification failed: {restored['blockers']}")
     restored["status"] = "restored"
-    restored["operations"] = [
-        {"action": "restore", "migration_id": SUBSYSTEM_REGISTRY_MIGRATION_ID}
-    ]
+    restored["operations"] = [{"action": "restore", "migration_id": migration_id}]
     return restored
 
 
@@ -553,7 +801,13 @@ def main(argv: list[str] | None = None) -> int:
             payload = apply(args.project_root)
         else:
             payload = restore(args.project_root, args.migration_id)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+    except (
+        OSError,
+        RuntimeError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        ValueError,
+    ) as exc:
         payload = {
             "status": "blocked",
             "blockers": [_block("migration-error", str(exc))],

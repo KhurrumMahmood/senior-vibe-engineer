@@ -12,7 +12,7 @@ source. It is deliberately not a Maven/Gradle or whole-JVM project model.
 - Only after error-free attribution may it use `Trees.getElement` to report
   public declarations and compiler-resolved first-party normal/static imports
   or fully-qualified type references.
-- The durable outputs are `.claude/docs/subsystems/<name>.md` and
+- The durable outputs are `.engineering/docs/subsystems/<name>.md` and
   `reports/map/<name>/java-map.json`. The map includes source inventory,
   public surface, inbound/outbound first-party type edges, and explicit
   unavailable fields.

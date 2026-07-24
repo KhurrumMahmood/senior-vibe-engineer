@@ -402,7 +402,7 @@ def test_inventory_matches_two_accepted_skill_family_source_boundaries(
             "--tsconfig",
             "tsconfig.json",
             "--output",
-            str(map_host / ".claude" / "docs" / "subsystems" / "inventory-proof.md"),
+            str(map_host / ".engineering" / "docs" / "subsystems" / "inventory-proof.md"),
             "--evidence",
             str(map_evidence),
         ],

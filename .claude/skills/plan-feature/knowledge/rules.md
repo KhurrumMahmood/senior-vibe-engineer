@@ -168,9 +168,13 @@ surfaces.
 ### "Scout dispatched without a doc"
 
 Bad: dispatching `agents/impact-scout.md` for a subsystem that has no
-`.claude/docs/subsystems/<name>.md` file. The scout will form opinions
+`.engineering/docs/subsystems/<name>.md` file. The scout will form opinions
 from raw code reads alone and may misclassify the subsystem's
 responsibility.
+
+Compatibility exception: a schema-2 host may still have the map at
+`.claude/docs/subsystems/<name>.md`. Use it with an explicit migration warning;
+if both homes exist, stop rather than choosing or merging them silently.
 
 Rule: if a subsystem doc is missing, the orchestrator either (a)
 recommends running `/map-subsystem <name>` first, or (b) proceeds with
