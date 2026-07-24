@@ -1,6 +1,6 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, Kotlin/JVM, C#, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, Kotlin/JVM, C#, Swift 6.3.3, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -30,10 +30,35 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, swift, php, ruby, rust, dart, c, cpp]
 ---
 
 # /propose-boundary
+
+## Swift 6.3.3 accepted branch
+
+Use `scripts/propose_swift.py` only for one exact accepted Swift
+confirmed-omnibus domain, one current complete `swift-semantic-facts-v2` pack,
+and separate hash-bound candidate and proposal verdicts. Keep the copied
+`_swift-semantic-readonly` directory beside this selected skill. Pass
+`--omnibus`, `--facts`, `--acceptance`, `--output-dir`, `--target-name`, the
+configuration and native product/output expectations, and absolute `--swift`,
+`--swiftc`, and `--swift-format` paths; run `--help` for the exact CLI.
+
+Consume the final producer selection as authority. Never rerun scope detection
+or join an older subsystem map. The schema-v2 provider validates the current
+pack, then runs only as a native verifier on disposable current and exact
+after trees. For the supported seam, propose exactly three public static export
+methods behind internal `ExportOperations`; retain the original
+`DomainOperations` public signatures as same-target/module compatibility shims
+and require their exact resolved callers to remain unchanged.
+
+Emit only `proposal.md`, `evidence.json`, and `scope.json`. Refuse incomplete,
+stale, tampered, unsafe, or native-failing evidence and Swift/Xcode,
+mixed-language, protocol/actor, dynamic/reflection, macro/conditional, or
+ABI-sensitive conditions. Compiler call facts do not prove external callers,
+runtime behavior beyond the named native checks, ABI/release compatibility, or
+mutation authority.
 
 ## C# 14 / .NET 10 accepted branch
 

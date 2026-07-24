@@ -1,6 +1,6 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed Python, Go, Java 17, Kotlin/JVM, C#, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
+description: Turn a confirmed Python, Go, Java 17, Kotlin/JVM, C#, Swift 6.3.3, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,10 +26,37 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, go, java, kotlin, csharp, typescript, javascript, php, ruby, rust, dart, c, cpp]
+scans: [python, go, java, kotlin, csharp, swift, typescript, javascript, php, ruby, rust, dart, c, cpp]
 ---
 
 # /propose-folder-reorganization
+
+## Swift 6.3.3 accepted branch
+
+Use `scripts/propose_swift.py` only for one exact accepted Swift topology
+finding, one current complete `swift-semantic-facts-v2` pack, an explicit
+SwiftPM recursive-target-subfolder convention, and separate hash-bound
+candidate and proposal verdicts. Keep the copied `_swift-semantic-readonly`
+directory beside this selected skill. Pass `--topology`, `--facts`,
+`--acceptance`, `--output-dir`, `--target-name`, the configuration and native
+product/output expectations, and absolute `--swift`, `--swiftc`, and
+`--swift-format` paths; run `--help` for the exact CLI.
+
+Consume the final topology selection as authority. Never redetect the cluster
+or join an older subsystem map. The schema-v2 provider validates the current
+pack, then runs only as a native verifier on disposable current and exact
+after trees. For the supported cluster, propose exactly the four direct
+`Billing*.swift` siblings beneath `Sources/SwiftA3Core/Billing/`; leave
+`Package.swift`, SwiftPM target/module identity, module-qualified type identity,
+and API signatures unchanged, and require exact logical resolved call/reference
+edges before and after.
+
+Emit only `proposal.md`, `evidence.json`, and `scope.json`. Refuse incomplete,
+stale, tampered, unsafe, or native-failing evidence and Swift/Xcode,
+mixed-language, protocol/actor, dynamic/reflection, macro/conditional, or
+ABI-sensitive conditions. Filename grouping does not prove ownership,
+external callers, runtime behavior beyond the named native checks, ABI/release
+compatibility, or mutation authority.
 
 ## C# 14 / .NET 10 accepted branch
 
