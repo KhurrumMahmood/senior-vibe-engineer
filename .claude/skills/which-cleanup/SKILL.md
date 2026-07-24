@@ -111,6 +111,37 @@ For each relevant recommendation:
 4. Follow that skill’s own support and runtime claims; a location is not a
    claim that the tooling is language-neutral or independently installable.
 
+When a selected producer returns a normalized finding artifact, apply committed
+human review memory after detection and scope attribution:
+
+```bash
+cd .agents/skills/which-cleanup
+python3 scripts/reviewed_findings.py \
+  --decisions <project-root>/.engineering/quality/finding-decisions.jsonl \
+  filter --artifact <normalized-findings.json> --output <actionable.json>
+```
+
+The canonical ledger is `.engineering/quality/finding-decisions.jsonl` in the
+host project. An unchanged `false-positive`, `accepted-debt`, or
+`intentional-exception` decision is hidden from the default actionable list but
+remains counted; add `--show-reviewed` to inspect it. Changed evidence, changed
+subject identity, incompatible fingerprint semantics, malformed decision data,
+and recurrence after `fixed` all remain visible. Record a judgment only after
+human review:
+
+```bash
+python3 scripts/reviewed_findings.py \
+  --decisions <project-root>/.engineering/quality/finding-decisions.jsonl \
+  record --artifact <normalized-findings.json> --subject <stable-subject> \
+  --disposition false-positive --rationale <why> --reviewer <identity> \
+  --source-scan <scan-id>
+```
+
+The decision ledger stores hashes and bounded identity/location fields, never
+the raw evidence or full source body. Failures, incomplete/unsupported results,
+unlocated findings, and file/project obligations cannot be dismissed through
+this line-finding mechanism.
+
 Use `optional_install` only when the user explicitly chooses ambient
 installation.
 
@@ -148,5 +179,6 @@ multiple read-only checks can run independently.
     ├── route.py          # portable stdlib-only installed router
     ├── scan_request.py   # paths, Git changes, and new-side line ranges
     ├── scope_modes.py    # per-scanner effective-mode projection
-    └── finding_envelope.py # normalized artifact + shared scope adapters
+    ├── finding_envelope.py # normalized artifact + shared scope adapters
+    └── reviewed_findings.py # append-only review memory + fail-open filter
 ```

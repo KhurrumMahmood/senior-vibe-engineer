@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "engineering-skills://quality/finding-decision-event/v1",
+  "title": "Reviewed finding decision event",
+  "description": "Committed human judgment only. Raw findings and source text remain in bounded run artifacts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_kind",
+    "event_id",
+    "detector",
+    "detector_version",
+    "kind",
+    "subject",
+    "path",
+    "line_start",
+    "line_end",
+    "evidence_fingerprint",
+    "fingerprint_version",
+    "disposition",
+    "rationale",
+    "reviewer",
+    "source_scan",
+    "recorded_at"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "record_kind": {"const": "finding-decision-event"},
+    "event_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "detector": {"type": "string", "minLength": 1, "maxLength": 128},
+    "detector_version": {"type": "string", "minLength": 1, "maxLength": 128},
+    "kind": {"type": "string", "minLength": 3, "maxLength": 256},
+    "subject": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "path": {"type": ["string", "null"], "maxLength": 1000},
+    "line_start": {"type": ["integer", "null"], "minimum": 1},
+    "line_end": {"type": ["integer", "null"], "minimum": 1},
+    "evidence_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "fingerprint_version": {"type": "integer", "minimum": 1},
+    "disposition": {
+      "enum": [
+        "false-positive",
+        "accepted-debt",
+        "intentional-exception",
+        "fixed",
+        "superseded",
+        "withdrawn",
+        "review-due"
+      ]
+    },
+    "rationale": {"type": "string", "minLength": 1, "maxLength": 2000},
+    "reviewer": {"type": "string", "minLength": 1, "maxLength": 320},
+    "source_scan": {"type": "string", "minLength": 1, "maxLength": 512},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "review_trigger": {"type": "string", "minLength": 1, "maxLength": 500},
+    "target_event_id": {"type": "string", "minLength": 1}
+  }
+}

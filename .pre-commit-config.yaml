@@ -139,3 +139,10 @@ repos:
         language: python
         files: ^(\.claude/skills/(find-[^/]+/|_common/scan_scope_contracts\.json)|scripts/check_scan_scope_contracts\.py|tests/test_scan_scope_contracts\.py)
         pass_filenames: false
+
+      - id: reviewed-finding-decisions
+        name: "reviewed-finding-decisions (decision memory schema and transitions are valid)"
+        entry: python .claude/skills/which-cleanup/scripts/reviewed_findings.py validate
+        language: python
+        files: ^(\.engineering/quality/finding-(decisions\.jsonl|decision-schema\.json)|\.claude/skills/which-cleanup/scripts/reviewed_findings\.py|tests/test_reviewed_findings\.py)$
+        pass_filenames: false

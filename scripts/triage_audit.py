@@ -9,7 +9,12 @@ Exit codes:
     1  — one or more UNACCOUNTED scans exist
     2  — invocation error (bad args / files not readable)
 
-Auditable unit: the SCAN, not individual findings.
+Auditable unit: the SCAN, not individual findings. This tool does not decide
+whether a current finding is actionable and does not implement evidence-
+fingerprinted suppression. That distinct role belongs to
+``which-cleanup/scripts/reviewed_findings.py``. A reviewed-decision JSONL may be
+passed as ``--dismissals`` for scan-accountability evidence, but callers must
+use the reviewed-finding filter for current actionability.
 Latest-scan-per-(skill, target) only — superseded older runs collapse to a
 one-line count rather than individual failures.
 
@@ -409,7 +414,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--findings", required=True,
                         help="Path to findings.jsonl")
     parser.add_argument("--dismissals", required=True,
-                        help="Path to dismissals.jsonl")
+                        help="Path to scan acknowledgments or reviewed-decision JSONL; "
+                             "this does not filter current findings")
     parser.add_argument("--grace-days", type=int, default=7,
                         help="Days before a scan becomes due (default: 7)")
     parser.add_argument("--json", dest="json_out", metavar="OUT",

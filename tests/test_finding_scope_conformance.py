@@ -92,6 +92,7 @@ def _raw(line: int | None, *, subject: str = "app:example") -> dict:
 
 def test_every_producer_target_mode_conforms_through_declared_adapter() -> None:
     envelope = _load("finding_envelope")
+    decision_memory = _load("reviewed_findings")
     payload = json.loads(CONTRACT.read_text(encoding="utf-8"))
     exercised = set()
 
@@ -112,6 +113,7 @@ def test_every_producer_target_mode_conforms_through_declared_adapter() -> None:
             "target_default_mode"
         ]
         assert default_result["scan"]["status"] == "ready"
+        assert len(decision_memory.filter_artifact(default_result, [])["findings"]) == 1
         exercised.add((contract["skill"], "auto"))
 
         for mode in contract["target_modes"]:
@@ -141,6 +143,10 @@ def test_every_producer_target_mode_conforms_through_declared_adapter() -> None:
             assert result["metrics"]["raw_finding_count"] == 2
             expected = 1 if mode == "diff-lines" else 2
             assert result["metrics"]["actionable_finding_count"] == expected
+            assert (
+                len(decision_memory.filter_artifact(result, [])["findings"])
+                == expected
+            )
             exercised.add((contract["skill"], mode))
 
     assert len(exercised) == len(payload["skills"]) + sum(

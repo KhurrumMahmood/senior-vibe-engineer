@@ -272,6 +272,14 @@ rollout's real-family and copied-library gates are recorded in the active plan;
 the registry's `adapter_rollout` block then activates them without rewriting
 the native entrypoint-mode history.
 
+`which-cleanup/scripts/reviewed_findings.py` is the separate post-detection
+judgment boundary. Its committed host state lives at
+`.engineering/quality/finding-decisions.jsonl`; raw producer reports do not.
+Only complete, located line findings may be suppressed, and only while stable
+subject plus exact evidence/context fingerprint still match. Invalid decision
+data fails open. This is deliberately a portable exact-hash v1, not a universal
+AST-normalization dependency.
+
 | Skill | What it detects | When |
 |---|---|---|
 | `/find-dormant` | Dead code, orphan endpoints, silently-broken handlers, orphan-entry-with-live-internals | After feature removals; after a prototype graduates into a real workflow; quarterly cleanup. |
@@ -314,7 +322,9 @@ second. In the pilot, run them advisory-only:
 - Promote a band to diff-scoped lint only after fixture coverage, at least
   one real fix, explicit false-positive handling, and low noise on the
   product surface.
-- Record false positives in fixtures or skill knowledge, not memory.
+- Put detector-wide calibration failures in fixtures or skill knowledge. Put a
+  reviewed, project-specific judgment in the committed finding-decision memory
+  so the same unchanged finding does not consume review compute again.
 
 ## EXPLAIN — what contract does this code actually enforce?
 

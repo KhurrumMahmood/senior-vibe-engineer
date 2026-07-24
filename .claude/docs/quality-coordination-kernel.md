@@ -919,6 +919,16 @@ Each (rule, site) edge carries a state:
 - **rejected** — finding was reviewed and rule does not apply
   here, with reason.
 
+A narrow, shipped precursor now covers reviewed scanner findings without
+claiming the full graph: `.engineering/quality/finding-decisions.jsonl` stores
+append-only human-decision events, and
+`which-cleanup/scripts/reviewed_findings.py` reuses a decision only while the
+normalized subject and exact evidence/context fingerprint still match. Changed
+evidence becomes review-due; invalid memory fails open. Raw findings stay in
+their producer artifacts, and exact hashes are language-neutral. The optional
+AST normalization discussed elsewhere remains an observed host-a experiment,
+not a prerequisite or current ecosystem-wide claim.
+
 Drift state is what makes the renderer reactive rather than
 poll-based: changing a rule flips its edges to dirty; the
 maintenance loop's job becomes "drain the dirty queue," not
