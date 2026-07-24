@@ -62,6 +62,11 @@ execution authorities.
 - Use established native tools when they establish the required facts; do not
   build a universal AST, semantic schema, language server, workflow DAG, or
   package manager.
+- Toolkit releases and host-state schemas are separate version axes. Stock
+  agent-skill installation and ordinary Git refs acquire toolkit code; the
+  project-owned migration surface may change only toolkit-owned host state and
+  explicitly marked managed blocks. It must never become a second package
+  manager or silently rewrite user-owned project code.
 - Mutations remain serial and require their own native verification. Read-only
   identical facts may be batched only after two real consumers prove the seam.
 - Public publication, remote pushes, and modifications to external repositories
@@ -131,7 +136,7 @@ the committed integration revision.
 | F0 | Close Dart and normalize repository state | `done` | Root integrated serially; fresh non-context agents reviewed but did not publish shared truth | D5/D7 and D8 accepted; Dart published at 22/22; installed replay passed; anomaly branches retained; only useful checkouts remain |
 | F1 | Complete P6 reuse decisions | `done` | Three fresh non-context read-only comparison lanes; root owned the decision and shared reduction | `febc761`: promotion decision, frozen packet index, 65.80% lifecycle-surface reduction, Ruby/Rust semantics normalized, committed installed replay passed |
 | F2 | Complete PHP, Ruby, and Swift | `in_progress` | One fresh non-context worktree per language for the same family; maximum three; root integrates serially | All 22 jobs per language have accepted outcomes or strict reviewed exceptions; installed routes and native value suites pass |
-| F2C | Close the decision-propagation and project-coherence gaps reproduced in engineering-skills and host-a | `pending_a5` | Root owns the contract and integration; up to three fresh non-context read-only inventories may audit decision impact, artifact homes, and host drift | AC1 criteria pass: one authoritative state-home decision, explicit propagation obligations, diff-honest cleanup, register-or-exempt subsystem coverage, and durable deferred-debt projection |
+| F2C | Close the decision-propagation and project-coherence gaps reproduced in engineering-skills and host-a | `pending_a5` | Root owns the contract and integration; up to three fresh non-context read-only inventories may audit decision impact, artifact homes, and host drift | AC1 criteria pass: one authoritative state-home decision, explicit propagation obligations, a versioned/reversible host-state migration path, diff-honest cleanup, register-or-exempt subsystem coverage, and durable deferred-debt projection |
 | F3 | Complete C, C++, and Kotlin | `pending_f2c` | Kotlin spine first; then one worktree per language for the same family; maximum three | Separate C/C++ truth retained; Kotlin project boundary proven; all three languages meet the F2 outcome gate |
 | F4 | Complete C#/.NET last | `pending_f3` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | Roslyn/project facts, all 22 jobs, copied closures, native build/test/analyze, and installed routing pass |
 | F5 | Publish final language release | `pending_f4` | Root only | No coverage-level pending or partial rows; bounded supported contracts may still report explicit runtime partial configurations; public install/bootstrap/route/execute/cleanup/uninstall replay passes at one SHA |
@@ -297,6 +302,25 @@ the concrete state-home and closeout incidents before broader language work:
   `complete`, `deferred` with a tracked work item, or `not-applicable` with a
   reason. A decision is not reported fully embodied while a required
   obligation is undisposed.
+- [ ] Freeze a minimal release/migration contract. A release identifies its
+  exact Git ref, current host-state schema, oldest readable schema, and ordered
+  migration IDs. `status` can distinguish toolkit-code drift from host-state
+  drift without network access or writes; an older tool encountering a newer
+  host schema refuses mutation rather than guessing.
+- [ ] Host-state migration is preview-first, explicit, ordered, idempotent, and
+  resumable. Each step declares its source/target schema, owned paths, collision
+  rules, verification, and rollback/restore action. The schema marker advances
+  only after that step verifies; failure leaves the last verified schema and a
+  precise recovery instruction. Skipping one or more toolkit releases still
+  composes the intervening steps in order.
+- [ ] Dogfood the first real migration on the accepted state-home decision:
+  move a legacy toolkit-owned `.claude/subsystems.yaml`-equivalent into the
+  canonical `.engineering/` home without changing its bytes. Fixtures prove
+  plan-only no-write behavior, apply, repeated no-op, collision refusal,
+  interrupted-run recovery, rollback, bounded legacy read fallback, and
+  preservation of unrelated `.claude/`, `.engineering/`, and project files.
+  Ambiguous or user-owned content requires an explicit human disposition and
+  is never overwritten.
 - [ ] `/which-cleanup` preserves the originating diff selector and distinguishes
   line-, file-, and project-scoped findings. A frozen fixture proves that the
   primary closeout verdict does not present unrelated pre-existing line
@@ -324,8 +348,32 @@ Known AC1 intake evidence:
   proposed/shipped cleanup contract still names `.claude/subsystems.yaml` and
   root `reports/` in upstream defaults;
 - host-a and upstream copies already differ in skills and report defaults; and
+- external-library bootstrap accepts any structurally valid existing checkout
+  indefinitely, while `.engineering/manifest.json` can detect only an exact
+  schema mismatch and points to a migration facility that does not yet exist;
+  no ordered registry, preview/apply path, application record, or rollback
+  contract currently connects toolkit releases to projected host state; and
 - the active plan itself carried a stale `active_cohort_a3` label after A4
   closed, demonstrating that projection drift is part of the same class.
+
+AC1 freezes the following ownership and update boundary before implementation:
+
+| Surface | Version/update owner | Allowed automated action |
+|---|---|---|
+| Three ambient routers | Stock agent-skill installer at an exact public Git ref | Install/reinstall/remove only the router-owned directories |
+| External on-demand library | Ordinary Git checkout/re-bootstrap at the same exact ref | Read-only status plus explicit replacement/re-bootstrap; no custom dependency resolver |
+| Toolkit-owned host state under `.engineering/` | Shipped ordered host-state migrations | Preview, apply, verify, and restore only declared owned paths |
+| Marked blocks in `AGENTS.md`/`CLAUDE.md`/`GEMINI.md` | Optional managed-guidance lifecycle | Change only bytes between validated ownership markers after an exact diff preview |
+| Ambiguous legacy files, unmarked instructions, and project source | Project owner | Report a decision-propagation obligation; never mutate automatically |
+
+The minimal shipped migration record contains a stable migration ID, source and
+target host-state schema, toolkit release introduced in, affected owned paths,
+collision policy, plan/apply/verify behavior, and restore behavior. Release
+SemVer or Git tags describe distributed toolkit code; the monotonic integer
+host-state schema describes host compatibility. They are deliberately not
+conflated. A future convenience `update` wrapper is P9 evidence-dependent; AC1
+and P8 prove the lifecycle using the stock installer, ordinary Git, and the
+bounded migration runner first.
 
 This converts the unfinished matrix into roughly thirty multi-skill read-only
 cohorts plus five serial mutation closeouts, instead of 142 skill-sized worker
@@ -394,7 +442,7 @@ The mandatory P8 surface is:
 - non-executing `--help` for all three routers, including capability,
   prerequisites, limitations, and slow/manual paths;
 - read-only router/library revision status and stock reinstall/re-bootstrap
-  repair instructions; and
+  repair instructions, plus pending/applied host-state migration status; and
 - final-outcome measurements for wall time, observable tokens, controlled
   context bytes, native-tool calls, repeated facts, and human interventions.
 
@@ -411,15 +459,19 @@ Execute P8 in this order:
    corpus passes, do not change routing.
 4. One exclusive owner implements non-executing help for all three routers and
    one stdlib-only read-only status command. Status reports available source
-   ref/digests and router/library match or mismatch; it never installs,
-   updates, fetches, or writes.
+   ref/digests, router/library match or mismatch, host-state schema, and the
+   exact pending migration chain; it never installs, updates, fetches, or
+   writes.
 5. Document stock router reinstall and explicit reversible library
    re-bootstrap rather than implementing a package manager. Router removal,
-   optional managed guidance, external-library removal, and user files remain
-   four separate scopes.
-6. Root runs the clean public replay with an intentional mismatch, proves
-   status detects it, repairs through the documented stock path, and preserves
-   every non-managed byte.
+   optional managed guidance, external-library removal, toolkit-owned host
+   state, and user files remain five separate scopes.
+6. Root runs two public replays: a clean installation and a frozen prior-release
+   host carrying legacy toolkit state. With an intentional code/state mismatch,
+   status detects both axes; the documented stock path updates code; migration
+   plan is read-only; explicit apply reaches the target schema; a second apply
+   is a no-op; rollback/restore and re-apply pass; every non-managed byte is
+   preserved.
 7. Record alternating fixed serial and accepted batched baselines without
    inventing a telemetry service; unavailable system-context metrics remain
    unavailable.
@@ -997,10 +1049,17 @@ Acceptance:
   current language/framework capability, tool prerequisites, slow/manual
   paths, and no-action help semantics without initiating task execution.
 - [ ] A minimal read-only status/doctor reports installed router source/ref,
-  external-library HEAD, and match/mismatch. It does not add a package manager.
+  external-library HEAD, host-state schema, pending migration IDs, and separate
+  code/state match or mismatch. It does not add a package manager.
 - [ ] The documented repair uses stock router reinstall plus explicit library
-  replacement/re-bootstrap. Router uninstall, optional managed guidance, the
-  external library, and user-owned files have separate stated scopes.
+  replacement/re-bootstrap, followed by previewed explicit host-state
+  migration when needed. Router uninstall, optional managed guidance, the
+  external library, toolkit-owned state, and user-owned files have separate
+  stated scopes.
+- [ ] A frozen prior-release fixture proves ordered upgrade across at least two
+  migration steps, plan-only no-write behavior, schema-newer-than-tool refusal,
+  collision refusal, interrupted-run recovery, idempotent re-apply, and
+  rollback/restore before successful re-apply.
 - [ ] A clean host passes install, help, route, selected execution, native
   verification, closeout, stock update/repair, and uninstall while preserving
   non-managed bytes.
@@ -1063,6 +1122,10 @@ Evidence:
   claims, installs exactly three routers, bootstraps a same-revision external
   library, reaches representative final outcomes, and removes only documented
   scope.
+- A frozen prior-release host can update distributed code through the stock
+  path and migrate toolkit-owned state through an ordered, previewed,
+  reversible chain while preserving every user-owned byte; a newer host-state
+  schema is never mutated by an older toolkit.
 - The P3 mechanics extend/reject existing primitives, pass TypeScript+Java
   final-outcome and benchmark gates, and do not become a semantic platform.
 - PHP and one feasible compiler-backed typed pilot complete their frozen
@@ -1085,6 +1148,7 @@ Evidence:
 
 | Date | Phase | Change | Reason/evidence | User decision |
 |---|---|---|---|---|
+| 2026-07-23 | P7/F2C-P8 | Add a bounded versioned host-state migration protocol and prior-release upgrade replay; keep toolkit distribution on stock installer/Git paths | The external-library bootstrap currently reuses any structurally valid checkout forever, while the manifest only detects an exact schema mismatch and refers to nonexistent migration guidance. Moving canonical host state from `.claude/` to `.engineering/` would otherwise strand or silently fork every existing consumer | Owner explicitly identified the need for a migration protocol and a general release-to-release update system |
 | 2026-07-23 | P7/F2C | Insert AC1 after Ruby A5 and before B0; make decision propagation, deferred-obligation tracking, artifact-home coherence, diff-honest closeout, and subsystem register-or-exempt behavior verifiable product work | A real host-a run exposed whole-file false-positive noise, an unregistered subsystem, and conflicting state-home interpretations. Upstream review confirmed the mechanisms exist independently but no contract joins decision impact, propagation, verification, and deferred debt. Repeating these inconsistencies across the remaining language families would increase rework and user confusion | Owner stated that engineering-skills should solve coherence for itself and other projects, including cascading updates and durable tracking when work is deferred |
 | 2026-07-23 | P6/F1 | Close shared-component promotion with no new cross-language runtime; retain proven language-local reuse, prune unused lifecycle API, and normalize Ruby/Rust bounded-map coverage semantics | Three independent comparisons found no new component satisfying the conjunctive consumer/LOC/closure/latency gate. `febc761` records the decision/packet index, removes 65.80% of the unused lifecycle implementation/test surface, and preserves runtime partial truth inside supported bounded contracts | Implements the approved evidence-first reuse gate without adding productization overhead |
 | 2026-07-23 | F0 | Replace the literal "only `main` checked out" condition with "only useful checkouts retained" | The archived preflight checkout is Git's primary administrative worktree: its `.git` directory stores the common metadata used by the linked product checkout, so `git worktree remove` correctly refuses it. Its redacted telemetry is committed at `5a8a571`, it is clean, and every completed implementation checkout is retired. Removing it would require a separate repository-metadata migration with no installer or language-support benefit | Consistent with the owner's request to retire worktrees that are no longer useful; no product scope added |
@@ -1105,6 +1169,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P7/F2C-P8 | Release/update analysis exposed a missing host-state lifecycle | Existing bootstrap clones once and reuses a merely structural checkout; manifest v1 detects mismatch but has no migration runner. AC1 now freezes code-vs-state version axes and dogfoods the first legacy-state move; P8 must replay a real prior-release upgrade before any convenience updater is considered. |
 | 2026-07-23 | P7/F2C AC1 | Decision-propagation and coherence gate scheduled | The existing `propagate-convention-change` idea now has real host-a evidence rather than a theoretical trigger. Finish the isolated Ruby A5 mutation first, then freeze AC1's impact/disposition contract and dogfood it on the state-home, diff-scope, subsystem-coverage, and upstream/host-divergence incidents before opening B0. |
 | 2026-07-23 | P7/F2 A2 | PHP/Ruby/Swift syntax wave opened | Three fresh non-context language worktrees start from exact A1 closeout `98dff01`. PHP and Ruby each own audit, complexity, omnibus, and standard-gap outcomes; Swift owns audit, complexity, and standard-gap outcomes while preserving its accepted omnibus path. Workers own language-local implementation/fixtures/tests/packets only; root retains shared guides, coverage, projections, routers, docs, and serial publication. |
 | 2026-07-23 | P7/F2 A2 | PHP/Ruby/Swift syntax implementations integrated | PHP `682a4df`, Ruby `23cc7f2` plus economics correction `c4b2036`, and Swift `f8cc3a4` reach their copied final artifacts with focused root replays of `42`, `19`, and `32` passing tests (`1` slow Swift latency case independently worker-validated and root-deselected). The shared conformance, router, matrix, and spine publication surface passes `77`. Coverage is now PHP 12/22, Ruby 11/22, and Swift 12/22; detailed tool commands live in on-demand provider guides rather than expanding every ambient skill body. Commit shared publication truth, replay installed routers from that committed revision, then close A2 and open A3. |
