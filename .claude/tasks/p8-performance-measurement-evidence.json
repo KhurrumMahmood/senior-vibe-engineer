@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "measured_at": "2026-07-24",
+  "protocol": ".claude/tasks/p8-journey-measurement-protocol.json",
+  "historical_model_eval": {
+    "evidence": ".claude/tasks/ml020-code-health-results.json",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "timed_trials": 5,
+    "model_calls": 72,
+    "all_conditions_semantically_equal": true,
+    "compression_A_to_B": {
+      "median_modeled_wall_reduction_percent": 4.863729638996359,
+      "controlled_context_reduction_percent": 78.83059038371601,
+      "observable_token_change_percent": -19.034832260333925
+    },
+    "batching_B_to_C": {
+      "median_modeled_wall_reduction_percent": 50.257422289168474,
+      "controlled_context_reduction_percent": 0.038924014012645045,
+      "observable_token_change_percent": -3.9483754612942255
+    },
+    "limitations": {
+      "true_root_wall_time_ms": "unavailable; the historical harness summed measured model-call wall times",
+      "repeated_context_utf8_bytes": "unavailable; historical prompts were not recorded as granular content-addressed blobs",
+      "cache_state": "unavailable"
+    }
+  },
+  "actual_product_launcher": {
+    "command": ".venv/bin/python scripts/benchmark_product_code_health_launcher.py --run-root /private/tmp/engineering-skills-p8-product-launcher --pairs 5",
+    "raw_summary": "/private/tmp/engineering-skills-p8-product-launcher/summary.json",
+    "execution_revision": "0a95f1294f832581d5e085dd8bac97efab538098",
+    "source_tree_diff_sha256": "ce722ac83022b2e0eaa42a1de32af24ec0eb69e2aa8f799ec840512aef72d749",
+    "harness_sha256": "26ded7108a46e75a1d9c24e9b0a2e255d37f4abc58045394904dc2f1675ae019",
+    "launcher_sha256": "50c81ac291fd0c14dd801308dca4d15c523efe7e521c29d5809cc7bd480870c0",
+    "fixture_sha256": "a26a53bc20b48fca8220bd66bea3f6040b94f364f8a406c76e6e6df66e63e4c2",
+    "paired_trials": 5,
+    "serial_median_true_root_wall_ms": 2155.36,
+    "parallel_median_true_root_wall_ms": 911.456,
+    "parallel_improvement_percent": 57.71212233687179,
+    "all_semantically_equal": true,
+    "all_source_preserved": true,
+    "scanner_invocations_per_condition": 3,
+    "controlled_context_utf8_bytes": 0,
+    "repeated_context_utf8_bytes": 0,
+    "native_tool_invocations": "unavailable; nested scanner tools are not event-instrumented",
+    "human_interventions": 0,
+    "recoverable_failures": 0,
+    "cache_state": "unavailable; each condition used a fresh host copy but OS and tool caches were not controlled"
+  },
+  "decision": {
+    "compression": "retain the compressed family guidance",
+    "batching": "retain the existing parallel read-only product launcher; serial mutation remains mandatory",
+    "new_coordinator": "not justified",
+    "new_model_calls": "not justified; historical evidence plus the real launcher replay answers the current decision",
+    "optional_updater": "not justified by performance evidence; decide only from the completed stock update journey"
+  }
+}

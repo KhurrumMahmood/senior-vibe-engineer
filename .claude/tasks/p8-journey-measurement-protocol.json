@@ -1,89 +1,128 @@
 {
-  "schema_version": 1,
-  "status": "frozen-before-router-changes",
+  "schema_version": 2,
+  "status": "revised-after-preflight-no-new-model-calls",
   "frozen_at": "2026-07-24",
   "frozen_revision": "b1461c8d803016e49cc33e5bd4905dd1444d9195",
   "router_corpus": "tests/fixtures/p8-router-quality/corpus.json",
-  "purpose": "Measure the completed three-router and on-demand-library journey before proposing convenience or coordination infrastructure.",
-  "trial_policy": {
-    "paired_trials": 5,
-    "condition_order": "alternating",
-    "same_task_and_fixture_per_pair": true,
-    "warm_and_cold_state_recorded_separately": true
-  },
-  "workflows": {
-    "serial": {
-      "id": "serial-full-context",
-      "implementation": "existing serial invocation of the selected read-only skill closures",
-      "mutation_policy": "read-only lenses may run serially; any mutation and final verification remain serial",
-      "required_final_outcome": "all member artifacts plus one synthesized correctness verdict"
-    },
-    "existing_batched": {
-      "id": "compressed-parallel-existing-family",
-      "implementation": "scripts/benchmark_code_health_family.py existing compressed-family condition",
-      "mutation_policy": "independent read-only members only; mutation remains outside the batch",
-      "required_final_outcome": "independently attributable member artifacts plus one synthesized correctness verdict"
+  "purpose": "Measure routing correctness, the stock installed journey, compression, and real product batching before authorizing optional convenience infrastructure.",
+  "execution_contract": {
+    "revision_base": "0a95f1294f832581d5e085dd8bac97efab538098",
+    "dirty_execution_requires_diff_sha256": true,
+    "hashes": {
+      "historical_harness": "608f57d57caa4f3165cc054ccc37f108bc49d51958ef6fb7b2e6a6afb001ef27",
+      "product_launcher_harness": "26ded7108a46e75a1d9c24e9b0a2e255d37f4abc58045394904dc2f1675ae019",
+      "product_launcher": "50c81ac291fd0c14dd801308dca4d15c523efe7e521c29d5809cc7bd480870c0",
+      "router_corpus_manifest": "388dc345a28f494dc43b5d1c1549adfc0737c7bff48b555f76cba317f5b4b6f8",
+      "historical_results": "67e05dc488f106614715cf87bd3d0de03067ae9f04c84b0e9f2037ec0ff8ea81"
     }
   },
+  "trial_policy": {
+    "paired_trials": 5,
+    "condition_order": "alternating or counterbalanced",
+    "same_task_and_fixture_per_pair": true,
+    "automatic_retries": false,
+    "cache_state": "unavailable unless a trial records an enforceable cold/warm mechanism"
+  },
+  "workflows": {
+    "historical_full_serial": "A_full_serial: full skill guidance, serial read-only lanes, model synthesis",
+    "historical_compressed_serial": "B_compressed_serial: compressed family guidance, serial read-only lanes, model synthesis",
+    "historical_compressed_parallel": "C_compressed_parallel: compressed family guidance, parallel read-only lanes, model synthesis",
+    "product_launcher_serial": "actual code-health family launcher in serial mode with deterministic synthesis",
+    "product_launcher_parallel": "actual code-health family launcher in parallel mode with deterministic synthesis"
+  },
+  "comparisons": {
+    "compression_only": "A_full_serial versus B_compressed_serial",
+    "batching_only": "B_compressed_serial versus C_compressed_parallel",
+    "actual_product_batching": "product_launcher_serial versus product_launcher_parallel"
+  },
   "fixed_inputs": {
-    "benchmark_script": "scripts/benchmark_code_health_family.py",
-    "existing_results": ".claude/tasks/ml020-code-health-results.json",
+    "historical_benchmark_script": "scripts/benchmark_code_health_family.py",
+    "product_benchmark_script": "scripts/benchmark_product_code_health_launcher.py",
+    "historical_results": ".claude/tasks/ml020-code-health-results.json",
     "representative_router_journeys": [
-      "which-shape -> adapt-project",
-      "which-skill -> one language-level final artifact",
-      "which-cleanup -> bounded closeout and guard handoff"
+      "installed which-shape -> adapt-project -> final configuration/evidence artifact",
+      "installed which-skill -> supported language skill -> final artifact/native verification boundary",
+      "installed which-cleanup -> eligible bounded closeout -> explicit findings or no-op"
     ]
   },
   "metrics": {
     "correctness": {
-      "observation": "frozen route gates plus final artifact/verification rubric",
+      "observation": "frozen route gates plus exact semantic projection and final-artifact rubric",
       "missing_value": "fail"
     },
     "completion": {
       "observation": "all required final artifacts and terminal statuses",
       "missing_value": "fail"
     },
-    "wall_time_ms": {
-      "observation": "monotonic elapsed time per condition and end-to-end pair",
+    "true_root_wall_time_ms": {
+      "observation": "one monotonic timer around the complete condition subprocess; modeled call sums are reported separately",
       "missing_value": "unavailable"
     },
     "observable_model_tokens": {
-      "observation": "provider-reported aggregate only",
+      "observation": "provider input_tokens + output_tokens + reasoning_output_tokens; cached_input_tokens is a reported subset, not added again",
       "missing_value": "unavailable"
     },
     "controlled_context_utf8_bytes": {
-      "observation": "exact UTF-8 bytes of task packets, prompts, guides, and shared context deliberately injected",
+      "observation": "UTF-8 byte length of explicitly recorded task, guidance, command, and synthesis-context blobs injected into calls",
       "missing_value": "unavailable"
     },
     "repeated_context_utf8_bytes": {
-      "observation": "exact injected byte sequences repeated across calls in one condition",
+      "observation": "group recorded context blobs by SHA-256 and sum (occurrences - 1) * blob_utf8_bytes for each hash",
+      "missing_value": "unavailable"
+    },
+    "scanner_invocations": {
+      "observation": "count top-level skill/scanner commands separately from native compiler, test, or language-server commands",
       "missing_value": "unavailable"
     },
     "native_tool_invocations": {
-      "observation": "count from command/event records; repeated identical commands remain separate invocations",
+      "observation": "count nested compiler, test, package-manager, or language-server commands only when event-instrumented",
       "missing_value": "unavailable"
     },
     "human_interventions": {
-      "observation": "count and classify approvals, clarifications, retries, and manual repair choices",
+      "observation": "ordered events with kind, condition, reason, action, and elapsed_ms",
       "missing_value": "unavailable"
     },
     "recoverable_failures": {
-      "observation": "count with command, symptom, repair, and whether the documented path was sufficient",
+      "observation": "ordered events with command, symptom, documented_repair, repair_sufficient, and elapsed_ms",
+      "missing_value": "unavailable"
+    },
+    "cache_state": {
+      "observation": "cold, warm, or unavailable with the enforcement mechanism or limitation",
       "missing_value": "unavailable"
     }
+  },
+  "trial_record_schema": {
+    "required": [
+      "trial_id",
+      "condition",
+      "execution_revision",
+      "tool_hashes",
+      "input_hashes",
+      "true_root_wall_time_ms",
+      "correctness",
+      "completion",
+      "source_preserved",
+      "context_blobs",
+      "scanner_invocations",
+      "native_tool_invocations",
+      "human_interventions",
+      "recoverable_failures",
+      "cache_state"
+    ]
   },
   "correctness_gates": [
     "100% of clear corpus cases route as frozen",
     "every ambiguous case stays within its allowed set or asks a discriminating question",
     "zero heavy false positives on direct/no-skill cases",
-    "every selected closure path exists and matches capability truth",
+    "every selected closure is exact, exists, and matches capability truth",
+    "serial and parallel product projections are semantically identical",
     "all final artifacts, native checks, source-preservation, and failure-honesty rubrics pass"
   ],
   "p9_adoption_threshold": {
     "minimum_paired_trials": 5,
-    "performance": "at least 20% median wall-time reduction or 30% controlled-context reduction",
+    "performance": "at least 20% median true-root wall-time reduction or 30% controlled-context reduction",
     "token_guard": "no more than 10% observable-model-token growth",
     "correctness": "all P8 correctness gates remain green"
   },
-  "decision": "measure-only; no router, coordinator, updater, or host-guidance behavior changes are authorized by this protocol"
+  "decision": "Use the completed historical run for model/token evidence and run the actual product launcher without new model calls. Do not build a coordinator, updater, telemetry service, or dependency DAG unless a measured user journey independently justifies it."
 }

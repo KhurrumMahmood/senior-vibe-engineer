@@ -43,6 +43,8 @@ Operation:
   Normal routing is read-only and returns an on-demand guide/tool closure.
   Non-router skills stay in the external project-scoped library by default.
   If that library is missing, the result prints an exact bootstrap command.
+  Read-only compatibility status:
+    python3 .agents/skills/which-skill/scripts/status.py --project-root "$PWD"
 
 Requirements and limits:
   The router needs Python 3.11+. Selected skills may require language-native

@@ -1244,36 +1244,14 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         },
         "status": "ready",
     }
-    assert cleanup_recommendations["find-test-obligation-drift"]["handoff"][
-        "capabilities"
-    ]["skills"][0] == {
-        "skill": "find-test-obligation-drift",
-        "expansion_disposition": "framework-bound",
-        "typescript_disposition": "stack-bound",
-        "javascript_disposition": "stack-bound",
-        "go_disposition": "stack-bound",
-        "java_disposition": "stack-bound",
-        "php_disposition": "stack-bound",
-        "swift_disposition": "stack-bound",
-        "c_disposition": "stack-bound",
-        "cpp_disposition": "stack-bound",
-        "ruby_disposition": "stack-bound",
-        "rust_disposition": "stack-bound",
-        "dart_disposition": "stack-bound",
-        "kotlin_disposition": "stack-bound",
-        "csharp_disposition": "stack-bound",
-        "fact_level": "framework",
-        "outcome_class": "framework-specific",
-        "framework_family": "framework-quality",
-        "closure_skills": ["find-test-obligation-drift"],
-        "optional_install_status": "deferred-named-stack",
-    }
-    cleanup_install = cleanup_recommendations["find-test-obligation-drift"][
-        "optional_install"
+    assert "find-test-obligation-drift" not in cleanup_recommendations
+    assert cleanup_payload["excluded_ineligible"] == [
+        {
+            "skill": "find-test-obligation-drift",
+            "reason": "framework_context_not_declared",
+            "languages": [],
+        }
     ]
-    assert cleanup_install["available"] is False
-    assert cleanup_install["reason"] == "selected_skill_install_not_validated"
-    assert "command" not in cleanup_install
 
     kotlin_cleanup = _run_isolated(
         installed["which-cleanup"] / "scripts" / "route.py",

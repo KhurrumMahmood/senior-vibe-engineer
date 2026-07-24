@@ -120,6 +120,9 @@ DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \
 # create and verify its Python >=3.11 venv and pinned dependencies.
 python3 .agents/skills/which-skill/scripts/bootstrap_library.py \
   --project-root "$PWD" --source "$ENGINEERING_SKILLS_SOURCE"
+
+# Read-only compatibility: installed router bytes, library HEAD, and host schema.
+python3 .agents/skills/which-skill/scripts/status.py --project-root "$PWD"
 ```
 
 Ask the agent to use `which-shape` when the operating mode is unclear,

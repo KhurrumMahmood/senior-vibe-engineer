@@ -29,6 +29,8 @@ Operation:
   on-demand guide/tool closures.
   Non-router skills stay in the external project-scoped library by default.
   A missing library yields an exact bootstrap command.
+  Read-only compatibility status:
+    python3 .agents/skills/which-skill/scripts/status.py --project-root "$PWD"
 
 Requirements and limits:
   The router needs Python 3.11+ and Git for Git-derived scopes. Selected checks

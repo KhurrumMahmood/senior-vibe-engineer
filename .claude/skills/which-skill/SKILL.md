@@ -132,6 +132,22 @@ required `/local/` rule on a fresh host so previewable migration journals never
 become tracked project state. An existing file is preserved only when it
 already carries that rule; ambiguous or unsafe host-state paths stop bootstrap.
 
+After install, bootstrap, or update, use the bundled read-only status command
+to compare installed router bytes with the external library's clean Git HEAD
+and report the host schema plus pending migrations together:
+
+```bash
+PROJECT_ROOT="$PWD"
+(
+  cd "$PROJECT_ROOT/.agents/skills/which-skill"
+  python3 scripts/status.py --project-root "$PROJECT_ROOT"
+)
+```
+
+Status does not fetch, install, migrate, or modify host state. A router ref is
+reported only when its installed bytes equal the router tree at a clean library
+HEAD; otherwise the result is an explicit mismatch.
+
 ### Stage 1 — Run the matcher
 
 **Pre:** task description received. **Post:** `match.py` output captured.
