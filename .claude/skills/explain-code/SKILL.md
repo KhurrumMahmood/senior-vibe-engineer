@@ -1,6 +1,6 @@
 ---
 name: explain-code
-description: Read-only EXPLAIN skill that converts a Python, Go, Java, JavaScript-family, TypeScript/TSX, bounded PHP, Ruby, Swift, Rust, or Dart target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unresolved surfaces remain visible instead of being inferred.
+description: Read-only EXPLAIN skill that converts a Python, Go, Java, bounded Kotlin/JVM, JavaScript-family, TypeScript/TSX, PHP, Ruby, Swift, Rust, or Dart target's direct public declarations into an annotated behavior doc at reports/explanations/<target>.md. Unresolved surfaces remain visible instead of being inferred.
 argument-hint: "<file-path-or-directory-or-subsystem-name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -18,10 +18,20 @@ not_for: |
   Refactor execution (use /fix-workflow or /refactor-subsystem).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /explain-code
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for an exact manifest-selected authored `.kt` target.
+Keep sibling `_kotlin`, read
+[`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter through
+`scripts/explain_kotlin.py`. It explains directly spelled package,
+declaration, signature, overload, data/sealed, and extension-receiver syntax.
+It does not resolve behavior, calls, overrides, delegation, reflection,
+generated members, Java, Gradle variants, frameworks, or runtime contracts.
 
 ## C++20 branch
 

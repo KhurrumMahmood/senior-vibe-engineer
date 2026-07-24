@@ -1,6 +1,6 @@
 ---
 name: adapt-project
-description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, PHP/Composer, bounded plain-Ruby/Bundler, SwiftPM, Cargo/Rust, and plain-Dart stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
+description: Discover objective host-project facts and scaffold a project adapter for engineering-skills. Reads Python, JavaScript-family, TypeScript, Go, Java, bounded Kotlin/JVM, PHP/Composer, bounded plain-Ruby/Bundler, SwiftPM, Cargo/Rust, and plain-Dart stack/source markers plus commands, tests, CI, docs, domain terms, sensitive surfaces, existing guardrails, and skill overlays; writes adapter artifacts under reports/adapt-project/scan-<TS>/ by default. Host writes to .engineering/project/adapter.yml require --apply, and --no-host-write is the dogfood mode for evaluating another project without touching it.
 argument-hint: "[--project-root <path>] [--artifact-root <path>] [--apply|--no-host-write]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -24,7 +24,7 @@ escalate_to: |
   human-approved and detectable.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
 lanes: [project-adaptation]
 stage: discover
 entrypoint: true
@@ -35,6 +35,17 @@ max_overhead: "Stop after discovery and write unresolved questions; do not infer
 ---
 
 # /adapt-project
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for an exact manifest-selected lowercase `.kt`
+project. Keep sibling `_kotlin` beside this skill, read
+[`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter through
+`scripts/discover_kotlin.py`. The guide owns the executable command and current
+native-evidence prerequisites. The result is an objective dependency-free JVM
+adapter only; `.kts`, Gradle/dependencies, Java, generated inputs, Android,
+Multiplatform, plugins, frameworks, variants, and layout endorsement remain
+outside the claim.
 
 ## C++20 branch
 

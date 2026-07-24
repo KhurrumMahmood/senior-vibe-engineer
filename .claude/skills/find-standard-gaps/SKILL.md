@@ -1,6 +1,6 @@
 ---
 name: find-standard-gaps
-description: Detect places a declared baseline standard should apply but doesn't. Family-local scanners cover Python plus narrow syntax-only JavaScript/TypeScript, Go, Java, PHP, Ruby, Swift, Rust, and Dart direct-call guard conditions, then report every site whose triggering situation holds but the declared standard is absent. Detection-only; never edits code.
+description: Detect places a declared baseline standard should apply but doesn't. Family-local scanners cover Python plus narrow syntax-only JavaScript/TypeScript, Go, Java, Kotlin/JVM, PHP, Ruby, Swift, Rust, and Dart direct-call guard conditions, then report every site whose triggering situation holds but the declared standard is absent. Detection-only; never edits code.
 argument-hint: "<host-owned standards JSON — copy standards.example.json, adapt it, and pass its path>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,7 +26,7 @@ not_for: |
   baseline belongs in host lint tooling.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 ## External syntax variants
@@ -42,6 +42,16 @@ Each supports one declared direct-call enclosure condition only. The guides own
 the exact commands, standards inputs, native gates, and semantic non-claims.
 
 # /find-standard-gaps
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for a manifest-selected `.kt` target and explicit
+host-owned standards JSON. Keep sibling `_kotlin`, read
+[`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter through
+`scripts/scan_coverage_kotlin.py`. It supports one direct call-spelling plus
+lexical `if`-enclosure condition. Callee identity, aliases/extensions,
+overload selection, reflection, generated/Java/Gradle/runtime behavior,
+general policy, detekt/ktlint, plugins, and frameworks remain unresolved.
 
 ## C++20 branch
 

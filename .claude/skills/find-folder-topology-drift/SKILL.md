@@ -1,6 +1,6 @@
 ---
 name: find-folder-topology-drift
-description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, PHP, Ruby, Swift, Rust, or Dart filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, Rust, Dart, PHP, Ruby, and Swift use bounded filename-prefix rules, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
+description: Read-only SUSPECT audit for Python folder-topology drift and narrow, explicit-root JavaScript-family, TypeScript, Go, Java, Kotlin/JVM, PHP, Ruby, Swift, Rust, or Dart filename clusters. Python retains its ADR 0006 promotion and demotion bands; JavaScript, TypeScript, Kotlin, Rust, Dart, PHP, Ruby, and Swift use bounded filename-prefix rules, Go uses its first `_` token, and Java uses a leading CamelCase token. Use when a source folder is hard to skim because sibling filenames visibly name the same domain.
 argument-hint: "[--root PATH] [--javascript-root PATH] [--typescript-root PATH] [--go-root PATH] [--java-root PATH] [--min-cluster-size 3 --exclude PATTERN]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -20,10 +20,20 @@ not_for: |
   resolved-import contract.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /find-folder-topology-drift
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for an explicit manifest-owned Kotlin source root.
+Keep sibling `_kotlin`, read
+[`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter through
+`scripts/detect_kotlin.py`. Direct-sibling filename-prefix clusters are
+advisory only: they prove no package, ownership, source-set, dependency,
+generated/Java/Gradle/Android/Multiplatform topology, runtime behavior, layout
+health, or safe move.
 
 ## C++20 branch
 

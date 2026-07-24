@@ -1,0 +1,204 @@
+"""Honest partial-publication contract for bounded Kotlin/JVM outcomes."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from collections import Counter
+from pathlib import Path
+
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[1]
+COVERAGE = ROOT / ".claude" / "tasks" / "kotlin-language-coverage.json"
+SPINE_REVISION = "c7c9b55686cf1b0738c052021329224a5ab2bf93"
+LEXICAL_REVISION = "28a49e8cb6af3bac81dc776e84b6be9a68a01d0e"
+SEMANTIC_REVISION = "bc08603b63e944d4dbf6e558553e2141d3d9275d"
+MOVE_REVISION = "5c4a97be223019e3b6ada967e904ed1ffacc9646"
+LEXICAL_SKILLS = {
+    "adapt-project",
+    "audit-decisions",
+    "explain-code",
+    "find-complexity-hotspots",
+    "find-concept-divergence",
+    "find-duplication",
+    "find-folder-topology-drift",
+    "find-omnibus",
+    "find-standard-gaps",
+}
+SEMANTIC_SKILLS = {
+    "find-dormant",
+    "find-implicit-state",
+    "find-incomplete-sweep",
+    "find-semantic-duplication",
+    "rename-concept",
+}
+PENDING_SKILLS = {
+    "extract-enum",
+    "find-comment-drift",
+    "map-subsystem",
+    "prevent-regression",
+    "propose-boundary",
+    "propose-folder-reorganization",
+    "unify-shadows",
+}
+ENTRYPOINTS = {
+    "adapt-project": "scripts/discover_kotlin.py",
+    "audit-decisions": "scripts/audit_kotlin.py",
+    "explain-code": "scripts/explain_kotlin.py",
+    "find-complexity-hotspots": "scripts/run_kotlin.py",
+    "find-concept-divergence": "scripts/scan_kotlin.py",
+    "find-dormant": "scripts/detect_kotlin_dormant.py",
+    "find-duplication": "scripts/run_kotlin.py",
+    "find-folder-topology-drift": "scripts/detect_kotlin.py",
+    "find-implicit-state": "scripts/detect_kotlin_state.py",
+    "find-incomplete-sweep": "scripts/detect_kotlin_incomplete_sweep.py",
+    "find-omnibus": "scripts/run_kotlin.py",
+    "find-semantic-duplication": "scripts/detect_kotlin_semantic.py",
+    "find-standard-gaps": "scripts/scan_coverage_kotlin.py",
+    "move-path": "scripts/kotlin_source_move.py",
+    "rename-concept": "scripts/assess_kotlin_rename.py",
+}
+
+
+def _payload() -> dict:
+    return json.loads(COVERAGE.read_text(encoding="utf-8"))
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _skill(skill: str) -> tuple[dict, str]:
+    text = (ROOT / ".claude" / "skills" / skill / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    _, raw, body = text.split("---", 2)
+    return yaml.safe_load(raw), body
+
+
+def test_kotlin_partial_publication_keeps_unimplemented_outcomes_pending() -> None:
+    payload = _payload()
+    rows = payload["skills"]
+    by_name = {row["skill"]: row for row in rows}
+
+    assert payload["phase"] == "p8-kotlin-partial-publication"
+    assert payload["minimum_kotlin_version"] == "2.4.10"
+    assert payload["minimum_jdk_version"] == "17.0.12"
+    assert len(rows) == len(by_name) == 22
+    assert Counter(row["disposition"] for row in rows) == {
+        "kotlin-supported": 15,
+        "kotlin-pending-implementation": 7,
+    }
+    assert set(payload["current_assertions"]["supported_skills"]) == (
+        LEXICAL_SKILLS | SEMANTIC_SKILLS | {"move-path"}
+    )
+    assert set(payload["current_assertions"]["pending_skills"]) == PENDING_SKILLS
+    assert {
+        skill
+        for skill, row in by_name.items()
+        if row["disposition"] == "kotlin-pending-implementation"
+    } == PENDING_SKILLS
+
+    for skill in LEXICAL_SKILLS:
+        row = by_name[skill]
+        assert row["disposition"] == "kotlin-supported"
+        assert row["closure_mode"] == "external-library"
+        assert row["evidence_path"].endswith("kotlin-lexical-syntax-cohort.md")
+        assert row["reviewed_revision"] == LEXICAL_REVISION
+    for skill in SEMANTIC_SKILLS:
+        row = by_name[skill]
+        assert row["disposition"] == "kotlin-supported"
+        assert row["closure_mode"] == "external-library"
+        assert row["evidence_path"].endswith("kotlin-semantic-read-only.md")
+        assert row["reviewed_revision"] == SEMANTIC_REVISION
+        assert "K1" in " ".join(row["native_check"])
+    move = by_name["move-path"]
+    assert move["closure_mode"] == "stock-selected-install"
+    assert move["evidence_path"].endswith("kotlin-move-path.md")
+    assert move["reviewed_revision"] == MOVE_REVISION
+
+    for row in rows:
+        assert (ROOT / row["evidence_path"]).is_file(), row
+        assert row["native_check"], row
+        assert row["limitation"], row
+
+
+def test_kotlin_spine_remains_an_explicit_historical_22_pending_baseline() -> None:
+    payload = _payload()
+    baseline = payload["historical_spine_baseline"]
+    current_names = [row["skill"] for row in payload["skills"]]
+
+    assert payload["baseline_revision"] == SPINE_REVISION
+    assert baseline == {
+        "revision": SPINE_REVISION,
+        "evidence_path": ".claude/tasks/multilanguage-learnings/kotlin-spine.md",
+        "disposition": "kotlin-pending-implementation",
+        "skill_count": 22,
+        "skills": current_names,
+    }
+
+
+def test_kotlin_semantic_authority_and_global_nonclaims_are_exact() -> None:
+    payload = _payload()
+    authority = payload["semantic_authority"]
+    common = ROOT / ".claude" / "skills" / "_kotlin-semantic"
+
+    assert authority == {
+        "boundary": (
+            "deprecated K1 compiler API pinned to the observed Kotlin 2.4.10 "
+            "distribution; not the stable Analysis API"
+        ),
+        "kotlin_version": "2.4.10",
+        "jdk_version": "17.0.12",
+        "compiler_jar_sha256": (
+            "db12b1af0db0e10eeedfc15d5dac0316604e5c556321f60e3bcd73075a66f0a3"
+        ),
+        "stdlib_jar_sha256": (
+            "4ec0293bc3751423b203f1d8493251c57c42e73eb6377a6b8560d0974ff0a6df"
+        ),
+        "helper_source_sha256": _sha256(common / "KotlinSemanticFacts.kt"),
+        "provider_sha256": _sha256(common / "kotlin_semantic_facts.py"),
+    }
+    limits = " ".join(payload["global_limits"]).lower()
+    for required in (
+        "k1 bindingcontext",
+        "reflection",
+        "override",
+        "delegat",
+        "generated/kapt/ksp",
+        "gradle variants",
+        "java sources and callers",
+        "runtime reachability",
+        "manifest-selected",
+        "test main",
+        "smoke main",
+    ):
+        assert required in limits
+
+
+def test_each_published_kotlin_skill_declares_trigger_entrypoint_and_limits() -> None:
+    lexical_guide = ROOT / ".claude" / "skills" / "_kotlin" / "GUIDE.md"
+    semantic_guide = (
+        ROOT / ".claude" / "skills" / "_kotlin-semantic" / "GUIDE.md"
+    )
+    assert lexical_guide.is_file()
+    assert semantic_guide.is_file()
+
+    for skill, entrypoint in ENTRYPOINTS.items():
+        metadata, body = _skill(skill)
+        assert "kotlin" in metadata["scans"], skill
+        assert entrypoint in body, skill
+        assert "Trigger this" in body, skill
+        assert "remain" in body, skill
+        if skill in LEXICAL_SKILLS:
+            assert "../_kotlin/GUIDE.md" in body, skill
+            assert entrypoint in lexical_guide.read_text(encoding="utf-8"), skill
+        elif skill in SEMANTIC_SKILLS:
+            assert "../_kotlin-semantic/GUIDE.md" in body, skill
+            assert entrypoint in semantic_guide.read_text(encoding="utf-8"), skill
+            assert "K1" in body, skill
+        else:
+            assert skill == "move-path"
+            assert "content-addressed evidence" in body

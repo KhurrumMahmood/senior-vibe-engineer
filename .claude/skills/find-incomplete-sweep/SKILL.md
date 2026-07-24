@@ -9,7 +9,8 @@ description: |
   for one direct top-level function / keyed struct-option shape; Java 17 uses the JDK
   compiler tree API for one direct record/options-constructor shape; PHP uses
   bounded Composer PSR-4 direct constructions; Ruby requires project-authored
-  RBS constructor contracts; Rust uses
+  RBS constructor contracts; Kotlin/JVM uses pinned direct constructor-call
+  facts; Rust uses
   compiler-resolved direct calls for one struct-option omission shape; Dart
   uses SDK-LSP-resolved top-level calls for one named-argument omission shape. Gated on a git-trajectory
   signal: a divergence counts as a forgotten sweep only when the
@@ -25,7 +26,7 @@ tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
@@ -58,6 +59,19 @@ delegate_from: |
 ---
 
 # /find-incomplete-sweep
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for an exact `kotlin-semantic-project.json` target.
+Keep sibling `_kotlin-semantic`, read
+[`../_kotlin-semantic/GUIDE.md`](../_kotlin-semantic/GUIDE.md), produce its
+pinned fact pack, then enter through
+`scripts/detect_kotlin_incomplete_sweep.py`. It reports one omitted defaulted
+parameter across resolved direct selected-source constructor calls; the
+deprecated K1 API is not a stable Analysis API. Factories,
+callable references, overrides/delegation, reflection, generated/plugin inputs,
+Gradle variants, Java/external callers, runtime behavior, history, and fixes
+remain unresolved.
 
 ## C++20 branch
 

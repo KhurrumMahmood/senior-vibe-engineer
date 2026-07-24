@@ -8,7 +8,7 @@ description: |
   completeness gate, so renames land half-applied. This skill (v0, assess-only)
   reports the scope-gate verdict, blast radius, a per-step lifecycle status
   table, and the completeness gate. It performs strict lexical assessment of
-  Python, JavaScript, TypeScript, TSX, Go, Java, PHP, Ruby, Rust, and Dart text. For `.ts`, `.tsx`, and checked
+  Python, JavaScript, TypeScript, TSX, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart text. For `.ts`, `.tsx`, and checked
   `.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,
   declarations, and references; it does not claim whole-project type-checking,
   JSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`
@@ -72,11 +72,23 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, c, cpp, markdown, templates]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, rust, dart, c, cpp, markdown, templates]
 install_with: [find-concept-divergence, map-subsystem]
 ---
 
 # /rename-concept
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this assess-only branch only for an exact
+`kotlin-semantic-project.json` target. Keep sibling `_kotlin-semantic`, read
+[`../_kotlin-semantic/GUIDE.md`](../_kotlin-semantic/GUIDE.md), produce its
+pinned fact pack, then enter through `scripts/assess_kotlin_rename.py`. Exact
+selected-source declarations and resolved references come from a deprecated K1
+API, not a stable Analysis API, and do not cover strings,
+reflection/callable references, aliases, named arguments, overrides or
+delegation, generated/plugin sources, Gradle variants, Java/external callers,
+runtime/framework compatibility, ABI, codemod safety, or mutation.
 
 ## C++20 branch
 

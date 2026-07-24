@@ -1,6 +1,6 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move; checked Ruby supports one evidence-authorized plain-gem module file move with Prism-attributed edits; checked Dart supports one evidence-authorized private library file or leaf-directory move with analyzer-resolved directive rewrites and public-barrel preservation. TypeScript/TSX source imports are never rewritten in v1.
+description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked Kotlin supports one same-package authored .kt source-location move with compiler-proved JVM identity; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move; checked Ruby supports one evidence-authorized plain-gem module file move with Prism-attributed edits; checked Dart supports one evidence-authorized private library file or leaf-directory move with analyzer-resolved directive rewrites and public-barrel preservation. TypeScript/TSX source imports are never rewritten in v1.
 argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -36,10 +36,23 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [c, cpp, dart, go, java, javascript, php, ruby, rust, swift, typescript]
+scans: [c, cpp, dart, go, java, javascript, kotlin, php, ruby, rust, swift, typescript]
 ---
 
 # /move-path
+
+## Checked Kotlin/JVM source-location move
+
+Trigger this stock-selected branch only for one authored `.kt` implementation
+file below `src/main/kotlin` whose destination keeps the basename and package.
+Enter through `scripts/kotlin_source_move.py --help`; dry-run must create
+content-addressed evidence before apply receives the exact evidence SHA-256.
+The schema-v1 `kotlin-project.json`, Kotlin/JVM 2.4.10, JDK 17, byte-identical
+compiler class identities, native test/smoke, exact after-tree, and rollback
+are mandatory. The adapter refuses `@file`/multifile identity, reflection or
+callable/path/resource use, delegation/framework markers, generated/plugin or
+`.kts` inputs, Gradle variants, Java/external consumers, package/ABI changes,
+and multiple or directory moves.
 
 ## C++20 branch
 
@@ -167,7 +180,8 @@ after mutation and checks the exact source diff. A failed post-move compile or
 diff restores the moved tree and every rewritten file.
 
 This is not Maven/Gradle/module-path discovery, annotation-processor execution,
-Spring/Jakarta/Android reflection analysis, Kotlin support, a type rename, or a
+Spring/Jakarta/Android reflection analysis, Kotlin handling in the Java adapter,
+a type rename, or a
 general JVM refactor engine. Hosts requiring those semantics remain outside the
 standalone Java v1 claim.
 

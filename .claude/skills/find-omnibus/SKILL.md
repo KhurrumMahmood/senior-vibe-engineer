@@ -1,7 +1,7 @@
 ---
 name: find-omnibus
-description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded PHP, Ruby, Rust, Dart, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.
-argument-hint: "--target <directory> [--language python|javascript|typescript|go|java|php|ruby|rust|dart|swift]"
+description: Detect omnibus modules — files answering questions from 3+ independently-understandable domains. Uses family-local syntax facts for Python, JavaScript/TypeScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, Dart, and Swift; then groups symbols by head-noun cluster, requires scout judgment, and produces decomposition evidence. Never edits code.
+argument-hint: "--target <directory> [--language python|javascript|typescript|go|java|kotlin|php|ruby|rust|dart|swift]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -13,7 +13,7 @@ best_for: |
   diagnostics, persistence, raw SQL, import/export, task dispatch, or
   filesystem writes; produces decomposition candidates that hand off
   to /refactor-subsystem. Covers Python, JavaScript/TypeScript, Go, Java, PHP,
-  Ruby, Rust, Dart, and bounded Swift with family-local syntax parsers. Findings
+  Kotlin, Ruby, Rust, Dart, and bounded Swift with family-local syntax parsers. Findings
   carry analyzer provenance. The script paths resolve no types and assume no
   framework.
 not_for: |
@@ -23,10 +23,20 @@ not_for: |
   to /find-perimeter-gaps.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, swift, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, rust, dart, swift, c, cpp]
 ---
 
 # /find-omnibus
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for manifest-selected authored `.kt` declarations
+with explicit scout JSON. Keep sibling `_kotlin`, read
+[`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter through
+`scripts/run_kotlin.py`. Declaration-name clusters only nominate candidates;
+the scout owns domain judgment. Resolved calls, overrides, delegation,
+reflection, generated members, Java, Gradle variants, runtime topology, and
+safe decomposition remain unresolved.
 
 ## C++20 branch
 

@@ -1,7 +1,7 @@
 ---
 name: find-semantic-duplication
-description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, PHP, Ruby, Rust, and Dart function-level leads using host-native semantic facts. Semantic branches report bounded static candidates with human review; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
-argument-hint: "--target <directory> [--language python|typescript|javascript|go|java|php|ruby|rust|dart]"
+description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart function-level leads using host-native semantic facts. Semantic branches report bounded static candidates with human review; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
+argument-hint: "--target <directory> [--language python|typescript|javascript|go|java|kotlin|php|ruby|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -18,11 +18,23 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 ---
 
 # /find-semantic-duplication
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for an exact `kotlin-semantic-project.json` target.
+Keep sibling `_kotlin-semantic`, read
+[`../_kotlin-semantic/GUIDE.md`](../_kotlin-semantic/GUIDE.md), produce its
+pinned fact pack, then enter through `scripts/detect_kotlin_semantic.py`. A
+matching static signature/return/body shape with distinct resolved callers is
+only a review lead; the deprecated K1 API is not a stable Analysis API.
+Overrides/extensions, reflection, delegation, generated
+and plugin sources, Gradle variants, Java, runtime behavior, side effects,
+equivalence, and consolidation safety remain unresolved.
 
 ## C++20 branch
 

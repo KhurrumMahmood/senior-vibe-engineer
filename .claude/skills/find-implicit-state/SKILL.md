@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
-description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, PHP, Ruby, Rust, and Dart state branches. Semantic branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
-argument-hint: "--target <directory> [--language typescript|javascript|go|java|php|ruby|rust|dart]"
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Kotlin/JVM, PHP, Ruby, Rust, and Dart state branches. Semantic branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
+argument-hint: "--target <directory> [--language typescript|javascript|go|java|kotlin|php|ruby|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -21,12 +21,24 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-implicit-state
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for an exact `kotlin-semantic-project.json` target.
+Keep sibling `_kotlin-semantic`, read
+[`../_kotlin-semantic/GUIDE.md`](../_kotlin-semantic/GUIDE.md), produce its
+pinned fact pack, then enter through `scripts/detect_kotlin_state.py`. Direct
+literal writes to one resolved `String` state/status/phase property are a
+review lead, not a closed-domain proof; the deprecated K1 API is not a stable
+Analysis API. Delegates/custom setters, overrides,
+reflection, generated/plugin sources, Gradle variants, Java, frameworks,
+runtime writes, enum safety, and mutation remain unresolved.
 
 ## C++20 branch
 

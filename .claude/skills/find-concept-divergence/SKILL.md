@@ -31,10 +31,20 @@ not_for: |
   (deferred — strict canonical-name + avoid-term grep only in v1).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp, markdown, templates]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp, markdown, templates]
 ---
 
 # /find-concept-divergence
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for a manifest-selected `.kt` target and an explicit
+host glossary. Keep sibling `_kotlin`, read
+[`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter through
+`scripts/scan_kotlin.py`. Exact authored identifier-token hits are lexical
+review evidence only; aliases, extensions, operators, delegated members,
+strings/comments, symbol identity, generated sources, Java, Gradle variants,
+reflection, runtime behavior, and rename completeness remain unresolved.
 
 ## C++20 branch
 

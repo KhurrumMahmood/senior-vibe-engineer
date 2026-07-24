@@ -1,7 +1,7 @@
 ---
 name: find-dormant
-description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, PHP, Ruby, Rust, and Dart have narrow static review branches for human review. Never infers safe deletion from static evidence.
-argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java|php|ruby|rust|dart]"
+description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart have narrow static review branches for human review. Never infers safe deletion from static evidence.
+argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java|kotlin|php|ruby|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -27,12 +27,24 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-dormant
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for an exact `kotlin-semantic-project.json` target.
+Keep sibling `_kotlin-semantic`, read
+[`../_kotlin-semantic/GUIDE.md`](../_kotlin-semantic/GUIDE.md), produce its
+pinned fact pack, then enter through `scripts/detect_kotlin_dormant.py`. The
+result is a review-required private no-direct-reference lead, never safe
+deletion. The deprecated K1 API, reflection/callable references, overrides and
+extensions, delegation, generated/KAPT/KSP and plugin sources, Gradle variants,
+Java/external callers, framework registration, and runtime reachability remain
+the guide's explicit boundaries.
 
 ## C++20 branch
 

@@ -1,6 +1,6 @@
 ---
 name: audit-decisions
-description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded PHP, Ruby, Swift, Rust, and Dart, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
+description: "Read-only, portable decision-registry drift audit. It writes a final drift report, captures registry/link diagnostics, and validates `decision:NNNN` references from Python, Go, Java JDK 17+, bounded Kotlin/JVM, PHP, Ruby, Swift, Rust, and Dart, JavaScript-family, and TypeScript comments plus Markdown/HTML references."
 argument-hint: "[--target PATH]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -19,10 +19,20 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, markdown, html, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /audit-decisions
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for manifest-selected authored `.kt` comments. Keep
+sibling `_kotlin`, read [`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter
+through `scripts/audit_kotlin.py`; the guide owns the exact command and native
+gates. The final drift artifacts contain exact comment-token spans only.
+Applicability, symbol meaning, annotations, generated/plugin sources, Gradle
+variants, Java interop, reflection, frameworks, and runtime behavior remain
+unresolved.
 
 ## C++20 branch
 

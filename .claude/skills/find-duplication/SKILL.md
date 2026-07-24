@@ -1,6 +1,6 @@
 ---
 name: find-duplication
-description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/PHP/Ruby/Swift/Rust/Dart function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
+description: Detect and triage Python structural/lexical duplication with the legacy scout workflow, or report conservative JavaScript-family, TypeScript/TSX, exact Go/Kotlin/PHP/Ruby/Swift/Rust/Dart function-body, and exact Java method-body clone evidence. Each language uses a separate family-local pipeline and copied-skill runtime.
 argument-hint: "--target <source-directory>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
@@ -19,10 +19,19 @@ not_for: |
   clone leads and stops short of safety or reuse conclusions.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /find-duplication
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for manifest-selected authored `.kt` functions. Keep
+sibling `_kotlin`, read [`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter
+through `scripts/run_kotlin.py`. It reports exact normalized direct-body token
+clones with package/signature/overload syntax. Matching tokens do not establish
+resolved calls, DSL or inline semantics, delegation, side effects, reflection,
+generated/Java/Gradle/runtime behavior, equivalence, or consolidation safety.
 
 ## C++20 branch
 

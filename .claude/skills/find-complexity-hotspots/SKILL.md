@@ -1,7 +1,7 @@
 ---
 name: find-complexity-hotspots
-description: Detect advisory Python, JavaScript, TypeScript, Go, Java, bounded PHP, Ruby, Swift, Rust, and Dart function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.
-argument-hint: "<paths> [--language python|javascript|typescript|go|java|php|ruby|swift|rust|dart]"
+description: Detect advisory Python, JavaScript, TypeScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Swift, Rust, and Dart function-complexity hotspots without changing production files. Preserves the Python stdlib AST scan and adds syntax-only family-local high-branch findings for bounded named functions, methods, and constructors.
+argument-hint: "<paths> [--language python|javascript|typescript|go|java|kotlin|php|ruby|swift|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -18,13 +18,22 @@ not_for: |
   scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 <!-- Native-parser compatibility subset: scans: [javascript, typescript, go, java] -->
 <!-- TypeScript compatibility subset: scans: [python, javascript, typescript] -->
 
 # /find-complexity-hotspots
+
+## Kotlin/JVM 2.4.10 branch
+
+Trigger this branch only for manifest-selected authored `.kt` functions. Keep
+sibling `_kotlin`, read [`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter
+through `scripts/run_kotlin.py`. Its frozen direct-body branch-keyword score is
+advisory syntax evidence only; lambdas/local or inline functions, contracts,
+resolved control flow, generated members, Java, Gradle variants, frameworks,
+runtime cost, and refactor safety remain unresolved.
 
 ## C++20 branch
 
