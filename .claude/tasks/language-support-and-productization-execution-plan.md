@@ -380,7 +380,7 @@ weaken them.
 | AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `done:84ec7e5` | AC1-S3 | Avoid repeated compute and repeated human decisions |
 | AC1-C1 | Decision propagation, registry completeness, and deferred debt are auditable | `done:390d200` | AC1-S4 and AC1-D1 | Project coherence in this kit and adopters |
 | AC1-M2 | A second real host-state migration proves skipped-release composition | `done:5d0608c` | AC1-C1 supplied project-authored subsystem maps as a real legacy move | Install/update lifecycle |
-| P8-U1 | A stock prior-release update journey passes at two exact public refs | `pending_p8` | final language release and AC1-M2 | Installation and repair UX |
+| P8-U1 | A stock prior-release update journey passes at two exact public refs | `in_progress:replay_passed_repairs_pending` | final language release and AC1-M2 | Installation and repair UX |
 | P9-U2 | A convenience updater ships only if measured stock-path friction justifies it | `pending_p9` | P8-U1 measurements | Evidence-backed user-journey improvement |
 
 Execution is serial across shared product surfaces: AC1-S0 → S1 → S2 → S3 →
@@ -693,7 +693,7 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | Public two-ref update/repair replay | — | — |
+| Public two-ref update/repair replay | `.claude/tasks/p8-stock-update-replay-evidence.json`; disposable replay root `/private/tmp/engineering-skills-p8-update.gh0o3B` | Public schema-2 ref `3bea2ae` installed and migrated a real schema-1 host to 2; stock router reinstall plus ordinary Git library replacement to `1c333d2` migrated 2→3; route, final `adapt-project` artifacts/evidence gate, cleanup, idempotent replay, scoped host-byte preservation, and clean-host uninstall passed. One natural which-shape wording failure, native status gap, missing-library repair gap, and unsafe documented `remove --all` remain P8 repairs. | replay against `3bea2ae` and `1c333d2`; evidence commit pending |
 
 #### P9-U2 — Evidence gate for a convenience updater
 
