@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import ast
 import io
+import json
 import re
 import sys
 import tokenize
@@ -154,6 +155,156 @@ class Finding:
     summary: str
     recommendation: str
     language: str = ""
+    end_lineno: int | None = None
+
+
+def _finding_payload(finding: Finding) -> dict:
+    return {
+        key: value
+        for key, value in asdict(finding).items()
+        if value not in {"", None}
+    }
+
+
+def _load_scan_request(path: Path) -> dict:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if payload.get("schema_version") != 1:
+            raise ValueError("unsupported schema version")
+        if payload["requested_mode"] not in {
+            "auto",
+            "diff-lines",
+            "changed-files",
+            "paths",
+            "project",
+        }:
+            raise ValueError("unsupported requested mode")
+        if not isinstance(payload["selector"], dict) or payload["selector"].get(
+            "kind"
+        ) not in {
+            "working-tree",
+            "staged",
+            "changed-from",
+            "commit",
+            "range",
+            "paths",
+            "project",
+        }:
+            raise TypeError("selector must be an object")
+        if not isinstance(payload["changes"], list):
+            raise TypeError("changes must be a list")
+        if not isinstance(payload["resolved_paths"], list):
+            raise TypeError("resolved_paths must be a list")
+        return payload
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        raise ValueError(f"invalid scan request: {path}") from exc
+
+
+def _validate_scan_request_paths(request: dict, project_root: Path) -> None:
+    try:
+        declared_root = Path(request["project_root"]).resolve()
+        if declared_root != project_root:
+            raise ValueError("scan request project root does not match --project-root")
+        raw_paths = [*request["resolved_paths"]]
+        raw_paths.extend(change["path"] for change in request["changes"])
+        for raw_path in raw_paths:
+            if not isinstance(raw_path, str) or not raw_path:
+                raise TypeError("scan request paths must be non-empty strings")
+            resolved = (project_root / raw_path).resolve()
+            resolved.relative_to(project_root)
+    except (KeyError, TypeError, ValueError) as exc:
+        if isinstance(exc, ValueError) and str(exc).startswith("scan request project"):
+            raise
+        raise ValueError("scan request contains a path outside the project root") from exc
+
+
+def _effective_scope_mode(request: dict, override: str | None) -> str:
+    requested = request["requested_mode"]
+    effective = override or requested
+    if effective == "auto":
+        effective = (
+            "paths"
+            if request["selector"].get("kind") == "paths"
+            else "project"
+            if request["selector"].get("kind") == "project"
+            else "changed-files"
+        )
+    if effective == "diff-lines" and request.get("line_filter_safe") is not True:
+        raise ValueError(
+            "diff-lines cannot be applied because the current files do not match "
+            "the request's content basis; use changed-files explicitly"
+        )
+    if effective == "project" and request["selector"].get("kind") != "project":
+        raise ValueError("project mode requires a project selector")
+    return effective
+
+
+def _filter_findings_to_changed_lines(
+    findings: list[Finding], request: dict
+) -> list[Finding]:
+    ranges_by_path: dict[str, list[tuple[int, int]]] = {}
+    for change in request["changes"]:
+        if not isinstance(change, dict) or not isinstance(change.get("path"), str):
+            raise ValueError("invalid scan request change row")
+        ranges = []
+        for item in change.get("line_ranges", []):
+            try:
+                start, end = int(item["start"]), int(item["end"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError("invalid scan request line range") from exc
+            if start < 1 or end < start:
+                raise ValueError("invalid scan request line range")
+            ranges.append((start, end))
+        ranges_by_path[change["path"]] = ranges
+    filtered = []
+    for finding in findings:
+        finding_end = finding.end_lineno or finding.lineno
+        if any(
+            start <= finding_end and end >= finding.lineno
+            for start, end in ranges_by_path.get(finding.file, [])
+        ):
+            filtered.append(finding)
+    return filtered
+
+
+def _write_scoped_findings(
+    findings: list[Finding],
+    *,
+    output: Path,
+    analyzed_file_count: int,
+    request: dict | None,
+    scope_mode: str | None,
+    error_count: int = 0,
+) -> list[Finding]:
+    raw_count = len(findings)
+    if request is None:
+        filtered = findings
+        effective = "paths" if scope_mode == "auto" else scope_mode
+    else:
+        effective = _effective_scope_mode(request, scope_mode)
+        filtered = (
+            _filter_findings_to_changed_lines(findings, request)
+            if effective == "diff-lines"
+            else findings
+        )
+    write_jsonl((_finding_payload(finding) for finding in filtered), output)
+    if request is not None or scope_mode is not None:
+        requested = request["requested_mode"] if request is not None else scope_mode
+        selector = request["selector"] if request is not None else {"kind": effective}
+        write_json(
+            {
+                "requested_mode": requested,
+                "effective_mode": effective,
+                "selector": selector,
+                "analyzed_file_count": analyzed_file_count,
+                "raw_finding_count": raw_count,
+                "scope_filtered_count": raw_count - len(filtered),
+                "error_count": error_count,
+                "incomplete_or_error_count": error_count,
+            },
+            output.with_name(f"{output.stem}-scope.json"),
+        )
+    return filtered
 
 
 def emit(
@@ -919,10 +1070,51 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project-root", type=Path, default=None,
                         help="Target project root anchoring relative paths "
                              "(default: git toplevel of cwd, else cwd)")
+    parser.add_argument(
+        "--scan-request",
+        type=Path,
+        default=None,
+        help="Serialized which-cleanup scan request; avoids re-resolving Git scope.",
+    )
+    parser.add_argument(
+        "--scope-mode",
+        choices=("auto", "diff-lines", "changed-files", "paths", "project"),
+        default=None,
+        help="Effective finding scope (normally supplied by the cleanup handoff).",
+    )
     args = parser.parse_args(argv)
 
     project_root = resolve_project_root(args.project_root)
-    target_paths = args.paths or list(DEFAULT_TARGETS)
+    try:
+        scan_request = _load_scan_request(args.scan_request) if args.scan_request else None
+        if scan_request is not None:
+            _validate_scan_request_paths(scan_request, project_root)
+        if scan_request is not None and args.paths:
+            raise ValueError("--scan-request supplies the paths; do not repeat them")
+        if scan_request is not None:
+            target_paths = (
+                ["."]
+                if scan_request["selector"].get("kind") == "project"
+                else scan_request["resolved_paths"]
+            )
+        elif args.scope_mode == "project":
+            if args.paths:
+                raise ValueError("project scope does not accept explicit paths")
+            target_paths = ["."]
+        else:
+            target_paths = args.paths or list(DEFAULT_TARGETS)
+        if (
+            scan_request is None
+            and args.scope_mode in {"paths", "changed-files"}
+            and not args.paths
+        ):
+            raise ValueError(f"{args.scope_mode} requires explicit paths or --scan-request")
+        if args.scope_mode == "diff-lines" and scan_request is None:
+            raise ValueError("diff-lines requires --scan-request")
+        if scan_request is not None:
+            _effective_scope_mode(scan_request, args.scope_mode)
+    except (KeyError, TypeError, ValueError) as exc:
+        parser.error(str(exc))
     if args.language == "go":
         scan_path = args.output.with_name("scan.json")
         tool, tool_rc = probe_go()
@@ -957,12 +1149,13 @@ def main(argv: list[str] | None = None) -> int:
             scan["status"] = "unsupported"
             scan["failure_kind"] = "no-go-files"
         findings.sort(key=lambda item: (item.file, item.lineno, item.pattern, item.summary))
-        write_jsonl(
-            (
-                {key: value for key, value in asdict(finding).items() if value != ""}
-                for finding in findings
-            ),
-            args.output,
+        findings = _write_scoped_findings(
+            findings,
+            output=args.output,
+            analyzed_file_count=len(files),
+            request=scan_request,
+            scope_mode=args.scope_mode,
+            error_count=len(scan["errors"]),
         )
         write_json(scan, scan_path)
         print(
@@ -999,12 +1192,13 @@ def main(argv: list[str] | None = None) -> int:
             scan["status"] = "unsupported"
             scan["failure_kind"] = "no-java-files"
         findings.sort(key=lambda item: (item.file, item.lineno, item.pattern, item.summary))
-        write_jsonl(
-            (
-                {key: value for key, value in asdict(finding).items() if value != ""}
-                for finding in findings
-            ),
-            args.output,
+        findings = _write_scoped_findings(
+            findings,
+            output=args.output,
+            analyzed_file_count=len(files),
+            request=scan_request,
+            scope_mode=args.scope_mode,
+            error_count=len(scan["errors"]),
         )
         write_json(scan, scan_path)
         print(
@@ -1096,16 +1290,13 @@ def main(argv: list[str] | None = None) -> int:
             if scan["status"] == "complete"
             else "incomplete"
         )
-        write_jsonl(
-            (
-                {
-                    key: value
-                    for key, value in asdict(finding).items()
-                    if value != ""
-                }
-                for finding in findings
-            ),
-            args.output,
+        findings = _write_scoped_findings(
+            findings,
+            output=args.output,
+            analyzed_file_count=len(files),
+            request=scan_request,
+            scope_mode=args.scope_mode,
+            error_count=len(scan["errors"]),
         )
         write_json(scan, scan_path)
         print(
@@ -1117,9 +1308,12 @@ def main(argv: list[str] | None = None) -> int:
     args.output.with_name("scan.json").unlink(missing_ok=True)
     files = collect_files(target_paths, project_root)
     findings = scan_files(files, project_root)
-    write_jsonl(
-        ({key: value for key, value in asdict(finding).items() if value != ""} for finding in findings),
-        args.output,
+    findings = _write_scoped_findings(
+        findings,
+        output=args.output,
+        analyzed_file_count=len(files),
+        request=scan_request,
+        scope_mode=args.scope_mode,
     )
     print(f"scanned {len(files)} files; wrote {len(findings)} findings to {relpath(args.output, project_root)}")
     return 0

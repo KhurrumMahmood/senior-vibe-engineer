@@ -1,7 +1,7 @@
 ---
 name: which-cleanup
 description: Route a completed change to proportionate cleanup and guard skills. Use after editing or committing code to inspect only the changed scope, choose warranted closeout guides, and return on-demand guide/tool paths for direct or fresh-sub-agent execution. Ambient installation is explicit and optional.
-argument-hint: "[paths… | --staged | --changed-from REF | --commit SHA | --range A..B]"
+argument-hint: "[paths… | --staged | --changed-from REF | --commit SHA | --range A..B] [--scope-mode MODE]"
 allowed-tools: Bash, Read
 user-invocable: true
 tier: cross-cutting
@@ -62,6 +62,13 @@ With no scope flag, inspect the working-tree, staged, and untracked file lists.
 The portable router requires only Python’s standard library and Git when a diff
 scope is used.
 
+`--scope-mode auto` preserves each scanner's current behavior. For a Git
+selector, `--scope-mode changed-files` analyzes each selected file in full;
+`--scope-mode diff-lines` lets line-local scanners report only findings that
+intersect new-side changed lines. Explicit paths use `paths`. Project-wide
+analysis is intentionally delegated to project-capable scanners rather than
+silently broadening this change-bounded router.
+
 ## Interpret the result
 
 Honor these fields:
@@ -69,11 +76,19 @@ Honor these fields:
 - `scope_band`: `trivial`, `small`, `medium`, or `large`, based on changed-file
   count. It controls roster width, not correctness or risk by itself.
 - `resolved_paths`: the exact bounded paths considered.
+- `scan_request`: the reusable selector, content basis, path/change facts, and
+  changed-line ranges. Pass this exact object to selected scanners; do not
+  resolve the Git selector again per recommendation.
 - `recommendations[]`: skill, reason, primary on-demand `handoff` with the
   shared source-inventory path and manifest-backed language/fact/outcome
   capability row, and an `optional_install` result used only when the user
   requests ambient installation. The command is present only for closures with
   passed selected-install evidence; unvalidated closures are explicit.
+- `recommendations[].scan`: requested/effective mode, diff semantics, and an
+  explicit `ready`, `adapted`, `widened`, `degraded`, `unsupported`, `unsafe`,
+  or `unavailable` status. `widened` preserves file/multi-site/project
+  obligations that cannot truthfully be hunk-clipped. Do not run an unsupported
+  or unsafe mode.
 - `source`: the canonical repository and conventional skill/tool roots.
 - `limitations`: what portable mode deliberately does not infer.
 
@@ -127,5 +142,7 @@ multiple read-only checks can run independently.
 .claude/skills/which-cleanup/
 ├── SKILL.md
 └── scripts/
-    └── route.py       # portable stdlib-only installed router
+    ├── route.py          # portable stdlib-only installed router
+    ├── scan_request.py   # paths, Git changes, and new-side line ranges
+    └── scope_modes.py    # per-scanner effective-mode projection
 ```

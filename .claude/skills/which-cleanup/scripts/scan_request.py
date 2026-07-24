@@ -438,7 +438,7 @@ def build_scan_request(
                 }
             )
 
-    if selector_kind == "working-tree" and _has_head(root):
+    if selector_kind == "working-tree" and name_args:
         known = {str(change["path"]) for change in raw_changes}
         for path in _untracked_paths(root):
             if path in known:

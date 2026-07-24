@@ -33,7 +33,7 @@
       "skill": "find-comment-drift",
       "execution_kind": "deterministic",
       "entrypoints": ["scripts/detect.py"],
-      "current_modes": ["paths", "project"],
+      "current_modes": ["diff-lines", "changed-files", "paths", "project"],
       "target_modes": ["diff-lines", "changed-files", "paths", "project"],
       "current_default_mode": "paths",
       "target_default_mode": "paths",

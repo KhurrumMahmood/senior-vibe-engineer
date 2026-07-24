@@ -9,7 +9,7 @@ description: |
   comments, fragile doc references, bounded Go, Java, PHP, Ruby, Swift, Rust,
   C, and C++ lexical-comment surfaces, and bounded Dart adjacent-doc/fixed-return
   syntax.
-argument-hint: "[paths... - no paths uses the detector's legacy default surface]"
+argument-hint: "[paths... | --scan-request FILE - no scope uses the legacy default surface]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
 tier: maintenance
@@ -257,6 +257,23 @@ mkdir -p "$REPORT_DIR"
   "$REPORT_DIR/detections.jsonl" \
   --output "$REPORT_DIR/report.md" \
   --target ".claude/skills/find-comment-drift"
+```
+
+When `/which-cleanup` supplies a `scan_request`, write that exact JSON object to
+a bounded file and pass it with `--scan-request`. `diff-lines` scans each
+selected file once for syntactic correctness, then filters the resulting
+line/range findings; `changed-files` keeps findings from the complete selected
+files. The sibling `<detections-stem>-scope.json` records requested/effective
+mode, selector, analyzed files, raw findings, filtered findings, and incomplete
+or error counts.
+Content-basis drift refuses `diff-lines`; explicitly use `changed-files`
+instead of applying historical or staged line numbers to different bytes.
+
+```bash
+python3 /path/to/find-comment-drift/scripts/detect.py \
+  --project-root "$PWD" \
+  --scan-request /tmp/which-cleanup-scan-request.json \
+  --output /tmp/comment-drift.jsonl
 ```
 
 When the selected skill has been copied outside the toolkit checkout, invoke

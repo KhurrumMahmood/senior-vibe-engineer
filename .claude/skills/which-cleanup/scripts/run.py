@@ -33,6 +33,8 @@ import closeout as closeout_mod
 import diff_resolution as dr
 import engineering_home as eh
 import select_scanners
+from scan_request import ScanRequestError, build_scan_request
+from scope_modes import load_scope_contracts
 from query_planner import report_for_files
 from subsystems import for_path, load_registry
 
@@ -84,6 +86,54 @@ def resolve_scope(args, registry, root: Path) -> tuple[str, list[str], int | Non
     return ("working tree", dr.git_files(root), dr.diff_loc(root, []))
 
 
+def resolve_scan_request(args, registry, root: Path):
+    """Resolve one reusable request while preserving the richer area/since inputs."""
+    if args.area or args.since or args.paths:
+        target, files, dloc = resolve_scope(args, registry, root)
+        if not files:
+            return target, None, dloc
+        if args.scope_mode in {"diff-lines", "changed-files", "project"}:
+            raise ScanRequestError(
+                "mode_selector_conflict",
+                f"{args.scope_mode} requires a Git selector; use paths mode for this input",
+            )
+        request = build_scan_request(
+            root,
+            requested_mode=args.scope_mode,
+            selector_kind="paths",
+            explicit_paths=files,
+        )
+        return target, request, dloc
+
+    if args.scope_mode == "project":
+        raise ScanRequestError(
+            "project_cleanup_unsupported",
+            "which-cleanup is change-bounded; invoke a project-capable scanner directly",
+        )
+    if args.staged:
+        selector_kind, selector_value = "staged", None
+        target, dloc = "--staged", dr.diff_loc(root, ["--cached"])
+    elif args.changed_from is not None:
+        selector_kind, selector_value = "changed-from", args.changed_from
+        target, dloc = f"--changed-from {args.changed_from}", dr.diff_loc(root, [args.changed_from])
+    elif args.commit is not None:
+        selector_kind, selector_value = "commit", args.commit
+        target, dloc = f"--commit {args.commit}", dr.diff_loc(root, [f"{args.commit}~1", args.commit])
+    elif args.range is not None:
+        selector_kind, selector_value = "range", args.range
+        target, dloc = f"--range {args.range}", dr.diff_loc(root, [args.range])
+    else:
+        selector_kind, selector_value = "working-tree", None
+        target, dloc = "working tree", dr.diff_loc(root, [])
+    request = build_scan_request(
+        root,
+        requested_mode=args.scope_mode,
+        selector_kind=selector_kind,
+        selector_value=selector_value,
+    )
+    return target, request, dloc
+
+
 def _log_effectiveness(scan_id: str, target: str, c: dict, project_root: Path) -> None:
     buckets = {k: len(v) for k, v in c["checklist"].items()}
     buckets["dropped"] = len(c["dropped"])
@@ -110,6 +160,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--range", metavar="A..B", help="Files changed across a commit range")
     p.add_argument("--area", metavar="NAME", help="A subsystem name from the registry")
     p.add_argument("--since", metavar="SPEC", help="Files touched since a git time spec")
+    p.add_argument(
+        "--scope-mode",
+        choices=("auto", "diff-lines", "changed-files", "paths", "project"),
+        default="auto",
+        help=(
+            "Choose finding attribution: diff-lines reports only findings intersecting "
+            "changed lines; changed-files analyzes selected files in full; auto preserves "
+            "existing scanner behavior."
+        ),
+    )
     p.add_argument("--max-scouts", type=int, default=5, help="Cap the medium-band fan-out roster")
     p.add_argument("--emit-plan", action="store_true",
                    help="On the large band, also write the /refactor-subsystem spec stub + Workflow script")
@@ -126,6 +186,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", action="store_true")
     args = p.parse_args(argv)
 
+    selector_count = sum(
+        bool(value)
+        for value in (args.paths, args.staged, args.area, args.since)
+    ) + sum(
+        value is not None for value in (args.changed_from, args.commit, args.range)
+    )
+    if selector_count > 1:
+        p.error("choose exactly one path, Git, area, or since scope")
+    if args.scope_mode == "paths" and not (args.paths or args.area or args.since):
+        p.error("paths scope mode requires explicit paths, --area, or --since")
+    if args.scope_mode == "project" and selector_count:
+        p.error("project scope mode does not accept a bounded selector")
+
     project_root = dr.resolve_project_root(args.project_root)
     registry_path = (
         Path(args.registry).resolve()
@@ -141,35 +214,50 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    target, files, dloc = resolve_scope(args, registry, project_root)
-    # A diff can name deleted/renamed-away paths; they can't be cleaned, would
-    # inflate the file count, and would emit commands against non-existent files.
-    # Drop them (matching find-test-obligation-drift's detect() contract). diff_loc
-    # still counts deletions as churn, so the LOC axis keeps seeing the change.
+    try:
+        target, scan_request, dloc = resolve_scan_request(args, registry, project_root)
+    except ScanRequestError as exc:
+        print(f"error: {exc.code}: {exc.detail}", file=sys.stderr)
+        return 2
+    files = list(scan_request.resolved_paths) if scan_request is not None else []
+    scope_paths = (
+        [change.path for change in scan_request.changes]
+        if scan_request is not None
+        else []
+    )
+    # Commands receive current paths only. The request and the routing inputs
+    # retain deleted/binary changes so file-level verification is not erased.
     files = [f for f in files if (project_root / f).exists()]
-    if not files:
+    if not scope_paths:
         print(f"No changes detected for scope ({target}); nothing to clean up.")
         return 0
 
-    subsystems = sorted({s for f in files if (s := for_path(f, registry))})
-    report = report_for_files(files, registry, include_checklist=False)
-    inputs = classify.ScopeInputs(file_count=len(files), subsystem_count=len(subsystems), diff_loc=dloc)
+    subsystems = sorted({s for f in scope_paths if (s := for_path(f, registry))})
+    report = report_for_files(scope_paths, registry, include_checklist=False)
+    inputs = classify.ScopeInputs(
+        file_count=len(scope_paths),
+        subsystem_count=len(subsystems),
+        diff_loc=dloc,
+    )
     band = classify.classify(inputs)
     # Transparency when both the subsystem and LOC axes are inert (no registry
     # match and a non-diff input mode): the band is file-count-only and may
     # understate a large rewrite of few files.
     caveat = None
-    if not subsystems and dloc is None and len(files) > 1:
+    if not subsystems and dloc is None and len(scope_paths) > 1:
         caveat = ("scope sized from file count only — no registry subsystem matched and this "
                   "input mode carries no diff-LOC signal; a large rewrite of few files may be "
                   "understated. Re-run with --changed-from/--commit/--range for LOC sizing.")
-    has_doc_change = any(f.endswith(".md") or f.startswith("docs/") or "/docs/" in f for f in files)
+    has_doc_change = any(
+        f.endswith(".md") or f.startswith("docs/") or "/docs/" in f
+        for f in scope_paths
+    )
     # Rename signal: the glossary or a reintroduction-guard lint was touched — a concept
     # rename is underway, so recommend /rename-concept to drive it to completion (any band).
     has_rename_signal = any(
         f == ".claude/contracts/concepts.yaml"
         or (f.startswith("scripts/lint/no_") and f.endswith("_references.py"))
-        for f in files
+        for f in scope_paths
     )
     roster = select_scanners.select(report, band=band, has_doc_change=has_doc_change,
                                     has_rename_signal=has_rename_signal)
@@ -177,6 +265,8 @@ def main(argv: list[str] | None = None) -> int:
     c = closeout_mod.build(
         target=target, scope_band=band, axis_breakdown=classify.axis_breakdown(inputs),
         resolved_paths=files, report=report, roster=roster, max_scouts=args.max_scouts,
+        scan_request=scan_request,
+        scope_contracts=load_scope_contracts(KIT_ROOT),
     )
 
     now = args.now or datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")

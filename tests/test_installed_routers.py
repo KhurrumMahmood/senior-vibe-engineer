@@ -952,8 +952,22 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         cwd=host,
     )
     cleanup_payload = _json_output(cleanup_routed)
+    assert cleanup_payload["scan_request"]["selector"] == {
+        "kind": "paths",
+        "paths": ["src/app.py", "tests/test_app.py"],
+    }
     cleanup_recommendations = {
         item["skill"]: item for item in cleanup_payload["recommendations"]
+    }
+    assert cleanup_recommendations["find-comment-drift"]["scan"] == {
+        "diff_semantics": "filter-findings",
+        "effective_mode": "paths",
+        "requested_mode": "auto",
+        "selector": {
+            "kind": "paths",
+            "paths": ["src/app.py", "tests/test_app.py"],
+        },
+        "status": "ready",
     }
     assert cleanup_recommendations["find-test-obligation-drift"]["handoff"][
         "capabilities"

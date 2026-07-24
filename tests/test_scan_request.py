@@ -11,7 +11,9 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / ".claude" / "skills" / "_common" / "scan_request.py"
+MODULE_PATH = (
+    ROOT / ".claude" / "skills" / "which-cleanup" / "scripts" / "scan_request.py"
+)
 
 
 def _load_module():

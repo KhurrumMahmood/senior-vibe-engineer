@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from scope_modes import recommendation_scan
+
 _SCOPED_JOBS = {"suspect", "explain", "refactor"}  # commands carry the changed paths
 
 
@@ -36,6 +38,8 @@ def build(
     report: dict[str, Any],
     roster: dict[str, Any],
     max_scouts: int,
+    scan_request=None,
+    scope_contracts: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Assemble the closeout dict (sans scan_id/generated, which run.py stamps)."""
     subsystems = sorted(e["name"] for e in report.get("subsystems", []))
@@ -44,10 +48,17 @@ def build(
     checklist: dict[str, list[dict[str, Any]]] = {}
     for band_key, items in roster["buckets"].items():
         ranked = sorted(items, key=_rank_key)
-        checklist[band_key] = [
-            {**item, "command": _command(item["skill"], item.get("job"), resolved_paths)}
-            for item in ranked
-        ]
+        checklist[band_key] = []
+        for item in ranked:
+            projected = {
+                **item,
+                "command": _command(item["skill"], item.get("job"), resolved_paths),
+            }
+            if scan_request is not None:
+                projected["scan"] = recommendation_scan(
+                    scan_request, (scope_contracts or {}).get(item["skill"])
+                )
+            checklist[band_key].append(projected)
 
     # Medium band actively dispatches a capped subset of the post-sweep scanners
     # as concurrent read-only scouts scoped to the changed files.
@@ -59,7 +70,7 @@ def build(
         "Advisory only — recommends cleanup skills scaled to scope; does not run or "
         "fix anything. Post-sweep first (the most-skipped tier); guard-tail closes the loop."
     )
-    return {
+    result = {
         "skill": "which-cleanup",
         "target": target,
         "scope_band": scope_band,
@@ -72,6 +83,9 @@ def build(
         "fanout": fanout,
         "notes": notes,
     }
+    if scan_request is not None:
+        result["scan_request"] = scan_request.to_dict()
+    return result
 
 
 # --------------------------------------------------------------------------- #
