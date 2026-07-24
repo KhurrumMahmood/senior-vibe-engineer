@@ -59,6 +59,33 @@ external callers, dynamic dispatch, JVM ABI, survivor choice, mutation, and
 release authority remain human-owned. `keep_separate_document_why` is a
 complete outcome.
 
+## Swift 6.3.3 accepted proposal
+
+Consume only one current complete `_swift-semantic-readonly` fact pack, its
+accepted `find-semantic-duplication` analysis, and a separate hash-bound Swift
+disposition acceptance. The consumer never imports or reruns the detector and
+never scans Swift source. Keep the copied provider beside this skill and run:
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/unify-shadows"
+python3 -I -S "${SKILL_ROOT}/scripts/propose_swift.py" \
+  --project-root "$PWD" \
+  --facts "$PWD/reports/swift-semantic-facts/unify.json" \
+  --analysis "$PWD/reports/semantic-duplication/swift/analysis.json" \
+  --acceptance "$PWD/reports/semantic-duplication/swift/accepted-unify.json" \
+  --output-dir "$PWD/reports/unify-shadows/swift/SWIFT-SD-0001"
+```
+
+The proposal revalidates the exact selected definitions, every accepted direct
+caller, shared resolved callee identities, selected initializer overload,
+static return shape, source manifest, and all eight pinned native evidence
+rows. It atomically writes exactly `proposal.md`, `evidence.json`, and
+`scope.json`; refusals use the same three-artifact claim-free shape.
+`keep_separate_document_why` is complete. Static compiler structure does not
+establish behavior, runtime equivalence, error/resource/framework semantics,
+dynamic or protocol dispatch, generated/conditional inputs, external callers,
+ABI compatibility, survivor choice, mutation safety, or release authority.
+
 ## C++20 branch
 
 Use `scripts/propose_cpp.py` with current accepted semantic facts and one exact
