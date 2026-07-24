@@ -57,9 +57,11 @@
   },
   "runtime_closure": {
     "definition": "existing stdlib-only profile/doctor/inventory runtime exercised by the spine; it is not a copied skill/provider closure and earns no support claim",
+    "reviewed_revision": "febc76141feed564de628bde6d99f20f85191ebb",
+    "review_reason": "P6 removed the rejected shared terminal-lifecycle abstraction while preserving the six-file C spine closure.",
     "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
-    "manifest_sha256": "82e09630b66710dc479d254f32bd6949140f9a67e2f69bfc8a6503d24d768edb",
-    "total_bytes": 43204,
+    "manifest_sha256": "b83ecd3f9791b59f0e37fa03835f18bf255f1565088dd273a640eb31436508fe",
+    "total_bytes": 39725,
     "files": [
       "scripts/language_profiles/c.json",
       "scripts/language_doctor.py",
