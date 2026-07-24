@@ -1,0 +1,26 @@
+{
+  "assembly_name": "CSharpSemanticFixture",
+  "excluded": [
+    {
+      "path": "generated/Generated.g.cs",
+      "role": "generated"
+    },
+    {
+      "path": "vendor/Vendor.cs",
+      "role": "vendor"
+    }
+  ],
+  "schema_version": 1,
+  "smoke_main": "CSharpSemantic.Smoke",
+  "smoke_output": "receipt:7:receipt:8:queued\n",
+  "sources": [
+    "src/Semantics.cs",
+    "src/Smoke.cs"
+  ],
+  "target_framework": "net10.0",
+  "test_main": "CSharpSemantic.SemanticTests",
+  "test_output": "csharp-semantic-native-test:ok\n",
+  "tests": [
+    "tests/SemanticTests.cs"
+  ]
+}
