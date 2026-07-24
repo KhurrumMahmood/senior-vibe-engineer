@@ -1,0 +1,526 @@
+{
+  "schema_version": 1,
+  "purpose": "Current and target scan-scope behavior for every finding-producing find-* skill. Current modes are observed entrypoint behavior; target modes are the bounded AC1 rollout contract.",
+  "review": {
+    "date": "2026-07-23",
+    "families": [
+      "line-local",
+      "symbol-file-semantic",
+      "multi-site-history",
+      "project-global"
+    ],
+    "rule": "A diff either filters line-local findings, seeds wider analysis, or triggers project analysis. It never blindly clips semantic or project findings."
+  },
+  "skills": [
+    {
+      "skill": "find-async-lifecycle-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/run.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "multi-site-history",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The detector follows async producer/consumer relationships from caller-supplied paths and has not adopted the shared descriptor loader."
+      },
+      "rationale": "Changed files can seed lifecycle reachability, but findings may legitimately cite unchanged producers, consumers, and cleanup paths."
+    },
+    {
+      "skill": "find-comment-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["diff-lines", "changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "line",
+      "diff_semantics": "filter-findings",
+      "behavior_family": "line-local",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Language-specific inventories and caller paths define the current universe; shared project/skill descriptors are not yet consumed."
+      },
+      "rationale": "Each advisory finding names a current source line, so closeout may filter output to changed hunks while whole-file and project scans remain explicit options."
+    },
+    {
+      "skill": "find-complexity-hotspots",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/run.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "symbol",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Each language provider owns its source inventory and exclusions rather than the shared descriptor loader."
+      },
+      "rationale": "A changed line selects the containing function or method; complexity is a whole-symbol property and cannot be hunk-clipped."
+    },
+    {
+      "skill": "find-concept-divergence",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/scan.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "multi-site-history",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The glossary plus language-local inventories define the scan universe and explicit exclusions."
+      },
+      "rationale": "A changed use can seed a glossary concept, but divergence is established only by comparing every relevant live site."
+    },
+    {
+      "skill": "find-contract-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/run.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "multi-site-history",
+      "scope_config": {
+        "strategy": "shared",
+        "reason": "The detector consumes the common scope loader and host-authored contract sections."
+      },
+      "rationale": "A changed endpoint, template, or client can seed a contract, while the authoritative comparison spans multiple files."
+    },
+    {
+      "skill": "find-dead-route-surface",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/run.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "multi-site-history",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Route, template, and JavaScript surfaces are resolved by the detector's topology rules."
+      },
+      "rationale": "A changed route surface seeds the check, but deadness depends on unchanged definitions, links, templates, and callers."
+    },
+    {
+      "skill": "find-doc-route-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["project"],
+      "target_modes": ["changed-files", "project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "trigger-analysis",
+      "behavior_family": "project-global",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The docs root and root URL configuration are explicit project-level inputs."
+      },
+      "rationale": "A relevant diff can trigger the audit, but route documentation truth requires the complete declared docs and URL surfaces."
+    },
+    {
+      "skill": "find-dormant",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/detect_unreferenced.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "symbol",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Language providers and explicit targets define first-party code; Python also uses specialist tools and scout review."
+      },
+      "rationale": "Changed symbols can seed review, but dormancy depends on project-wide references and framework entry points."
+    },
+    {
+      "skill": "find-duplication",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/detect_python.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "multi-site-history",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Each language clone provider owns its target roots, exclusions, and eligible symbol inventory."
+      },
+      "rationale": "A changed member can seed a clone search, but a duplication finding necessarily cites at least two complete sites."
+    },
+    {
+      "skill": "find-folder-topology-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "file",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "shared",
+        "reason": "The detector consumes common roots/ignores and adds explicit language-root selectors."
+      },
+      "rationale": "A changed filename can seed its sibling folder, but promotion/demotion evidence depends on the complete sibling set."
+    },
+    {
+      "skill": "find-frontend-contract-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["project"],
+      "target_modes": ["changed-files", "project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "trigger-analysis",
+      "behavior_family": "project-global",
+      "scope_config": {
+        "strategy": "shared",
+        "reason": "The detector consumes common scope descriptors plus host-authored frontend contract sections."
+      },
+      "rationale": "A template or script diff can trigger the audit, but boot-contract truth requires all declared producers and consumers."
+    },
+    {
+      "skill": "find-frontend-duplication",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/frontend_class_chain_scanner.py"],
+      "current_modes": ["project"],
+      "target_modes": ["changed-files", "project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "trigger-analysis",
+      "behavior_family": "project-global",
+      "scope_config": {
+        "strategy": "shared",
+        "reason": "The inventory and scanners consume common scope data while comparing project-wide primitive ownership."
+      },
+      "rationale": "A frontend diff can trigger the audit, but duplication and primitive-bypass claims require complete comparison sites."
+    },
+    {
+      "skill": "find-implicit-state",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "symbol",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Language-local providers and explicit target/config inputs define the eligible symbol universe."
+      },
+      "rationale": "A changed state operation selects a symbol or authority comparison; the full declaration and uses remain relevant."
+    },
+    {
+      "skill": "find-incomplete-sweep",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/scan.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "changed-files",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "multi-site-history",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The scanner combines explicit path bands, language providers, and Git trajectory rather than common scope descriptors."
+      },
+      "rationale": "The diff and history seed an intended sweep, but majority and straggler evidence spans unchanged sibling call sites."
+    },
+    {
+      "skill": "find-layer-violation",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "multi-site-history",
+      "scope_config": {
+        "strategy": "shared",
+        "reason": "The detector consumes common scope plus host-authored layer maps."
+      },
+      "rationale": "A changed dependency can seed the check, but boundary ownership and the prohibited edge may live on separate sites."
+    },
+    {
+      "skill": "find-omnibus",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "file",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Each syntax provider inventories complete files under an explicit target."
+      },
+      "rationale": "A changed file is the seed, while mixed-responsibility evidence requires its complete declaration set."
+    },
+    {
+      "skill": "find-orphaned-ideas",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/find.py"],
+      "current_modes": ["project"],
+      "target_modes": ["project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "project",
+      "diff_semantics": "not-applicable",
+      "behavior_family": "project-global",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Each mode reads project ledgers, plans, TODO tuning, reports, or importance declarations as a complete state surface."
+      },
+      "rationale": "Orphan status is project-state and time/history based; a code diff is not a meaningful finding filter."
+    },
+    {
+      "skill": "find-perimeter-gaps",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/scan.py"],
+      "current_modes": ["project"],
+      "target_modes": ["project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "project",
+      "diff_semantics": "not-applicable",
+      "behavior_family": "project-global",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The source inventory and detector declarations define a complete project coverage matrix."
+      },
+      "rationale": "Coverage blind spots are defined across the full first-party source perimeter, not a changed subset."
+    },
+    {
+      "skill": "find-query-mutation",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "symbol",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The AST detector scans explicit target roots with its own layer exclusions."
+      },
+      "rationale": "A changed line selects the complete read-named function whose body establishes the mutation finding."
+    },
+    {
+      "skill": "find-route-sprawl",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["project"],
+      "target_modes": ["changed-files", "project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "trigger-analysis",
+      "behavior_family": "project-global",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Root URL discovery and product-topology rules define the project route universe."
+      },
+      "rationale": "A route diff can trigger the audit, but sprawl is a comparison across the complete include and prefix graph."
+    },
+    {
+      "skill": "find-rule-surface-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["project"],
+      "target_modes": ["changed-files", "project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "project",
+      "diff_semantics": "trigger-analysis",
+      "behavior_family": "project-global",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The agent-rule root, onboarding entry, and linked load-on-demand documents form one complete surface."
+      },
+      "rationale": "A rule/doc diff can trigger the audit, but reachability and size drift require the complete rule surface."
+    },
+    {
+      "skill": "find-semantic-duplication",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/semantic_inventory.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "multi-site-history",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Language-native providers own their project/config inventory and candidate boundaries."
+      },
+      "rationale": "A changed function can seed candidate search, while a useful lead compares complete functions, callers, and capability evidence."
+    },
+    {
+      "skill": "find-skill-artifact-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "project",
+      "target_default_mode": "changed-files",
+      "finding_granularity": "file",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The detector inventories skill directories or explicitly named skills rather than host source descriptors."
+      },
+      "rationale": "Changed skill paths can select owned skill directories, but prose-to-artifact checks examine the complete selected skill."
+    },
+    {
+      "skill": "find-skill-intent-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/scan.py"],
+      "current_modes": ["project"],
+      "target_modes": ["changed-files", "project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "file",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The scanner joins the complete skill and contract inventories; changed paths can only select rows."
+      },
+      "rationale": "A changed skill can seed comparison, while intent drift requires its complete frontmatter, prose, contract, and history."
+    },
+    {
+      "skill": "find-stale-artifacts",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["project"],
+      "target_modes": ["project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "file",
+      "diff_semantics": "not-applicable",
+      "behavior_family": "project-global",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The plans/reports roots and age budgets define a complete project working-artifact surface."
+      },
+      "rationale": "Staleness is age and active-reference based; a current code diff is not a meaningful filter."
+    },
+    {
+      "skill": "find-standard-gaps",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/scan_coverage.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "symbol",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "Declared standard scopes and language-specific inventories define the applicable source universe."
+      },
+      "rationale": "Changed sites can seed standard checks, while applicability may depend on declarations or guards outside the hunk."
+    },
+    {
+      "skill": "find-test-obligation-drift",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/run.py"],
+      "current_modes": ["changed-files", "paths"],
+      "target_modes": ["changed-files", "paths"],
+      "current_default_mode": "changed-files",
+      "target_default_mode": "changed-files",
+      "finding_granularity": "file",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The detector intentionally maps an explicit path or Git-diff file set to verification obligations."
+      },
+      "rationale": "Obligations attach to complete changed files and project test surfaces; deletion and binary changes still require file-level treatment."
+    },
+    {
+      "skill": "find-transaction-overreach",
+      "execution_kind": "hybrid",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "symbol",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "symbol-file-semantic",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The Python AST detector scans explicit target roots and owns its call taxonomy."
+      },
+      "rationale": "A changed line selects a complete atomic block or decorated function whose body establishes the finding."
+    },
+    {
+      "skill": "find-workflow-duplication",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/detect.py"],
+      "current_modes": ["project"],
+      "target_modes": ["changed-files", "project"],
+      "current_default_mode": "project",
+      "target_default_mode": "project",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "trigger-analysis",
+      "behavior_family": "project-global",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "A host-authored workflow descriptor declares text globs and ownership classes for the complete comparison."
+      },
+      "rationale": "A relevant diff can trigger the audit, but duplicated authority is established only across all declared workflow sites."
+    },
+    {
+      "skill": "find-workflow-state-gaps",
+      "execution_kind": "deterministic",
+      "entrypoints": ["scripts/run.py"],
+      "current_modes": ["paths", "project"],
+      "target_modes": ["changed-files", "paths", "project"],
+      "current_default_mode": "paths",
+      "target_default_mode": "paths",
+      "finding_granularity": "multi-site",
+      "diff_semantics": "seed-analysis",
+      "behavior_family": "multi-site-history",
+      "scope_config": {
+        "strategy": "custom",
+        "reason": "The detector follows host-declared workflow state across templates and JavaScript from caller paths."
+      },
+      "rationale": "Changed workflow files can seed the check, but missing state transitions and consumers may be located in unchanged siblings."
+    }
+  ]
+}

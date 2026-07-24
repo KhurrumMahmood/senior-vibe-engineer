@@ -52,6 +52,9 @@ architectural smells the SUSPECT skills target.
 `/which-shape` chooses the operating loop when the task shape is unclear;
 `/check-ecosystem-consistency` keeps that router, the skill catalog, and
 public skill counts aligned after significant skill changes.
+Every `find-*` producer is also registered in
+`.claude/skills/_common/scan_scope_contracts.json`; update and validate that
+contract when a producer's target or diff semantics change.
 
 ## Planning ladder
 

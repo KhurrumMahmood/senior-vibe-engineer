@@ -132,3 +132,10 @@ repos:
         files: (^|/)SKILL\.md$
         exclude: /fixtures/
         pass_filenames: true
+
+      - id: scan-scope-contract
+        name: "scan-scope-contract (every find-* producer declares honest scope semantics)"
+        entry: python scripts/check_scan_scope_contracts.py
+        language: python
+        files: ^(\.claude/skills/(find-[^/]+/|_common/scan_scope_contracts\.json)|scripts/check_scan_scope_contracts\.py|tests/test_scan_scope_contracts\.py)
+        pass_filenames: false

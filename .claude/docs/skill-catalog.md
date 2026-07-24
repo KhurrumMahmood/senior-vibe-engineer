@@ -251,6 +251,16 @@ workflow spans routes, views, templates, JavaScript, and docs.
 feature land to sweep for bloat; when a review flags a hotspot and you
 want systematic confirmation.
 
+**Scan-scope contract:** every top-level `find-*` skill is accounted for in
+`.claude/skills/_common/scan_scope_contracts.json`. The contract separates the
+current executable modes from the target rollout modes and declares whether a
+diff filters line findings, seeds a wider semantic analysis, or only triggers a
+project audit. When adding or materially changing a SUSPECT producer, update its
+row and run `.venv/bin/python scripts/check_scan_scope_contracts.py`; never add
+`diff-lines` to a symbol, multi-site, or project finding just to make closeout
+output smaller. Project/skill roots and ignores remain the file-universe layer;
+the scope contract describes how an invocation uses that universe.
+
 | Skill | What it detects | When |
 |---|---|---|
 | `/find-dormant` | Dead code, orphan endpoints, silently-broken handlers, orphan-entry-with-live-internals | After feature removals; after a prototype graduates into a real workflow; quarterly cleanup. |
