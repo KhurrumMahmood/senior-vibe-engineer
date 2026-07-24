@@ -3,7 +3,7 @@
 
 Given one or more file paths, surfaces:
   * The subsystem each file belongs to (via `scripts/subsystems.py`)
-  * Adjacency smells declared in `.claude/subsystems.yaml`
+  * Adjacency smells declared in `.engineering/subsystems.yaml`
   * Per-subsystem touch checklists from `.claude/checks/<name>.md` (optional)
   * Related decisions / docs
 
@@ -47,7 +47,12 @@ from typing import Any
 
 SCRIPT_PATH = Path(__file__).resolve()
 REPO_ROOT = SCRIPT_PATH.parent.parent
-DEFAULT_REGISTRY = REPO_ROOT / ".claude" / "subsystems.yaml"
+COMMON = REPO_ROOT / ".claude" / "skills" / "_common"
+if str(COMMON) not in sys.path:
+    sys.path.insert(0, str(COMMON))
+import engineering_home as eh  # noqa: E402
+
+DEFAULT_REGISTRY = eh.subsystem_registry_path(REPO_ROOT)
 DEFAULT_CHECKS_DIR = REPO_ROOT / ".claude" / "checks"
 
 _scripts_parent = str(SCRIPT_PATH.parent)
@@ -141,7 +146,7 @@ def _render_text(report: dict[str, Any], include_checklist: bool) -> str:
         lines.append("Unmatched files (no subsystem in registry):")
         for p in report["unmatched"]:
             lines.append(f"  - {p}")
-        lines.append("  Hint: extend .claude/subsystems.yaml to cover these paths.")
+        lines.append("  Hint: extend .engineering/subsystems.yaml to cover these paths.")
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -166,8 +171,17 @@ def cmd_for_files(args: argparse.Namespace, registry: dict[str, dict[str, Any]])
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--registry", default=str(DEFAULT_REGISTRY),
-                        help=f"Subsystem registry (default: {DEFAULT_REGISTRY})")
+    parser.add_argument(
+        "--project-root",
+        type=Path,
+        default=REPO_ROOT,
+        help="Host project root (default: toolkit repository)",
+    )
+    parser.add_argument(
+        "--registry",
+        default=None,
+        help="Subsystem registry (default: <project-root>/.engineering/subsystems.yaml)",
+    )
     parser.add_argument("--checks-dir", default=str(DEFAULT_CHECKS_DIR),
                         help=f"Touch-checklist directory (default: {DEFAULT_CHECKS_DIR})")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -179,8 +193,14 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=cmd_for_files)
 
     args = parser.parse_args(argv)
+    root = args.project_root.resolve()
+    registry_path = (
+        Path(args.registry).resolve()
+        if args.registry
+        else eh.resolve_subsystem_registry(root)[0]
+    )
     try:
-        registry = load_registry(Path(args.registry).resolve())
+        registry = load_registry(registry_path)
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

@@ -1,7 +1,8 @@
 # Installation and on-demand library development
 
-Status: contributor guide for the accepted router-only topology and proposed
-host-instruction integration follow-up
+Status: contributor guide for the accepted router-only topology, shipped
+schema-2 host-state migration slice, and proposed host-instruction integration
+follow-up
 
 ## Sources of truth and working records
 
@@ -34,6 +35,61 @@ ADR 0038 already establishes the desired default topology:
 This design does not replace that decision. It defines the smallest useful
 extension: optional integration of selected engineering guidance into a host
 project's native agent-instruction surfaces.
+
+## Release updates and host-state migrations
+
+Distributed toolkit code and projected host state have separate version axes:
+
+- the stock agent-skill installer installs or replaces the three routers at an
+  exact Git ref;
+- ordinary Git bootstrap/replacement updates the external on-demand library;
+- `.engineering/manifest.json` records the host-state schema and applied
+  migration IDs; and
+- `scripts/host_migrations.py` previews, applies, or restores only the
+  toolkit-owned paths declared by the shipped ordered migrations.
+
+The migration runner is not a package manager. It never fetches code, installs
+dependencies, updates routers, or rewrites project source. `status` and `plan`
+are read-only. `apply` is the explicit mutation boundary. `restore` is allowed
+only while the machine-local recovery journal still exists and every touched
+byte matches the state recorded immediately after apply.
+
+Run the new library's runner from the host project:
+
+```bash
+LIBRARY_ROOT="${ENGINEERING_SKILLS_LIBRARY:?Set the external library root}"
+HOST_PYTHON="${ENGINEERING_SKILLS_PYTHON:-${LIBRARY_ROOT}/.venv/bin/python}"
+
+"${HOST_PYTHON}" "${LIBRARY_ROOT}/scripts/host_migrations.py" \
+  --project-root "$PWD" status
+"${HOST_PYTHON}" "${LIBRARY_ROOT}/scripts/host_migrations.py" \
+  --project-root "$PWD" plan
+
+# Mutating commands: run only after reviewing the plan.
+"${HOST_PYTHON}" "${LIBRARY_ROOT}/scripts/host_migrations.py" \
+  --project-root "$PWD" apply
+"${HOST_PYTHON}" "${LIBRARY_ROOT}/scripts/host_migrations.py" \
+  --project-root "$PWD" restore 0001-subsystem-registry-home
+```
+
+Schema 2 contains one real migration:
+`0001-subsystem-registry-home`. It moves a regular toolkit-owned
+`.claude/subsystems.yaml` to `.engineering/subsystems.yaml` without changing
+its bytes, preserves every unrelated file, and records the migration in the
+committed manifest. It refuses destination collisions, symlinks/non-regular
+path shapes, malformed manifests/journals, a missing `/local/` ignore rule, and
+hosts newer than the running toolkit. The readers prefer the canonical path
+and retain one warned legacy fallback for schema-1 hosts.
+
+The recovery journal lives under `.engineering/local/migrations/` and therefore
+does not travel with a clone. The committed manifest is the durable application
+record; restore data is deliberately machine-local. A process stop before or
+after the manifest write can be resumed by running `apply` again. A repeated
+successful `apply` is a no-op.
+
+This first slice proves a one-step release migration. The P8 prior-release
+replay still owns the multi-step skipped-release proof and the integrated stock
+router/library update journey. Do not describe those as shipped yet.
 
 ## Product principle
 

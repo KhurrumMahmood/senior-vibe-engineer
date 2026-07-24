@@ -34,6 +34,7 @@ for _p in (str(SCRIPT_DIR), str(KIT_ROOT / ".claude" / "skills" / "_common"), st
 
 import select_scanners
 from diff_resolution import resolve_project_root, resolve_since, run_git_name_only
+import engineering_home as eh
 from query_planner import report_for_files
 from subsystems import for_path, load_registry
 
@@ -62,7 +63,7 @@ def normalize_target(target: str) -> str:
 def _registry(project_root: Path) -> dict[str, Any]:
     """Load the subsystem registry, or {} when none is shipped (generic default)."""
     try:
-        return load_registry(project_root / ".claude" / "subsystems.yaml")
+        return load_registry(eh.resolve_subsystem_registry(project_root)[0])
     except FileNotFoundError:
         return {}
 

@@ -48,6 +48,19 @@ def _run(script: Path, *args: str, cwd: Path) -> subprocess.CompletedProcess:
                           cwd=cwd, capture_output=True, text=True, check=False)
 
 
+def _write_registry(repo: Path, relative: str) -> None:
+    path = repo / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "subsystems:\n"
+        "  application:\n"
+        "    paths:\n"
+        "      - app.py\n"
+        "      - sub/\n",
+        encoding="utf-8",
+    )
+
+
 # --- resolve_project_root (the shared helper) ------------------------------- #
 
 def test_resolve_project_root_explicit_wins(foreign_repo, monkeypatch):
@@ -77,7 +90,7 @@ def test_run_from_foreign_repo_anchors_there(foreign_repo):
     assert r.returncode == 0, r.stderr
     c = json.loads(r.stdout)
     assert sorted(c["resolved_paths"]) == ["app.py", "sub/helper.py"]  # foreign git history
-    assert c["subsystems"] == []  # no .claude/subsystems.yaml -> graceful universal floor
+    assert c["subsystems"] == []  # no subsystem registry -> graceful universal floor
     assert (foreign_repo / "reports" / "which-cleanup" / "scan-t1" / "closeout.json").is_file()
     assert not (REPO_ROOT / "reports" / "which-cleanup" / "scan-t1").exists()  # no kit-repo leak
 
@@ -99,6 +112,40 @@ def test_run_explicit_project_root_wins_over_cwd(foreign_repo):
     assert "app.py" in c["resolved_paths"]
     assert (foreign_repo / "reports" / "which-cleanup" / "scan-t3" / "closeout.json").is_file()
     assert not (REPO_ROOT / "reports" / "which-cleanup" / "scan-t3").exists()
+
+
+def test_run_reads_canonical_engineering_registry(foreign_repo):
+    _write_registry(foreign_repo, ".engineering/subsystems.yaml")
+    r = _run(
+        RUN,
+        "--commit",
+        "HEAD",
+        "--json",
+        "--skip-effectiveness-log",
+        "--now",
+        "canonical",
+        cwd=foreign_repo,
+    )
+    assert r.returncode == 0, r.stderr
+    assert json.loads(r.stdout)["subsystems"] == ["application"]
+    assert r.stderr == ""
+
+
+def test_run_keeps_warned_legacy_registry_fallback(foreign_repo):
+    _write_registry(foreign_repo, ".claude/subsystems.yaml")
+    r = _run(
+        RUN,
+        "--commit",
+        "HEAD",
+        "--json",
+        "--skip-effectiveness-log",
+        "--now",
+        "legacy",
+        cwd=foreign_repo,
+    )
+    assert r.returncode == 0, r.stderr
+    assert json.loads(r.stdout)["subsystems"] == ["application"]
+    assert "move it to" in r.stderr
 
 
 # --- coverage.py: same anchoring contract ----------------------------------- #

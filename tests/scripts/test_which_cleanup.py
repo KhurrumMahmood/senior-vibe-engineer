@@ -118,7 +118,7 @@ def test_run_changed_from_head(tmp_path):
 
 
 def test_run_area_without_registry_exits_2(tmp_path):
-    # ES2 ships no .claude/subsystems.yaml, so --area has nothing to resolve against.
+    # ES2 ships no subsystem registry, so --area has nothing to resolve against.
     r = _run(RUN, "--area", "anything", "--reports-dir", str(tmp_path))
     assert r.returncode == 2
     assert "unknown subsystem/area" in r.stderr

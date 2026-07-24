@@ -1,11 +1,14 @@
 {
-  "version": 1,
+  "applied_migrations": [
+    "0001-subsystem-registry-home"
+  ],
   "skills": {
     "default": "active",
     "inactive": {
-      "find-frontend-duplication": "ES2 has no application frontend (only skill test fixtures); no component/template surface to dedupe.",
       "find-frontend-contract-drift": "ES2 has no application frontend or JS boot contract (only skill test fixtures).",
+      "find-frontend-duplication": "ES2 has no application frontend (only skill test fixtures); no component/template surface to dedupe.",
       "find-route-sprawl": "ES2 has no HTTP route surface (stdlib CLI toolkit; only skill route fixtures)."
     }
-  }
+  },
+  "version": 2
 }

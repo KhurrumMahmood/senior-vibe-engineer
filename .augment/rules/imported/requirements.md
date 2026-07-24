@@ -31,6 +31,20 @@ type: "always_apply"
   flags stale counts, missing catalog coverage, and shape-router review
   obligations.
 
+### Host-state migrations
+
+- Stock agent-skill installation and ordinary Git update distributed toolkit
+  code. `scripts/host_migrations.py` is a separate, bounded lifecycle for
+  toolkit-owned host state; it must not fetch code or become a package manager.
+- Inspect with read-only `status` and `plan`. Run `apply` or `restore` only as
+  an explicit mutation after reviewing the exact operations.
+- Migrations may change only declared toolkit-owned `.engineering/` paths or
+  validated managed blocks. Ambiguous legacy files, unmarked instructions, and
+  project source require a human disposition and are never overwritten.
+- A newer host-state schema is read-only to an older toolkit. Applied migration
+  IDs live in the committed manifest; byte-level recovery data stays under the
+  ignored `.engineering/local/` zone.
+
 ### Planning ladder
 
 - **Quick** tier: one-line / one-file. No skill required.

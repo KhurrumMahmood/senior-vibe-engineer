@@ -10,8 +10,8 @@ superseded_by: null
 revisit_when:
   - "the first skill resolves its file universe through the ignore-first scope loader (the first real consumer) — build the skill-level `## Allow` re-inclusion per the locked precedence rule at that moment"
   - "a scope-driven skill needs to re-include a path the project floor denied (e.g. a reports-scanner contradicting a repo-wide ignore) — implement `## Allow` and its precedence tests"
-applies_to: [".claude/skills/find-standard-gaps/scripts/project_state.py", ".claude/skills/find-standard-gaps/scripts/scan_coverage.py", ".claude/skills/orient/", ".engineering/project-state.json"]
-embodied_by: ["script:.claude/skills/_common/engineering_home.py", "skill:adapt-project"]
+applies_to: [".claude/skills/find-standard-gaps/scripts/project_state.py", ".claude/skills/find-standard-gaps/scripts/scan_coverage.py", ".claude/skills/orient/", ".engineering/project-state.json", ".engineering/manifest.json", "scripts/host_migrations.py"]
+embodied_by: ["script:.claude/skills/_common/engineering_home.py", "script:scripts/host_migrations.py", "skill:adapt-project"]
 tags: [state, portable, cross-tool, engineering-folder, project-state, committed-vs-gitignored, schema-versioning, migration, derived-knowledge, per-skill-scope, ignore-first]
 related_smell: null
 related_pattern: null

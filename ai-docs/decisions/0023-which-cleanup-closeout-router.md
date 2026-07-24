@@ -30,9 +30,12 @@ The substrate for closing this gap already exists in this ecosystem: `query_plan
 resolves `paths → subsystem → adjacency + related_skills`, and every skill declares a
 `job:` (map/suspect/explain/refactor/guard) that tiers it. What was missing is the
 diff-scoped consumer that the subsystem registry was designed for. Because this is the
-portable ecosystem — host projects supply their own `.claude/subsystems.yaml` — that
-consumer must work **with or without** a registry, the same way `/which-shape` degrades
-when project-adapter state is absent rather than crashing.
+portable ecosystem — host projects supply their own agent-neutral
+`.engineering/subsystems.yaml` under ADR 0021 — that consumer must work **with or
+without** a registry, the same way `/which-shape` degrades when project-adapter state is
+absent rather than crashing. During the schema-1 transition, readers retain one warned
+fallback to the former `.claude/subsystems.yaml` location; the fallback is compatibility,
+not a second canonical home.
 
 This decision records what that consumer is, where its boundary sits relative to
 `/triage-debt`, the registry-optional default, and the policy for the coverage join —
@@ -49,10 +52,10 @@ registry, and it is **registry-optional**:
   post-sweep / guard-tail). `/triage-debt` keeps the global, periodic, cached-report
   lane and never reads a diff; `/which-cleanup` never re-implements its recurrence
   scoring. A large-band closeout *hands off* to `/triage-debt` for the global picture.
-- **No registry is a supported state.** With no `.claude/subsystems.yaml`, it degrades
-  to the universal floor + scope-band sizing (no subsystem-specific scanners) instead of
-  erroring — mirroring `/which-shape`'s `state: missing` degradation. A host project
-  that ships a registry lights up the adjacency-derived recommendations.
+- **No registry is a supported state.** With no canonical or legacy subsystem registry,
+  it degrades to the universal floor + scope-band sizing (no subsystem-specific scanners)
+  instead of erroring — mirroring `/which-shape`'s `state: missing` degradation. A host
+  project that ships a registry lights up the adjacency-derived recommendations.
 - **It reuses the registry as-is; no parallel writers.** The area→skill mapping is read
   live from `related_skills` + `adjacency`, bucketed by each skill's own `job:`
   frontmatter. No second area→skill table is authored, and `subsystems.yaml`'s schema is

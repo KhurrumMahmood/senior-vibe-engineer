@@ -31,6 +31,7 @@ for _p in (str(SCRIPT_DIR), str(KIT_ROOT / ".claude" / "skills" / "_common"), st
 import classify
 import closeout as closeout_mod
 import diff_resolution as dr
+import engineering_home as eh
 import select_scanners
 from query_planner import report_for_files
 from subsystems import for_path, load_registry
@@ -115,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--project-root", type=Path, default=None,
                    help="Target project root (default: git toplevel of cwd, else cwd)")
     p.add_argument("--registry", default=None,
-                   help="Subsystem registry (default: <project-root>/.claude/subsystems.yaml)")
+                   help="Subsystem registry (default: <project-root>/.engineering/subsystems.yaml)")
     p.add_argument("--reports-dir", default=None,
                    help="Report output dir (default: <project-root>/reports/which-cleanup)")
     p.add_argument("--specs-dir", default=None,
@@ -126,7 +127,11 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     project_root = dr.resolve_project_root(args.project_root)
-    registry_path = Path(args.registry).resolve() if args.registry else project_root / ".claude" / "subsystems.yaml"
+    registry_path = (
+        Path(args.registry).resolve()
+        if args.registry
+        else eh.resolve_subsystem_registry(project_root)[0]
+    )
 
     try:
         registry = load_registry(registry_path)

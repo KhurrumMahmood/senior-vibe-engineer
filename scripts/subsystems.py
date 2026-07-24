@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Subsystem registry lookup.
 
-Reads `.claude/subsystems.yaml` and answers four questions:
+Reads `.engineering/subsystems.yaml` (with a bounded legacy fallback) and
+answers four questions:
 
   for-path <path>     Which subsystem owns this path? (longest-prefix wins)
   list                What subsystems exist?
@@ -30,7 +31,12 @@ import yaml
 
 SCRIPT_PATH = Path(__file__).resolve()
 REPO_ROOT = SCRIPT_PATH.parent.parent
-DEFAULT_REGISTRY = REPO_ROOT / ".claude" / "subsystems.yaml"
+COMMON = REPO_ROOT / ".claude" / "skills" / "_common"
+if str(COMMON) not in sys.path:
+    sys.path.insert(0, str(COMMON))
+import engineering_home as eh  # noqa: E402
+
+DEFAULT_REGISTRY = eh.subsystem_registry_path(REPO_ROOT)
 
 
 def load_registry(registry: Path) -> dict[str, dict[str, Any]]:
@@ -152,8 +158,17 @@ def cmd_show(args: argparse.Namespace, registry: dict[str, dict[str, Any]]) -> i
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--registry", default=str(DEFAULT_REGISTRY),
-                        help=f"Subsystem registry (default: {DEFAULT_REGISTRY})")
+    parser.add_argument(
+        "--project-root",
+        type=Path,
+        default=REPO_ROOT,
+        help="Host project root (default: toolkit repository)",
+    )
+    parser.add_argument(
+        "--registry",
+        default=None,
+        help="Subsystem registry (default: <project-root>/.engineering/subsystems.yaml)",
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("for-path", help="Look up the subsystem owning a file/directory path")
@@ -181,8 +196,14 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=cmd_show)
 
     args = parser.parse_args(argv)
+    root = args.project_root.resolve()
+    registry_path = (
+        Path(args.registry).resolve()
+        if args.registry
+        else eh.resolve_subsystem_registry(root)[0]
+    )
     try:
-        registry = load_registry(Path(args.registry).resolve())
+        registry = load_registry(registry_path)
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

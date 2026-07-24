@@ -35,8 +35,10 @@ LOCAL_SUBDIR = "local"  # the only gitignored path inside .engineering/
 PROJECT_SUBDIR = "project"  # durable per-project adaptation state (adapter/profile)
 
 # Schema version of the .engineering/ layout. Readers check it; a mismatch is
-# the signal to run a documented migration, never a crash (ADR 0021).
-MANIFEST_VERSION = 1
+# the signal to run the previewable migration path, never a guessed write.
+# Version 2 moves the shared subsystem registry from the agent-specific
+# `.claude/` tree to the agent-neutral state home.
+MANIFEST_VERSION = 2
 
 # One-time legacy-fallback warnings, keyed by the canonical path we *wanted*.
 _warned: set[str] = set()
@@ -63,6 +65,21 @@ def project_dir(root: Path | str) -> Path:
     the top-level `project-state.json` (ADR 0020 maturity state).
     """
     return engineering_dir(root) / PROJECT_SUBDIR
+
+
+def subsystem_registry_path(root: Path | str) -> Path:
+    """Canonical durable subsystem registry path."""
+    return engineering_dir(root) / "subsystems.yaml"
+
+
+def resolve_subsystem_registry(root: Path | str) -> tuple[Path, bool]:
+    """Canonical registry, with one bounded legacy `.claude/` fallback."""
+    project_root = Path(root)
+    return resolve(
+        project_root,
+        "subsystems.yaml",
+        legacy=project_root / ".claude" / "subsystems.yaml",
+    )
 
 
 def read_manifest(root: Path | str) -> dict | None:
