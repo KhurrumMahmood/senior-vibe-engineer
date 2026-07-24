@@ -1209,6 +1209,10 @@ def cmd_match(args, catalog_path: Path) -> int:
         recommendable = (
             has_substantive_skill_evidence(sk, scoring_tokens)
             or (
+                code_health_family_requested
+                and name == "find-complexity-hotspots"
+            )
+            or (
                 ordered_multi_phase
                 and not explicit_skill_requested
                 and name == "which-shape"

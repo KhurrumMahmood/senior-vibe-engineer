@@ -203,7 +203,9 @@ def test_all_benchmark_user_prompts_activate_the_family(tmp_path: Path) -> None:
     )
 
     for task in prompts:
-        assert _route(tmp_path / str(len(task)), task=task)["coverage_family"]["name"] == "code-health-readonly"
+        payload = _route(tmp_path / str(len(task)), task=task)
+        assert payload["recommendation"] == "find-complexity-hotspots"
+        assert payload["coverage_family"]["name"] == "code-health-readonly"
 
 
 def test_mixed_javascript_typescript_request_does_not_select_single_language_family(
