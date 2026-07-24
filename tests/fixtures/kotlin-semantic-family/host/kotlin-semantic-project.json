@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "sources": [
+    "src/main/kotlin/kotlinsemantic/Semantics.kt",
+    "src/main/kotlin/kotlinsemantic/Smoke.kt"
+  ],
+  "tests": [
+    "src/test/kotlin/kotlinsemantic/SemanticTest.kt"
+  ],
+  "test_main": "kotlinsemantic.SemanticTestKt",
+  "test_output": "kotlin-semantic-native-test:ok\n",
+  "smoke_main": "kotlinsemantic.SmokeKt",
+  "smoke_output": "receipt:7:receipt:8:queued\n"
+}
