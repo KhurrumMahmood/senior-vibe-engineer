@@ -34,6 +34,18 @@ install_with: [find-implicit-state, map-subsystem]
 
 # /extract-enum
 
+## Swift 6.3.3 accepted enum proposal
+
+Use `scripts/collect_swift_state.py` only with one complete, current
+`swift-semantic-facts-v1` pack, its accepted `swift-implicit-state-v1`
+finding, and hash-bound human authority. Keep sibling
+`_swift-semantic-readonly`; the downstream validator checks accepted evidence
+but never recollects compiler facts. The result is read-only and may reuse an
+existing String-backed enum. Domain closure, raw values, Codable behavior,
+Objective-C/dynamic identity, protocol dispatch, frameworks/Xcode, external
+callers, generated/macros/plugins, conditional variants, and compatibility
+remain explicit human gates.
+
 ## C# accepted enum proposal
 
 Use `scripts/collect_csharp_state.py` only for one fresh, content-addressed
