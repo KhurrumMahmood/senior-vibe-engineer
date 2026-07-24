@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7/F2C AC1-C1 decision propagation, registry coverage, and deferred debt; AC1-S0 through AC1-D1 passed; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
-Last updated: 2026-07-23 (AC1-D1 reviewed-finding decision memory completed; AC1-C1 started)
+Current phase: P7/F2C AC1-M2 second real host-state migration and skipped-release composition; AC1-S0 through AC1-C1 passed; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
+Last updated: 2026-07-23 (AC1-C1 project coherence audit completed; AC1-M2 started)
 
 ## Objective
 
@@ -136,7 +136,7 @@ the committed integration revision.
 | F0 | Close Dart and normalize repository state | `done` | Root integrated serially; fresh non-context agents reviewed but did not publish shared truth | D5/D7 and D8 accepted; Dart published at 22/22; installed replay passed; anomaly branches retained; only useful checkouts remain |
 | F1 | Complete P6 reuse decisions | `done` | Three fresh non-context read-only comparison lanes; root owned the decision and shared reduction | `febc761`: promotion decision, frozen packet index, 65.80% lifecycle-surface reduction, Ruby/Rust semantics normalized, committed installed replay passed |
 | F2 | Complete PHP, Ruby, and Swift | `paused_for_f2c` | One fresh non-context worktree per language for the same family; maximum three; root integrates serially | All 22 jobs per language have accepted outcomes or strict reviewed exceptions; installed routes and native value suites pass |
-| F2C | Close the decision-propagation and project-coherence gaps reproduced in engineering-skills and host-a | `scan_request_in_progress` | Root owns the contract and integration; up to three fresh non-context read-only inventories may audit decision impact, artifact homes, and host drift | AC1 criteria pass: one authoritative state-home decision, explicit propagation obligations, a versioned/reversible host-state migration path, diff-honest cleanup, register-or-exempt subsystem coverage, and durable deferred-debt projection |
+| F2C | Close the decision-propagation and project-coherence gaps reproduced in engineering-skills and host-a | `second_migration_in_progress` | Root owns the contract and integration; up to three fresh non-context read-only inventories may audit decision impact, artifact homes, and host drift | AC1 criteria pass: one authoritative state-home decision, explicit propagation obligations, a versioned/reversible host-state migration path, diff-honest cleanup, register-or-exempt subsystem coverage, and durable deferred-debt projection |
 | F3 | Complete C, C++, and Kotlin | `pending_f2c` | Kotlin spine first; then one worktree per language for the same family; maximum three | Separate C/C++ truth retained; Kotlin project boundary proven; all three languages meet the F2 outcome gate |
 | F4 | Complete C#/.NET last | `pending_f3` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | Roslyn/project facts, all 22 jobs, copied closures, native build/test/analyze, and installed routing pass |
 | F5 | Publish final language release | `pending_f4` | Root only | No coverage-level pending or partial rows; bounded supported contracts may still report explicit runtime partial configurations; public install/bootstrap/route/execute/cleanup/uninstall replay passes at one SHA |
@@ -276,7 +276,7 @@ before changing status to `done`.
 | A3 — PHP/Ruby/Swift semantic read-only | `done_php_ruby_swift_tool_gap` | `4e3aa41`; PHP/Ruby branches retained; Swift research remains on `codex/f2-swift-semantic` | PHP `42f6236`; Ruby `b8f82cf` + ignored-fixture repair `10015fb`; publication `c7cee0b`; installed expectation `c00df4e`; Swift candidate `3e13061` removed from main by `20851c2` | PHP A3 `3 passed` plus preserved `112 passed`; Ruby A3 `14 passed` plus preserved `63 passed`; shared projection/router `94 passed`; committed installed routers `58 passed`; Swift root replay exceeded 360 seconds and its first semantic request remained unanswered after explicit indexing/workspace/readiness probes | PHP/Ruby accepted with explicit semantic boundaries; Swift's five rows remain pending under ML-026 and do not block independent PHP/Ruby downstream work |
 | A4 — PHP/Ruby/Swift proposal/guard | `done_php_ruby_swift_tool_gap` | `a3855b0`; PHP/Ruby branches retained; Swift deferred with ML-026 | PHP `0b38efa`; Ruby `98c80aa`; publication `2e7cc75` | PHP root `9 passed`; Ruby root `18 passed`; shared release/router `163 passed`; conformance `6 passed`; metadata `76/76`; artifact drift and commit hooks passed; committed installed routers `58 passed` | PHP/Ruby accepted without redetection; Swift opens only after a working A3 foundation |
 | A5 — Ruby mutation and Cohort A publication | `paused_for_ac1` | start from `2e7cc75`; serial | — | — | Preserve PHP's accepted move outcome; Ruby proves preview, authority, rollback, exact after-tree, and native checks; Swift remains separately tracked under ML-026 |
-| AC1 — Decision propagation and project coherence | `coherence_audit_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10`, `c2c5b01`, `f8c5b2a`, `d630c8b`, `f8baf32`, `84ec7e5` | Migration, scope, and all-producer adapters pass; D1 adds append-only reviewed-finding memory, exact evidence-change resurfacing, and a real comment-drift loop. D1 replay: `205 passed, 1 skipped`; all hooks pass | AC1-C1 and M2 pass before A5 resumes; P8 still owns the complete prior-release stock-update replay |
+| AC1 — Decision propagation and project coherence | `second_migration_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10`, `c2c5b01`, `f8c5b2a`, `d630c8b`, `f8baf32`, `84ec7e5`, `390d200` | Migration, scope, all-producer adapters, reviewed-finding memory, decision-impact disposal, portable register-or-exempt coverage, and read-only self-audit pass. C1 replay: `193 passed, 1 skipped`; all hooks pass | AC1-M2 passes before A5 resumes; P8 still owns the complete prior-release stock-update replay |
 | B0 — Kotlin spine and C/C++ reuse decision | `pending_ac1` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
 | B1 — C/C++/Kotlin lexical-filesystem | `pending_b0` | TBD; three worktrees | — | — | Independent copied final outcomes under trustworthy language modes |
 | B2 — C/C++/Kotlin syntax | `pending_b1` | TBD; three worktrees | — | — | Native syntax facts and complete degraded-tool boundaries |
@@ -373,8 +373,8 @@ weaken them.
 | AC1-S3 | Both cleanup routers and one real scanner prove selectable scope modes | `done:f8c5b2a` | AC1-S2 | Usable closeout journey without false attribution |
 | AC1-S4 | Every producer's declared modes work or fail honestly through the shared contract | `done:f8baf32` | AC1-S3 | Ecosystem-wide scope choice rather than one pilot |
 | AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `done:84ec7e5` | AC1-S3 | Avoid repeated compute and repeated human decisions |
-| AC1-C1 | Decision propagation, registry completeness, and deferred debt are auditable | `in_progress` | AC1-S4 and AC1-D1 | Project coherence in this kit and adopters |
-| AC1-M2 | A second real host-state migration proves skipped-release composition | `pending` | AC1-D1 or AC1-C1 supplies a real legacy move | Install/update lifecycle |
+| AC1-C1 | Decision propagation, registry completeness, and deferred debt are auditable | `done:390d200` | AC1-S4 and AC1-D1 | Project coherence in this kit and adopters |
+| AC1-M2 | A second real host-state migration proves skipped-release composition | `in_progress` | AC1-C1 supplied project-authored subsystem maps as a real legacy move | Install/update lifecycle |
 | P8-U1 | A stock prior-release update journey passes at two exact public refs | `pending_p8` | final language release and AC1-M2 | Installation and repair UX |
 | P9-U2 | A convenience updater ships only if measured stock-path friction justifies it | `pending_p9` | P8-U1 measurements | Evidence-backed user-journey improvement |
 
@@ -611,24 +611,24 @@ Evidence:
 
 Acceptance:
 
-- [ ] A minimal decision-impact artifact enumerates code, skill prose, durable
+- [x] A minimal decision-impact artifact enumerates code, skill prose, durable
   docs, tests, generated projections, host configuration/state, migration, and
   release obligations. Each has exactly one `complete`, `deferred:<work-item>`,
   or `not-applicable:<reason>` disposition.
-- [ ] Dogfooding the canonical state-home decision produces no conflicting active
+- [x] Dogfooding the canonical state-home decision produces no conflicting active
   defaults or undocumented legacy fallback. Every compatibility fallback names
   an owner and removal/review condition.
-- [ ] A portable register-or-exempt audit derives candidate first-party surfaces
+- [x] A portable register-or-exempt audit derives candidate first-party surfaces
   from declared project/profile roots, not host-a folder literals. A new coherent
   surface is registered or receives a reasoned exemption; completeness and
   registry integrity are separate checks.
-- [ ] A read-only self-audit reports legacy homes, stale ADR/pattern references,
+- [x] A read-only self-audit reports legacy homes, stale ADR/pattern references,
   host/upstream divergence, incomplete scope-contract adoption, incorrect idea-
   ledger portability claims, and undisposed propagation obligations.
-- [ ] Deferred items land in the existing durable backlog/idea/task surfaces with
+- [x] Deferred items land in the existing durable backlog/idea/task surfaces with
   source links and review triggers. A fresh clone can discover them without the
   originating conversation.
-- [ ] A frozen disposable host reproduces the original whole-file noise,
+- [x] A frozen disposable host reproduces the original whole-file noise,
   unregistered-surface, and state-home inconsistencies and passes after the
   bounded fixes. No production host is mutated.
 
@@ -636,7 +636,7 @@ Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | Decision-impact + register/exempt + self-audit fixtures | — | — |
+| Decision-impact disposal, canonical/legacy-home conflict, register/exempt completeness and integrity, ADR/precedent report, host/upstream comparison, scope/idea audit, disposable host, and preserved whole-file scope fixture | `.venv/bin/python -m pytest -q tests/test_coherence_audit.py tests/test_engineering_home.py tests/test_host_migrations.py tests/test_decisions.py tests/test_precedents.py tests/test_cleanup_scope_pilot.py tests/test_scan_scope_contracts.py tests/test_finding_scope_conformance.py tests/test_scan_request.py tests/test_installed_routers.py tests/scripts/test_which_cleanup.py tests/scripts/test_which_cleanup_roots.py`; `.venv/bin/python scripts/coherence_audit.py --json`; staged hooks | `193 passed, 1 skipped`; self-audit pass with eight pre-existing aged ADRs reported to their existing enforcement owner and precedent registry clean; implementation review added missing authority reporting and overlapping-owner refusal; all hooks pass | `390d200` |
 
 #### AC1-M2 — Second real migration and skipped-release composition
 
@@ -1565,6 +1565,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-23 | P7/F2C AC1-C1 | Decision propagation, portable subsystem completeness, and deferred-debt self-audit completed | `390d200` adds one eight-surface decision-impact record, a host-declared register-or-exempt profile, distinct completeness/integrity checks, conflicting-home and unclassified-reference detection, scope/idea/optional skill-tree audits, and the durable `agent-neutral-subsystem-maps` migration intake. The post-implementation review caught two gaps before closeout: ADR/precedent drift was named but not actually reported, and equal-specificity subsystem owners were treated as one registration. Both now have regression tests. The preserved boundary passes `193 passed, 1 skipped`; self-audit and all hooks pass. The eight pre-existing aged proposed ADRs remain reported to their existing validator rather than being silently reclassified. Begin AC1-M2 with the real project-authored subsystem-map move. |
 | 2026-07-23 | P7/F2C AC1-D1 | Reviewed-finding decision memory completed | `84ec7e5` adds the agent-neutral `.engineering/quality` schema and one stdlib-only installed-router postprocessor for validate, record/withdraw, filter, and `--show-reviewed`. Only complete located line findings can be suppressed; exact evidence or subject change re-surfaces review, `fixed` recurrence is a regression, invalid/newer memory fails open, and decision events retain a hash rather than raw source. A real comment-drift record→filter→show→evidence-change loop, all 30 producer envelopes with no decisions, malformed/conflicting events, copied-router execution, and preserved routing/triage/family suites pass `205` tests with one intentional skip. The host-a-only AST pilot is scope-corrected rather than made a cross-language dependency. Begin AC1-C1. |
 | 2026-07-23 | P7/F2C AC1-S4 | All-producer scope adapters activated | `d630c8b` adds one artifact-level request plus normalized finding envelope and derives line-filter/path-seed/project-trigger/scope-neutral adapters from the 30 reviewed contracts. Every producer's auto/default and target modes, unclaimed-mode refusal, invalid/unlocated findings, and isolated copied layout pass. Real line, symbol/file, multi-site, and project/global fixtures pass `27`; they exposed the stale omnibus PHP/Ruby guard repaired at `a93825a`. `f8baf32` activates target modes without rewriting native entrypoint history. Full S4 replay: `149 passed, 1 skipped`; Ruff, scope checker, `76/76` metadata, diff checks, and hooks pass. Begin AC1-D1. |
 | 2026-07-23 | P7/F2C AC1-S3 | Selectable cleanup scope pilot completed | `f8c5b2a` keeps the normalized request self-contained in the installed router, projects one request through both cleanup entrypoints, filters `find-comment-drift` after one complete-file detection pass, widens non-line-local obligations transparently, retains deletion-only verification, refuses unsafe content-basis/path cases, and documents non-executing help. The exact targeted replay passes `210` tests with `1` intentional skip; Ruff, the 30-producer contract checker, diff checks, and every commit hook pass. Open AC1-S4; do not generalize from the one scanner without conformance evidence. |
