@@ -30,11 +30,10 @@ RUNTIMES = {
 }
 SWIFT = Path("/usr/bin/swift")
 SWIFTC = Path("/usr/bin/swiftc")
-SOURCEKIT = Path("/usr/bin/sourcekit-lsp")
 SWIFT_FORMAT = Path("/Library/Developer/CommandLineTools/usr/bin/swift-format")
-PRODUCT_PYTHON = ROOT / ".venv/bin/python"
+PRODUCT_PYTHON = Path(sys.executable).resolve()
 pytestmark = pytest.mark.skipif(
-    not all(path.is_file() for path in (SWIFT, SWIFTC, SOURCEKIT, SWIFT_FORMAT, PRODUCT_PYTHON)),
+    not all(path.is_file() for path in (SWIFT, SWIFTC, SWIFT_FORMAT, PRODUCT_PYTHON)),
     reason="the frozen Python and CLT Swift semantic toolchain are required",
 )
 
@@ -158,8 +157,6 @@ def _provider_args(
         SWIFT,
         "--swiftc",
         SWIFTC,
-        "--sourcekit-lsp",
-        SOURCEKIT,
         "--swift-format",
         SWIFT_FORMAT,
         "--check-product",
@@ -260,79 +257,87 @@ def _provider_module():
     return module
 
 
-def test_lsp_failure_and_query_scope_are_globally_bounded(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_compiler_ast_is_bounded_deterministic_and_resolved(tmp_path: Path) -> None:
     provider = _provider_module()
-    sources = []
-    roles = {}
-    for index in range(3):
-        source = tmp_path / f"Source{index}.swift"
-        source.write_text("let state = 1\n", encoding="utf-8")
-        sources.append(source)
-        roles[source.name] = "selected-production"
+    host = _copy_host(tmp_path)
+    sources = sorted((host / "Sources/SwiftA3Core").glob("*.swift"))
+    roles = {source.relative_to(host).as_posix(): "selected-production" for source in sources}
 
-    class FailingClient:
-        methods: list[str] = []
-        timeouts: list[float] = []
-        instances = 0
-
-        def __init__(self, _argv, _root) -> None:
-            self.__class__.instances += 1
-
-        def request(self, method, _params, timeout=60):
-            self.__class__.methods.append(method)
-            self.__class__.timeouts.append(timeout)
-            if method == "initialize":
-                return {
-                    "capabilities": {
-                        "callHierarchyProvider": True,
-                        "definitionProvider": True,
-                        "documentSymbolProvider": True,
-                        "referencesProvider": True,
-                        "renameProvider": {"prepareProvider": True},
-                    }
-                }
-            raise provider.SwiftFactError("sourcekit_lsp_timeout", "fixture timeout")
-
-        def notify(self, _method, _params) -> None:
-            pass
-
-        def close(self):
-            return {"exited_cleanly": True, "returncode": 0, "stderr": ""}
-
-    monkeypatch.setattr(provider, "_LspClient", FailingClient)
-    with pytest.raises(provider.SwiftFactError, match="fixture timeout") as failure:
-        provider._lsp_facts(
-            Path("/fake/sourcekit-lsp"),
-            tmp_path,
-            tmp_path / "scratch",
-            "debug",
-            sources,
-            roles,
-            ["state"],
+    runs = []
+    durations = []
+    for _ in range(2):
+        started = time.monotonic()
+        runs.append(
+            provider._compiler_facts(
+                SWIFTC,
+                host,
+                "SwiftA3Core",
+                sources,
+                roles,
+                UNION_QUERIES,
+            )
         )
-    assert failure.value.kind == "sourcekit_lsp_timeout"
-    assert FailingClient.methods == ["initialize", "textDocument/documentSymbol"]
-    assert max(FailingClient.timeouts) <= provider.LSP_REQUEST_TIMEOUT_SECONDS
+        durations.append(time.monotonic() - started)
+    assert max(durations) < provider.AST_TIMEOUT_SECONDS
 
-    crowded = tmp_path / "Crowded.swift"
-    crowded.write_text(
-        "state " * (provider.MAX_LSP_OCCURRENCES + 1),
-        encoding="utf-8",
-    )
-    with pytest.raises(provider.SwiftFactError) as scope_failure:
-        provider._lsp_facts(
-            Path("/fake/sourcekit-lsp"),
-            tmp_path,
-            tmp_path / "scratch",
-            "debug",
-            [crowded],
-            {crowded.name: "selected-production"},
-            ["state"],
+    semantic, symbols, occurrences, bundle = runs[0]
+    repeated_semantic, repeated_symbols, repeated_occurrences, repeated_bundle = runs[1]
+    assert semantic == repeated_semantic
+    assert symbols == repeated_symbols
+    assert occurrences == repeated_occurrences
+    assert bundle["details"] == repeated_bundle["details"]
+    assert semantic["protocol"] == "swiftc-dump-ast"
+    assert all(semantic["capabilities"].values())
+
+    details = bundle["details"]
+    overloads = [row for row in details["selected_overloads"] if row["owner"] == "Statement"]
+    assert overloads
+    assert {row["selected_declaration"]["line"] for row in overloads} == {5}
+    assert all("(Int, String)" in row["selected_interface_type"] for row in overloads)
+    assert all(row["selected_declaration"]["line"] != 10 for row in overloads)
+
+    defaults = [row for row in details["default_arguments"] if row["target_name"] == "charge"]
+    assert [(row["parameter_index"], row["line"]) for row in defaults] == [(1, 6)]
+    writes = [
+        row
+        for row in details["property_writes"]
+        if row["owner"] == "Job" and row["field"] == "state"
+    ]
+    assert {row["literal"] for row in writes} == {"done", "queued", "running"}
+
+    bodies = {row["name"]: row for row in details["function_bodies"]}
+    for name in ("buildStatement", "summarizeInvoice"):
+        assert bodies[name]["has_return_statement"] is True
+        assert bodies[name]["direct_call_targets"] == ["normalize"]
+        assert bodies[name]["selected_overloads"]
+
+    symbol_ids = {row["name"]: row["semantic_id"] for row in symbols if row["top_level"]}
+    used_refs = [
+        row
+        for row in occurrences
+        if symbol_ids.get("usedHelper") in row["definition_semantic_ids"]
+    ]
+    assert {row["line"] for row in used_refs} == {9, 14}
+    old_refs = [
+        row
+        for row in occurrences
+        if symbol_ids.get("LegacyStatus") in row["definition_semantic_ids"]
+    ]
+    assert len(old_refs) >= 2
+    assert all(row["line"] != 18 for row in old_refs)
+
+    broken = host / "Sources/SwiftA3Core/Broken.swift"
+    broken.write_text("public struct Broken {\n", encoding="utf-8")
+    with pytest.raises(provider.SwiftFactError) as malformed:
+        provider._compiler_facts(
+            SWIFTC,
+            host,
+            "SwiftA3Core",
+            [*sources, broken],
+            {**roles, "Sources/SwiftA3Core/Broken.swift": "selected-production"},
+            ["Broken"],
         )
-    assert scope_failure.value.kind == "sourcekit_lsp_query_scope_exceeded"
-    assert FailingClient.instances == 1
+    assert malformed.value.kind == "compiler_ast_failed"
 
 
 def test_copied_union_reaches_five_outcomes_reviews_and_lifecycle(tmp_path: Path) -> None:
@@ -344,25 +349,26 @@ def test_copied_union_reaches_five_outcomes_reviews_and_lifecycle(tmp_path: Path
     assert facts_payload["status"] == "complete"
     assert facts_payload["identity"]["target_name"] == "SwiftA3Core"
     assert facts_payload["identity"]["configuration"] == "debug"
-    assert facts_payload["index"]["fresh_scratch"] is True
-    assert facts_payload["index"]["all_selected_sources_indexed"] is True
+    assert facts_payload["compiler"]["fresh_scratch"] is True
+    assert facts_payload["compiler"]["selected_sources_compiled"] is True
     assert facts_payload["semantic"]["capabilities"] == {
-        "call_hierarchy": True,
-        "definition": True,
-        "document_symbol": True,
-        "prepare_rename": True,
-        "references": True,
+        "declaration_identity": True,
+        "default_arguments": True,
+        "direct_calls": True,
+        "direct_references": True,
+        "literal_property_writes": True,
+        "overload_selection": True,
+        "static_function_bodies": True,
     }
     assert [row["id"] for row in facts_payload["native_checks"]] == [
         "swiftpm-dump-package",
         "swiftpm-describe",
-        "swiftpm-build-index",
-        "fresh-index-units",
+        "swiftpm-build",
         "compiler-parse",
         "swift-format-lint",
         "direct-check",
         "executable-smoke",
-        "sourcekit-lsp",
+        "compiler-ast",
     ]
     assert all(row["returncode"] == 0 for row in facts_payload["native_checks"])
     inventory_roles = {row["path"]: row["role"] for row in facts_payload["source_inventory"]}
@@ -731,18 +737,18 @@ def _fake_tool(path: Path, body: str) -> Path:
     return path
 
 
-def test_missing_old_failing_malformed_tool_index_config_and_facts(tmp_path: Path) -> None:
+def test_missing_old_failing_malformed_tool_state_config_and_facts(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     missing, _, _ = _collect(
         PROVIDER,
         host,
         "SwiftA3Core",
         ["state"],
-        "missing-sourcekit",
-        "--sourcekit-lsp",
-        host / "missing-sourcekit",
+        "missing-swiftc",
+        "--swiftc",
+        host / "missing-swiftc",
     )
-    assert (missing["status"], missing["failure_kind"]) == ("partial", "sourcekit_lsp_missing")
+    assert (missing["status"], missing["failure_kind"]) == ("partial", "swiftc_missing")
 
     old_swift = _fake_tool(host / "old-swift", 'printf "%s\\n" "Apple Swift version 5.9.0"\n')
     old, _, _ = _collect(
@@ -795,41 +801,21 @@ def test_missing_old_failing_malformed_tool_index_config_and_facts(tmp_path: Pat
         "swiftpm_dump_invalid",
     )
 
-    missing_index_swift = _fake_tool(
-        host / "missing-index-swift",
-        'if [ "$1" = "--version" ]; then printf "%s\\n" "Apple Swift version 6.3.3"; exit 0; fi\n'
-        'if [ "$1" = "package" ]; then exec /usr/bin/swift "$@"; fi\n'
-        "exit 0\n",
-    )
-    no_index, _, _ = _collect(
-        PROVIDER,
-        host,
-        "SwiftA3Core",
-        ["state"],
-        "missing-index",
-        "--swift",
-        missing_index_swift,
-    )
-    assert (no_index["status"], no_index["failure_kind"]) == (
-        "partial",
-        "fresh_index_missing_or_incomplete",
-    )
-
     old_state = tmp_path / "old-state"
     old_state.mkdir()
-    (old_state / "old-index-unit").write_text("old", encoding="utf-8")
+    (old_state / "old-compiler-state").write_text("old", encoding="utf-8")
     stale_state, _, _ = _collect(
         PROVIDER,
         host,
         "SwiftA3Core",
         ["state"],
-        "old-index",
+        "old-state",
         "--state-dir",
         old_state,
     )
     assert (stale_state["status"], stale_state["failure_kind"]) == (
         "partial",
-        "semantic_state_not_fresh",
+        "compiler_state_not_fresh",
     )
 
     broken = _copy_host(tmp_path, "broken-config")

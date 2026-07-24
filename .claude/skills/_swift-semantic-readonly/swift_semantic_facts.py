@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Fresh SwiftPM/index/SourceKit-LSP facts for bounded read-only consumers.
+"""Offline SwiftPM/compiler-AST facts for bounded read-only consumers.
 
 This is a Swift-local union fact pack, not a universal semantic model. It owns
 the selected SwiftPM package/target/configuration identity, restrictive native
-gates, a fresh isolated index, and stable LSP document-symbol, reference,
-definition, hover, prepare-rename, and call-hierarchy requests. Consumers own
-their candidates, reviews, reports, and terminal status.
+gates, and deterministic normalized ``swiftc -dump-ast`` declarations,
+references, calls, overloads, default arguments, and direct property writes.
+Consumers own their candidates, reviews, reports, and terminal status.
 """
 
 from __future__ import annotations
@@ -14,44 +14,39 @@ import argparse
 import hashlib
 import json
 import os
-import queue
 import re
 import shutil
 import stat
 import subprocess
 import tempfile
-import threading
-import time
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import unquote, urlparse
 
 
 SCHEMA_VERSION = "swift-semantic-facts-v1"
 MINIMUM_SWIFT = (6, 0, 0)
+PINNED_SEMANTIC_SWIFT = (6, 3, 3)
 ARTIFACT_DIRS = frozenset({".agents", ".build", ".git", ".swiftpm", "reports"})
 BUILD_DIRS = frozenset({".build", "build", "dist", "out"})
 GENERATED_DIRS = frozenset({"generated", "derivedsources", "gen"})
 VENDOR_DIRS = frozenset({"vendor", "vendors", "third_party", "third-party"})
 TEST_DIRS = frozenset({"test", "tests", "spec", "specs", "fixtures", "testdata"})
 CALLABLE_KINDS = frozenset({6, 9, 12})
-LSP_TOTAL_BUDGET_SECONDS = 12.0
-LSP_REQUEST_TIMEOUT_SECONDS = 8.0
-LSP_CLOSE_TIMEOUT_SECONDS = 1.0
-MAX_LSP_FILES = 32
-MAX_LSP_QUERIES = 64
-MAX_LSP_OCCURRENCES = 512
-MAX_LSP_REQUESTS = 512
+TYPE_KINDS = frozenset({5, 10, 11, 23})
+AST_TIMEOUT_SECONDS = 20.0
+MAX_AST_FILES = 32
+MAX_AST_BYTES = 8 * 1024 * 1024
 LIMITS = [
     "dependency-free SwiftPM regular library/executable targets in one selected debug or release configuration only",
-    "a fresh successful restrictive build and fresh index-store units are required before SourceKit-LSP facts",
-    "stable LSP symbols, references, definitions, hovers, prepare-rename, and call-hierarchy requests only; definition-location identities are used when SourceKit exposes no compiler USR",
+    "Apple Swift 6.3.3 swiftc compiler-AST output is the pinned semantic boundary; other compiler versions are unsupported until replayed",
+    "a fresh successful restrictive build is required before one bounded offline swiftc typecheck/dump-ast invocation",
+    "normalized compiler declaration locations identify selected static symbols; exact resolved decl references identify direct references and calls",
     "conditional compilation, attached/freestanding macros, plugins, generated code, reflection, @objc/dynamic dispatch, and selectors are not expanded",
-    "protocol/existential runtime dispatch, overload behavior, runtime reachability, side effects, and deletion/refactor safety remain unresolved",
+    "protocol/existential runtime dispatch, runtime reachability, side effects, and deletion/refactor safety remain unresolved",
     "Xcode projects/workspaces/schemes, Apple-framework behavior, resources, package dependencies, and mixed-language targets are outside this contract",
     "native XCTest and Testing modules remain unavailable under the active Command Line Tools; fixture-owned check and smoke executables are required",
     "ASCII identifier queries only; Unicode identifier spellings are not a selected consumer contract",
-    "SourceKit-LSP semantic work has one 12-second wall-clock budget and stops on the first failed request; an unresponsive advertised capability remains partial, never clean",
+    "compiler-AST work has one 20-second wall-clock budget, at most 32 selected files, and an 8 MiB captured-output ceiling",
 ]
 
 
@@ -153,7 +148,13 @@ def _version(text: str) -> tuple[int, int, int] | None:
     return tuple(int(value or 0) for value in match.groups()) if match else None
 
 
-def _probe_version(path: Path | None, root: Path, name: str) -> dict[str, Any]:
+def _probe_version(
+    path: Path | None,
+    root: Path,
+    name: str,
+    *,
+    exact: tuple[int, int, int] | None = None,
+) -> dict[str, Any]:
     if path is None:
         return {"state": "missing", "failure_kind": f"{name}_missing"}
     result = _run([str(path), "--version"], root, timeout=20)
@@ -173,12 +174,17 @@ def _probe_version(path: Path | None, root: Path, name: str) -> dict[str, Any]:
             "failure_kind": f"{name}_version_malformed",
             "detail": rendered.strip()[-2000:],
         }
+    supported = parsed == exact if exact is not None else parsed >= MINIMUM_SWIFT
+    failure_kind = None
+    if not supported:
+        failure_kind = f"{name}_too_old" if parsed < MINIMUM_SWIFT else f"{name}_version_unsupported"
     return {
-        "state": "ready" if parsed >= MINIMUM_SWIFT else "too-old",
+        "state": "ready" if supported else ("too-old" if parsed < MINIMUM_SWIFT else "unsupported"),
         "path": str(path),
         "version": ".".join(map(str, parsed)),
         "version_tuple": list(parsed),
-        "failure_kind": None if parsed >= MINIMUM_SWIFT else f"{name}_too_old",
+        "required_version": ".".join(map(str, exact)) if exact is not None else None,
+        "failure_kind": failure_kind,
     }
 
 
@@ -325,457 +331,649 @@ def _inventory(
     return rows, semantic, selected
 
 
-def _location(raw: dict[str, Any], root: Path) -> dict[str, Any] | None:
-    uri = raw.get("targetUri") or raw.get("uri") or raw.get("location", {}).get("uri")
-    if not isinstance(uri, str):
-        return None
-    parsed = urlparse(uri)
-    if parsed.scheme != "file":
-        return {"path": f"external:{uri}", "line": 0, "column": 0}
-    path = Path(os.path.realpath(unquote(parsed.path)))
-    try:
-        rendered = path.relative_to(root).as_posix()
-        external = False
-    except ValueError:
-        rendered = f"external:{path.name}"
-        external = True
-    location = (
-        raw.get("targetSelectionRange")
-        or raw.get("range")
-        or raw.get("location", {}).get("range")
-        or {}
-    )
-    start = location.get("start", {})
-    return {
-        "path": rendered,
-        "line": int(start.get("line", 0)) + 1,
-        "column": int(start.get("character", 0)) + 1,
-        "external": external,
-    }
-
-
-def _call_item(raw: dict[str, Any], root: Path) -> dict[str, Any]:
-    location = _location(raw, root) or {
-        "path": "external:unknown",
-        "line": 0,
-        "column": 0,
-        "external": True,
-    }
-    return {
-        "name": raw.get("name"),
-        "kind": raw.get("kind"),
-        "symbol_id": raw.get("data", {}).get("usr"),
-        **location,
-    }
-
-
-def _definition_semantic_id(location: dict[str, Any]) -> str | None:
-    """Name a SourceKit-resolved declaration without inventing a compiler USR."""
-    if location.get("external") or not location.get("path") or not location.get("line"):
-        return None
-    identity = {
-        "path": location["path"],
-        "line": location["line"],
-        "column": location.get("column", 0),
-    }
-    return f"sourcekit-definition:{_canonical_hash(identity)}"
-
-
 def _base_name(display: str | None) -> str:
     if not isinstance(display, str):
         return ""
     return display.split("(", 1)[0].split(".")[-1]
 
 
-def _flatten_symbols(
-    values: Any, source: str, role: str, parent: str | None = None
-) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for value in values or []:
-        if not isinstance(value, dict):
-            continue
-        selection = value.get("selectionRange") or value.get("location", {}).get("range") or {}
-        start = selection.get("start", {})
-        display = value.get("name")
-        row = {
-            "name": _base_name(display),
-            "display_name": display,
-            "kind": value.get("kind"),
-            "file": source,
-            "role": role,
-            "line": int(start.get("line", 0)) + 1,
-            "column": int(start.get("character", 0)) + 1,
-            "parent": parent,
-            "top_level": parent is None,
-            "detail": value.get("detail"),
-        }
-        rows.append(row)
-        rows.extend(_flatten_symbols(value.get("children"), source, role, str(display)))
-    return rows
+_AST_DECLARATION = re.compile(
+    r"^(?P<indent> *)\((?P<node>actor_decl|class_decl|constructor_decl|enum_decl|func_decl|protocol_decl|struct_decl|var_decl)\b(?P<body>.*)$"
+)
+_AST_RANGE = re.compile(
+    r"range=\[(?P<path>.+?\.swift):(?P<line>\d+):(?P<column>\d+) - (?:line:|.+?\.swift:)(?P<end_line>\d+):(?P<end_column>\d+)\]"
+)
+_AST_LOCATION = re.compile(
+    r"location=(?P<path>.+?\.swift):(?P<line>\d+):(?P<column>\d+)"
+)
+_AST_TARGET = re.compile(
+    r'@(?P<path>[^"@]+\.swift):(?P<line>\d+):(?P<column>\d+)'
+)
+_AST_INTERFACE = re.compile(r'interface_type="(?P<interface>[^"]*)"')
+_AST_DISPLAY = re.compile(r'\] "(?P<display>[^"]+)"')
+_AST_TYPE_EXPR = re.compile(r'typerepr="(?P<name>[A-Za-z_][A-Za-z0-9_]*)"')
+_AST_STRING_LITERAL = re.compile(r'value="(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"')
+_HEX_ADDRESS = re.compile(r"0x[0-9a-fA-F]+")
 
 
-class _LspClient:
-    """Small JSON-RPC client using only standard LSP methods."""
-
-    def __init__(self, argv: list[str], root: Path) -> None:
-        self.root = root
-        self.process = subprocess.Popen(
-            argv,
-            cwd=root,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        self.messages: queue.Queue[dict[str, Any]] = queue.Queue()
-        self.stderr: list[bytes] = []
-        self.pending: dict[int, dict[str, Any]] = {}
-        self.request_id = 0
-        self.reader = threading.Thread(target=self._read, daemon=True)
-        self.error_reader = threading.Thread(target=self._read_stderr, daemon=True)
-        self.reader.start()
-        self.error_reader.start()
-
-    def _read_stderr(self) -> None:
-        assert self.process.stderr is not None
-        while chunk := self.process.stderr.readline():
-            self.stderr.append(chunk)
-
-    def _read(self) -> None:
-        assert self.process.stdout is not None
+def _ast_path(raw: str, root: Path) -> str | None:
+    path = Path(raw)
+    if path.is_absolute():
         try:
-            while True:
-                headers: dict[str, str] = {}
-                while True:
-                    line = self.process.stdout.readline()
-                    if not line:
-                        return
-                    if line in {b"\r\n", b"\n"}:
-                        break
-                    if b":" not in line:
-                        raise SwiftFactError("sourcekit_lsp_malformed", "malformed LSP header")
-                    key, value = line.decode("ascii", errors="strict").split(":", 1)
-                    headers[key.lower().strip()] = value.strip()
-                length = int(headers.get("content-length", "-1"))
-                if length < 0:
-                    raise SwiftFactError(
-                        "sourcekit_lsp_malformed", "LSP message omitted Content-Length"
-                    )
-                body = self.process.stdout.read(length)
-                if len(body) != length:
-                    raise SwiftFactError("sourcekit_lsp_malformed", "truncated LSP message")
-                self.messages.put(json.loads(body.decode("utf-8")))
-        except (OSError, UnicodeError, ValueError, json.JSONDecodeError, SwiftFactError) as exc:
-            self.messages.put({"_reader_error": str(exc)})
-
-    def _send(self, payload: dict[str, Any]) -> None:
-        assert self.process.stdin is not None
-        body = json.dumps(payload, separators=(",", ":")).encode()
-        self.process.stdin.write(f"Content-Length: {len(body)}\r\n\r\n".encode() + body)
-        self.process.stdin.flush()
-
-    def notify(self, method: str, params: Any) -> None:
-        self._send({"jsonrpc": "2.0", "method": method, "params": params})
-
-    def _dispatch(self, message: dict[str, Any]) -> None:
-        if "_reader_error" in message:
-            raise SwiftFactError("sourcekit_lsp_malformed", message["_reader_error"])
-        if "id" in message and ("result" in message or "error" in message):
-            self.pending[int(message["id"])] = message
-            return
-        if "id" not in message or "method" not in message:
-            return
-        method = message.get("method")
-        if method == "workspace/configuration":
-            result: Any = [{} for _ in message.get("params", {}).get("items", [])]
-        elif method == "workspace/workspaceFolders":
-            result = [{"uri": self.root.as_uri(), "name": self.root.name}]
-        else:
-            result = None
-        self._send({"jsonrpc": "2.0", "id": message["id"], "result": result})
-
-    def request(self, method: str, params: Any, timeout: float = 60) -> Any:
-        self.request_id += 1
-        request_id = self.request_id
-        self._send({"jsonrpc": "2.0", "id": request_id, "method": method, "params": params})
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            response = self.pending.pop(request_id, None)
-            if response is not None:
-                if "error" in response:
-                    raise SwiftFactError(
-                        "sourcekit_lsp_request_failed", f"{method}: {response['error']}"
-                    )
-                return response.get("result")
-            if self.process.poll() is not None:
-                detail = b"".join(self.stderr).decode(errors="replace")[-2000:]
-                raise SwiftFactError(
-                    "sourcekit_lsp_failed",
-                    f"SourceKit-LSP exited {self.process.returncode}: {detail}",
-                )
-            try:
-                self._dispatch(self.messages.get(timeout=min(0.1, deadline - time.monotonic())))
-            except queue.Empty:
-                continue
-        raise SwiftFactError("sourcekit_lsp_timeout", f"LSP request timed out: {method}")
-
-    def close(self) -> dict[str, Any]:
-        shutdown = False
-        exited = False
-        try:
-            if self.process.poll() is None:
-                self.request("shutdown", None, LSP_CLOSE_TIMEOUT_SECONDS)
-                shutdown = True
-                self.notify("exit", None)
-                self.process.wait(timeout=LSP_CLOSE_TIMEOUT_SECONDS)
-                exited = True
-        except (OSError, SwiftFactError, subprocess.TimeoutExpired):
-            self.process.terminate()
-            try:
-                self.process.wait(timeout=LSP_CLOSE_TIMEOUT_SECONDS)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
-                self.process.wait(timeout=LSP_CLOSE_TIMEOUT_SECONDS)
-        return {
-            "shutdown_acknowledged": shutdown,
-            "exited_cleanly": exited and self.process.returncode == 0,
-            "returncode": self.process.returncode,
-            "stderr": b"".join(self.stderr).decode(errors="replace")[-2000:],
-        }
+            return path.relative_to(root).as_posix()
+        except ValueError:
+            return None
+    normalized = Path(os.path.normpath(raw))
+    if normalized.is_absolute() or ".." in normalized.parts:
+        return None
+    return normalized.as_posix()
 
 
-def _capabilities(raw: dict[str, Any]) -> dict[str, bool]:
-    rename = raw.get("renameProvider")
+def _ast_location(line: str, root: Path) -> dict[str, Any] | None:
+    match = _AST_LOCATION.search(line)
+    if match is None:
+        return None
+    path = _ast_path(match.group("path"), root)
+    if path is None:
+        return None
     return {
-        "call_hierarchy": bool(raw.get("callHierarchyProvider")),
-        "definition": bool(raw.get("definitionProvider")),
-        "document_symbol": bool(raw.get("documentSymbolProvider")),
-        "prepare_rename": bool(rename and (rename is True or rename.get("prepareProvider"))),
-        "references": bool(raw.get("referencesProvider")),
+        "path": path,
+        "line": int(match.group("line")),
+        "column": int(match.group("column")),
+        "external": False,
     }
 
 
-def _lsp_facts(
-    sourcekit: Path,
+def _ast_range(line: str, root: Path) -> dict[str, Any] | None:
+    match = _AST_RANGE.search(line)
+    if match is None:
+        return None
+    path = _ast_path(match.group("path"), root)
+    if path is None:
+        return None
+    return {
+        "path": path,
+        "line": int(match.group("line")),
+        "column": int(match.group("column")),
+        "end_line": int(match.group("end_line")),
+        "end_column": int(match.group("end_column")),
+    }
+
+
+def _ast_target(line: str, root: Path) -> dict[str, Any] | None:
+    declaration = re.search(r'decl="(?P<decl>[^"]+)"', line)
+    if declaration is None:
+        return None
+    target = _AST_TARGET.search(declaration.group("decl"))
+    if target is None:
+        return None
+    path = _ast_path(target.group("path"), root)
+    if path is None:
+        return None
+    return {
+        "decl": declaration.group("decl"),
+        "path": path,
+        "line": int(target.group("line")),
+        "column": int(target.group("column")),
+    }
+
+
+def _declaration_kind(node: str, *, top_level: bool) -> int:
+    return {
+        "actor_decl": 5,
+        "class_decl": 5,
+        "constructor_decl": 9,
+        "enum_decl": 10,
+        "func_decl": 12 if top_level else 6,
+        "protocol_decl": 11,
+        "struct_decl": 23,
+        "var_decl": 13 if top_level else 8,
+    }[node]
+
+
+def _name_column(root: Path, location: dict[str, Any], name: str) -> int:
+    source = root / location["path"]
+    try:
+        line = source.read_text(encoding="utf-8").splitlines()[location["line"] - 1]
+    except (OSError, UnicodeDecodeError, IndexError):
+        return location["column"]
+    match = re.search(rf"\b{re.escape(name)}\b", line)
+    return match.start() + 1 if match else location["column"]
+
+
+def _semantic_id(module: str, declaration: dict[str, Any]) -> str:
+    identity = {
+        "module": module,
+        "path": declaration["file"],
+        "line": declaration["line"],
+        "column": declaration["column"],
+        "kind": declaration["kind"],
+        "display_name": declaration["display_name"],
+        "interface_type": declaration["interface_type"],
+        "parent": declaration["parent"],
+    }
+    return f"swiftc-declaration:{_canonical_hash(identity)}"
+
+
+def _normalize_ast(raw: str, root: Path) -> str:
+    normalized = raw.replace(f"{root.as_posix()}/", "")
+    normalized = _HEX_ADDRESS.sub("0xADDR", normalized)
+    return normalized.rstrip() + "\n"
+
+
+def _ast_declarations(
+    lines: list[str],
     root: Path,
-    scratch: Path,
-    configuration: str,
+    module: str,
+    roles: dict[str, str],
+) -> list[dict[str, Any]]:
+    declarations: list[dict[str, Any]] = []
+    type_stack: list[tuple[int, str]] = []
+    type_nodes = {"actor_decl", "class_decl", "enum_decl", "protocol_decl", "struct_decl"}
+    for index, line in enumerate(lines):
+        match = _AST_DECLARATION.match(line)
+        if match is None:
+            continue
+        indent = len(match.group("indent"))
+        while type_stack and type_stack[-1][0] >= indent:
+            type_stack.pop()
+        node = match.group("node")
+        location = _ast_range(line, root)
+        display = _AST_DISPLAY.search(line)
+        interface = _AST_INTERFACE.search(line)
+        if location is None or display is None or interface is None or " implicit " in line:
+            continue
+        display_name = display.group("display")
+        name = "init" if node == "constructor_decl" else _base_name(display_name)
+        parent = type_stack[-1][1] if type_stack else None
+        top_level = parent is None and indent == 2
+        if node == "var_decl" and not (
+            top_level or (type_stack and indent == type_stack[-1][0] + 2)
+        ):
+            continue
+        if node == "func_decl" and not (
+            top_level or (type_stack and indent == type_stack[-1][0] + 2)
+        ):
+            continue
+        column = _name_column(root, location, name)
+        declaration = {
+            "name": name,
+            "display_name": display_name,
+            "kind": _declaration_kind(node, top_level=top_level),
+            "file": location["path"],
+            "role": roles.get(location["path"], "unowned"),
+            "line": location["line"],
+            "column": column,
+            "end_line": location["end_line"],
+            "end_column": location["end_column"],
+            "parent": parent,
+            "top_level": top_level,
+            "detail": interface.group("interface"),
+            "interface_type": interface.group("interface"),
+            "semantic_identity_kind": "swiftc-declaration-location-signature",
+            "definitions": [
+                {
+                    "path": location["path"],
+                    "line": location["line"],
+                    "column": column,
+                    "external": False,
+                }
+            ],
+            "hover": {
+                "contents": {
+                    "kind": "plaintext",
+                    "value": interface.group("interface"),
+                }
+            },
+            "prepare_rename": {
+                "placeholder": name,
+                "provider": "swiftc-dump-ast",
+            },
+            "_ast_index": index,
+            "_ast_indent": indent,
+            "_node": node,
+        }
+        declaration["semantic_id"] = _semantic_id(module, declaration)
+        declaration["symbol_id"] = declaration["semantic_id"]
+        declarations.append(declaration)
+        if node in type_nodes:
+            type_stack.append((indent, name))
+    return declarations
+
+
+def _definition_occurrence(
+    name: str,
+    location: dict[str, Any],
+    symbol: dict[str, Any],
+    evidence: str,
+) -> dict[str, Any]:
+    definition = dict(symbol["definitions"][0])
+    return {
+        "name": name,
+        "source": location["path"],
+        "line": location["line"],
+        "column": location["column"],
+        "definitions": [definition],
+        "definition_semantic_ids": [symbol["semantic_id"]],
+        "evidence": evidence,
+    }
+
+
+def _target_symbol(
+    target: dict[str, Any],
+    declarations: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    exact = [
+        row
+        for row in declarations
+        if row["file"] == target["path"]
+        and row["line"] == target["line"]
+        and row["column"] == target["column"]
+    ]
+    return exact[0] if len(exact) == 1 else None
+
+
+def _compiler_occurrences(
+    lines: list[str],
+    root: Path,
+    module: str,
+    declarations: list[dict[str, Any]],
+    queries: set[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    query_symbols = [row for row in declarations if row["name"] in queries]
+    type_symbols = {
+        row["name"]: row for row in query_symbols if row["kind"] in TYPE_KINDS
+    }
+    occurrences = [
+        _definition_occurrence(
+            row["name"],
+            {"path": row["file"], "line": row["line"], "column": row["column"]},
+            row,
+            "swiftc-dump-ast-declaration",
+        )
+        for row in query_symbols
+    ]
+    calls: list[dict[str, Any]] = []
+    overloads: list[dict[str, Any]] = []
+    for line in lines:
+        location = _ast_location(line, root)
+        if location is None:
+            continue
+        target = _ast_target(line, root)
+        if target is not None and target["decl"].startswith(f"{module}.(file)."):
+            symbol = _target_symbol(target, declarations)
+            constructor = re.search(
+                rf"^{re.escape(module)}\.\(file\)\.(?P<owner>[A-Za-z_][A-Za-z0-9_]*)\.init\(",
+                target["decl"],
+            )
+            if constructor is not None and "function_ref=single apply" in line:
+                owner = type_symbols.get(constructor.group("owner"))
+                interface = re.search(r'type="(?P<type>[^"]+)"', line)
+                overload = {
+                    "source": location["path"],
+                    "line": location["line"],
+                    "column": location["column"],
+                    "owner": constructor.group("owner"),
+                    "selected_declaration": {
+                        "path": target["path"],
+                        "line": target["line"],
+                        "column": target["column"],
+                    },
+                    "selected_interface_type": interface.group("type") if interface else None,
+                    "evidence": "swiftc-dump-ast-declref-single-apply",
+                }
+                overloads.append(overload)
+                if owner is not None:
+                    occurrences.append(
+                        _definition_occurrence(
+                            owner["name"], location, owner, "swiftc-dump-ast-constructor"
+                        )
+                    )
+            elif symbol is not None:
+                if symbol["name"] in queries:
+                    occurrences.append(
+                        _definition_occurrence(
+                            symbol["name"], location, symbol, "swiftc-dump-ast-declref"
+                        )
+                    )
+                if "function_ref=single apply" in line and symbol["kind"] in CALLABLE_KINDS:
+                    calls.append(
+                        {
+                            "source": location["path"],
+                            "line": location["line"],
+                            "column": location["column"],
+                            "target_name": symbol["name"],
+                            "target_semantic_id": symbol["semantic_id"],
+                            "target_interface_type": symbol["interface_type"],
+                            "target_declaration": dict(symbol["definitions"][0]),
+                            "evidence": "swiftc-dump-ast-declref-single-apply",
+                        }
+                    )
+        if "(type_expr" in line and "(type_expr implicit" not in line:
+            type_name = _AST_TYPE_EXPR.search(line)
+            if type_name and type_name.group("name") in type_symbols:
+                symbol = type_symbols[type_name.group("name")]
+                occurrences.append(
+                    _definition_occurrence(
+                        symbol["name"], location, symbol, "swiftc-dump-ast-type-expr"
+                    )
+                )
+
+    for declaration in declarations:
+        source = root / declaration["file"]
+        try:
+            source_lines = source.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        start = declaration["line"] - 1
+        signature = ""
+        for source_line in source_lines[start : min(start + 8, declaration["end_line"])]:
+            signature += source_line + "\n"
+            if "{" in source_line:
+                break
+        first_line = source_lines[start] if start < len(source_lines) else ""
+        for name, symbol in type_symbols.items():
+            if not re.search(rf"\b{re.escape(name)}\b", declaration["interface_type"]):
+                continue
+            for offset, source_line in enumerate(signature.splitlines()):
+                for match in re.finditer(rf"\b{re.escape(name)}\b", source_line):
+                    if declaration["name"] == name and offset == 0 and source_line == first_line:
+                        continue
+                    occurrences.append(
+                        _definition_occurrence(
+                            name,
+                            {
+                                "path": declaration["file"],
+                                "line": declaration["line"] + offset,
+                                "column": match.start() + 1,
+                            },
+                            symbol,
+                            "swiftc-dump-ast-interface-type",
+                        )
+                    )
+
+    occurrences = list(
+        {
+            (
+                row["name"],
+                row["source"],
+                row["line"],
+                row["column"],
+                tuple(row["definition_semantic_ids"]),
+            ): row
+            for row in occurrences
+        }.values()
+    )
+    calls = list(
+        {
+            (row["source"], row["line"], row["column"], row["target_semantic_id"]): row
+            for row in calls
+        }.values()
+    )
+    overloads = list(
+        {
+            (
+                row["source"],
+                row["line"],
+                row["column"],
+                row["selected_declaration"]["path"],
+                row["selected_declaration"]["line"],
+            ): row
+            for row in overloads
+        }.values()
+    )
+    return occurrences, calls, overloads
+
+
+def _compiler_property_writes(
+    lines: list[str],
+    root: Path,
+    declarations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    writes: list[dict[str, Any]] = []
+    for index, line in enumerate(lines):
+        if "(assign_expr " not in line or "(assign_expr implicit" in line:
+            continue
+        assignment = _ast_location(line, root)
+        if assignment is None:
+            continue
+        indent = len(line) - len(line.lstrip())
+        children: list[str] = []
+        for child in lines[index + 1 :]:
+            child_indent = len(child) - len(child.lstrip())
+            if child.strip() and child_indent <= indent:
+                break
+            children.append(child)
+        member: tuple[dict[str, Any], dict[str, Any]] | None = None
+        literal: str | None = None
+        for child in children:
+            if member is None and "member_ref_expr" in child:
+                target = _ast_target(child, root)
+                location = _ast_location(child, root)
+                symbol = _target_symbol(target, declarations) if target else None
+                if location and symbol and symbol["kind"] == 8:
+                    member = (symbol, location)
+            if literal is None and "string_literal_expr" in child:
+                value = _AST_STRING_LITERAL.search(child)
+                if value:
+                    literal = value.group("value")
+        if member is None or literal is None:
+            continue
+        symbol, location = member
+        if location["path"] != assignment["path"] or location["line"] != assignment["line"]:
+            continue
+        writes.append(
+            {
+                "owner": symbol["parent"],
+                "field": symbol["name"],
+                "field_semantic_id": symbol["semantic_id"],
+                "file": location["path"],
+                "line": location["line"],
+                "column": location["column"],
+                "literal": literal,
+                "evidence": "swiftc-dump-ast-assign-member-string-literal",
+            }
+        )
+    return list(
+        {
+            (row["field_semantic_id"], row["file"], row["line"], row["literal"]): row
+            for row in writes
+        }.values()
+    )
+
+
+def _compiler_default_arguments(
+    lines: list[str], root: Path, declarations: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for line in lines:
+        if "default_argument_expr" not in line:
+            continue
+        location = _ast_location(line, root)
+        owner = re.search(r'default_args_owner="(?P<owner>[^"]+)" param=(?P<param>\d+)', line)
+        if location is None or owner is None:
+            continue
+        target_match = _AST_TARGET.search(owner.group("owner"))
+        if target_match is None:
+            continue
+        target = {
+            "path": _ast_path(target_match.group("path"), root),
+            "line": int(target_match.group("line")),
+            "column": int(target_match.group("column")),
+        }
+        if target["path"] is None:
+            continue
+        symbol = _target_symbol(target, declarations)
+        if symbol is None:
+            continue
+        rows.append(
+            {
+                "source": location["path"],
+                "line": location["line"],
+                "column": location["column"],
+                "target_name": symbol["name"],
+                "target_semantic_id": symbol["semantic_id"],
+                "parameter_index": int(owner.group("param")),
+                "evidence": "swiftc-dump-ast-default-argument-expr",
+            }
+        )
+    return rows
+
+
+def _compiler_function_bodies(
+    lines: list[str],
+    symbols: list[dict[str, Any]],
+    calls: list[dict[str, Any]],
+    overloads: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for symbol in symbols:
+        if symbol["kind"] not in CALLABLE_KINDS:
+            continue
+        subtree = lines[symbol["_ast_index"] + 1 :]
+        body_lines: list[str] = []
+        for line in subtree:
+            indent = len(line) - len(line.lstrip())
+            if line.strip() and indent <= symbol["_ast_indent"]:
+                break
+            body_lines.append(line)
+        direct_calls = [
+            row
+            for row in calls
+            if row["source"] == symbol["file"]
+            and symbol["line"] < row["line"] <= symbol["end_line"]
+        ]
+        selected_overloads = [
+            row
+            for row in overloads
+            if row["source"] == symbol["file"]
+            and symbol["line"] < row["line"] <= symbol["end_line"]
+        ]
+        rows.append(
+            {
+                "name": symbol["name"],
+                "semantic_id": symbol["semantic_id"],
+                "file": symbol["file"],
+                "line": symbol["line"],
+                "end_line": symbol["end_line"],
+                "interface_type": symbol["interface_type"],
+                "has_return_statement": any("(return_stmt" in line for line in body_lines),
+                "direct_call_target_ids": sorted(
+                    {row["target_semantic_id"] for row in direct_calls}
+                ),
+                "direct_call_targets": sorted({row["target_name"] for row in direct_calls}),
+                "selected_overloads": selected_overloads,
+                "evidence": "swiftc-dump-ast-function-subtree",
+            }
+        )
+    return rows
+
+
+def _compiler_facts(
+    swiftc: Path,
+    root: Path,
+    module: str,
     files: list[Path],
     roles: dict[str, str],
     queries: list[str],
 ) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    if len(files) > MAX_LSP_FILES or len(queries) > MAX_LSP_QUERIES:
+    if len(files) > MAX_AST_FILES:
         raise SwiftFactError(
-            "sourcekit_lsp_query_scope_exceeded",
-            f"bounded LSP scope exceeded: {len(files)} files / {len(queries)} queries",
+            "compiler_ast_scope_exceeded",
+            f"bounded compiler-AST scope exceeded: {len(files)} files",
         )
-    documents = {source: source.read_text(encoding="utf-8").splitlines() for source in files}
-    occurrence_specs: list[tuple[Path, str, int, int]] = []
-    for source, lines in documents.items():
-        for line_index, line in enumerate(lines):
-            for query in queries:
-                occurrence_specs.extend(
-                    (source, query, line_index, match.start())
-                    for match in re.finditer(rf"\b{re.escape(query)}\b", line)
-                )
-                if len(occurrence_specs) > MAX_LSP_OCCURRENCES:
-                    raise SwiftFactError(
-                        "sourcekit_lsp_query_scope_exceeded",
-                        f"bounded LSP occurrence scope exceeded: >{MAX_LSP_OCCURRENCES}",
-                    )
-    client = _LspClient(
-        [
-            str(sourcekit),
-            "--configuration",
-            configuration,
-            "--scratch-path",
-            str(scratch),
-        ],
-        root,
+    relative_files = [source.relative_to(root).as_posix() for source in sorted(files)]
+    argv = [
+        str(swiftc),
+        "-typecheck",
+        "-dump-ast",
+        "-module-name",
+        module,
+        *relative_files,
+    ]
+    result = _run(argv, root, timeout=AST_TIMEOUT_SECONDS)
+    raw = result.stdout + result.stderr
+    if result.returncode:
+        kind = "compiler_ast_timeout" if result.returncode == 124 else "compiler_ast_failed"
+        raise SwiftFactError(kind, raw[-4000:] or f"swiftc exited {result.returncode}")
+    if len(raw.encode("utf-8")) > MAX_AST_BYTES:
+        raise SwiftFactError(
+            "compiler_ast_scope_exceeded",
+            f"compiler AST exceeded {MAX_AST_BYTES} captured bytes",
+        )
+    normalized = _normalize_ast(raw, root)
+    lines = normalized.splitlines()
+    source_files = {
+        path
+        for line in lines
+        if line.startswith("(source_file ")
+        for match in [re.search(r'^\(source_file "(?P<path>.+?\.swift)"', line)]
+        if match is not None
+        for path in [_ast_path(match.group("path"), root)]
+        if path is not None
+    }
+    if source_files != set(relative_files):
+        raise SwiftFactError(
+            "compiler_ast_incomplete",
+            f"compiler AST sources differ from selected inputs: {sorted(source_files)}",
+        )
+    declarations = _ast_declarations(lines, root, module, roles)
+    query_set = set(queries)
+    symbols = [row for row in declarations if row["name"] in query_set]
+    occurrences, calls, overloads = _compiler_occurrences(
+        lines, root, module, declarations, query_set
     )
-    close: dict[str, Any] = {}
-    started = time.monotonic()
-    deadline = started + LSP_TOTAL_BUDGET_SECONDS
-    request_count = 0
-
-    def request(method: str, params: Any) -> Any:
-        nonlocal request_count
-        request_count += 1
-        if request_count > MAX_LSP_REQUESTS:
-            raise SwiftFactError(
-                "sourcekit_lsp_query_scope_exceeded",
-                f"bounded LSP request scope exceeded: >{MAX_LSP_REQUESTS}",
-            )
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            raise SwiftFactError(
-                "sourcekit_lsp_budget_exhausted",
-                f"global LSP budget exhausted before {method}",
-            )
-        return client.request(
-            method,
-            params,
-            min(LSP_REQUEST_TIMEOUT_SECONDS, remaining),
-        )
-
-    try:
-        initialized = request(
-            "initialize",
-            {
-                "processId": os.getpid(),
-                "rootUri": root.as_uri(),
-                "capabilities": {
-                    "workspace": {"workspaceFolders": True, "symbol": {}},
-                    "textDocument": {
-                        "callHierarchy": {"dynamicRegistration": False},
-                        "definition": {"linkSupport": True},
-                        "documentSymbol": {"hierarchicalDocumentSymbolSupport": True},
-                        "hover": {},
-                        "references": {},
-                        "rename": {"prepareSupport": True},
-                    },
-                },
-                "workspaceFolders": [{"uri": root.as_uri(), "name": root.name}],
-            },
-        )
-        advertised = _capabilities(initialized.get("capabilities", {}))
-        if not all(advertised.values()):
-            raise SwiftFactError(
-                "sourcekit_lsp_capability_gap",
-                f"required stable LSP capabilities are missing: {advertised}",
-            )
-        client.notify("initialized", {})
-        for source in files:
-            client.notify(
-                "textDocument/didOpen",
-                {
-                    "textDocument": {
-                        "uri": source.as_uri(),
-                        "languageId": "swift",
-                        "version": 1,
-                        "text": "\n".join(documents[source]) + "\n",
-                    }
-                },
-            )
-        symbols: list[dict[str, Any]] = []
-        for source in files:
-            relative = source.relative_to(root).as_posix()
-            raw = request(
-                "textDocument/documentSymbol",
-                {"textDocument": {"uri": source.as_uri()}},
-            )
-            symbols.extend(_flatten_symbols(raw, relative, roles[relative]))
-        selected: list[dict[str, Any]] = []
-        query_set = set(queries)
-        for symbol in symbols:
-            if symbol["name"] not in query_set:
-                continue
-            source = root / symbol["file"]
-            position = {"line": symbol["line"] - 1, "character": symbol["column"] - 1}
-            position_request = {
-                "textDocument": {"uri": source.as_uri()},
-                "position": position,
-            }
-            enriched = dict(symbol)
-            prepared = request("textDocument/prepareCallHierarchy", position_request)
-            item = (prepared or [None])[0] if isinstance(prepared, list) else prepared
-            enriched["symbol_id"] = item.get("data", {}).get("usr") if item else None
-            definitions = request("textDocument/definition", position_request)
-            if isinstance(definitions, dict):
-                definitions = [definitions]
-            enriched["definitions"] = [
-                location for row in definitions or [] if (location := _location(row, root))
-            ]
-            definition_ids = sorted(
-                {
-                    identity
-                    for location in enriched["definitions"]
-                    if (identity := _definition_semantic_id(location))
-                }
-            )
-            enriched["semantic_id"] = definition_ids[0] if len(definition_ids) == 1 else None
-            enriched["semantic_identity_kind"] = (
-                "sourcekit-definition-location" if len(definition_ids) == 1 else None
-            )
-            references = request(
-                "textDocument/references",
-                {**position_request, "context": {"includeDeclaration": True}},
-            )
-            enriched["references"] = [
-                location for row in references or [] if (location := _location(row, root))
-            ]
-            enriched["hover"] = request("textDocument/hover", position_request)
-            enriched["prepare_rename"] = request("textDocument/prepareRename", position_request)
-            enriched["call_hierarchy"] = {"incoming": [], "outgoing": []}
-            if item and symbol.get("kind") in CALLABLE_KINDS:
-                outgoing = request("callHierarchy/outgoingCalls", {"item": item})
-                enriched["call_hierarchy"]["outgoing"] = [
-                    {
-                        "target": _call_item(row.get("to", {}), root),
-                        "from_ranges": row.get("fromRanges", []),
-                    }
-                    for row in outgoing or []
-                ]
-                incoming = request("callHierarchy/incomingCalls", {"item": item})
-                enriched["call_hierarchy"]["incoming"] = [
-                    {
-                        "caller": _call_item(row.get("from", {}), root),
-                        "from_ranges": row.get("fromRanges", []),
-                    }
-                    for row in incoming or []
-                ]
-            selected.append(enriched)
-        definition_occurrences: list[dict[str, Any]] = []
-        for source, query, line_index, column in occurrence_specs:
-            relative = source.relative_to(root).as_posix()
-            position_request = {
-                "textDocument": {"uri": source.as_uri()},
-                "position": {"line": line_index, "character": column},
-            }
-            definitions = request("textDocument/definition", position_request)
-            if isinstance(definitions, dict):
-                definitions = [definitions]
-            resolved = [location for row in definitions or [] if (location := _location(row, root))]
-            definition_occurrences.append(
-                {
-                    "name": query,
-                    "source": relative,
-                    "line": line_index + 1,
-                    "column": column + 1,
-                    "definitions": resolved,
-                    "definition_semantic_ids": sorted(
-                        {
-                            identity
-                            for location in resolved
-                            if (identity := _definition_semantic_id(location))
-                        }
-                    ),
-                    "evidence": "textDocument/definition",
-                }
-            )
-        semantic = {
-            "state": "complete",
-            "protocol": "LSP",
-            "unstable_cli_used": False,
-            "capabilities": advertised,
-            "document_failures": [],
-            "query_count": len(queries),
-            "selected_symbol_count": len(selected),
-            "request_count": request_count,
-            "elapsed_seconds": time.monotonic() - started,
-            "wall_clock_budget_seconds": LSP_TOTAL_BUDGET_SECONDS,
-        }
-        return (
-            semantic,
-            selected,
-            definition_occurrences,
-            {"returncode": 0, "detail": "stable LSP requests completed"},
-        )
-    finally:
-        close = client.close()
-        if close and not close.get("exited_cleanly"):
-            # Request facts can be valid even if shutdown cleanup was imperfect;
-            # retain the exact process evidence without upgrading the claim.
-            pass
+    property_writes = _compiler_property_writes(lines, root, declarations)
+    defaults = _compiler_default_arguments(lines, root, declarations)
+    bodies = _compiler_function_bodies(lines, symbols, calls, overloads)
+    public_symbols = [
+        {key: value for key, value in row.items() if not key.startswith("_")} for row in symbols
+    ]
+    public_symbols.sort(key=lambda row: (row["file"], row["line"], row["column"], row["name"]))
+    occurrences.sort(key=lambda row: (row["source"], row["line"], row["column"], row["name"]))
+    details = {
+        "normalization": "absolute-root-elision+hex-address-elision-v1",
+        "normalized_ast_sha256": hashlib.sha256(normalized.encode()).hexdigest(),
+        "normalized_ast_bytes": len(normalized.encode()),
+        "selected_sources": relative_files,
+        "resolved_calls": sorted(
+            calls, key=lambda row: (row["source"], row["line"], row["column"])
+        ),
+        "selected_overloads": sorted(
+            overloads, key=lambda row: (row["source"], row["line"], row["column"])
+        ),
+        "default_arguments": sorted(
+            defaults, key=lambda row: (row["source"], row["line"], row["column"])
+        ),
+        "property_writes": sorted(
+            property_writes, key=lambda row: (row["file"], row["line"], row["column"])
+        ),
+        "function_bodies": sorted(bodies, key=lambda row: (row["file"], row["line"])),
+    }
+    semantic = {
+        "state": "complete",
+        "protocol": "swiftc-dump-ast",
+        "unstable_cli_used": False,
+        "capabilities": {
+            "declaration_identity": True,
+            "direct_references": True,
+            "direct_calls": True,
+            "overload_selection": True,
+            "default_arguments": True,
+            "literal_property_writes": True,
+            "static_function_bodies": True,
+        },
+        "query_count": len(queries),
+        "selected_symbol_count": len(public_symbols),
+        "wall_clock_budget_seconds": AST_TIMEOUT_SECONDS,
+        "normalized_ast_sha256": details["normalized_ast_sha256"],
+    }
+    check = {
+        "returncode": 0,
+        "command": argv,
+        "detail": "offline compiler AST extracted and normalized",
+    }
+    return semantic, public_symbols, occurrences, {"details": details, "check": check}
 
 
 def _terminal(
@@ -785,7 +983,7 @@ def _terminal(
     return {
         "schema_version": SCHEMA_VERSION,
         "language": "swift",
-        "analyzer": "swiftpm-fresh-index+sourcekit-lsp-stable",
+        "analyzer": "swiftpm+swiftc-dump-ast",
         "status": "partial",
         "failure_kind": None,
         "failure_detail": None,
@@ -808,19 +1006,22 @@ def _terminal(
             if not value.startswith("symlink:")
         ],
         "source_manifest_sha256": _manifest_hash(snapshot),
-        "index": {"fresh_scratch": False, "all_selected_sources_indexed": False},
+        "compiler": {"fresh_scratch": False, "selected_sources_compiled": False},
         "semantic": {
             "state": "not-run",
             "capabilities": {
-                "call_hierarchy": False,
-                "definition": False,
-                "document_symbol": False,
-                "prepare_rename": False,
-                "references": False,
+                "declaration_identity": False,
+                "direct_references": False,
+                "direct_calls": False,
+                "overload_selection": False,
+                "default_arguments": False,
+                "literal_property_writes": False,
+                "static_function_bodies": False,
             },
         },
         "symbols": [],
         "definition_occurrences": [],
+        "compiler_details": {},
         "limits": LIMITS,
     }
 
@@ -843,10 +1044,6 @@ def _tool_terminal(payload: dict[str, Any], tools: dict[str, Any]) -> bool:
         payload["failure_kind"] = tools[name]["failure_kind"]
         payload["failure_detail"] = tools[name].get("detail")
         return True
-    if tools["sourcekit_lsp"]["state"] != "ready":
-        payload["status"] = "partial"
-        payload["failure_kind"] = "sourcekit_lsp_missing"
-        return True
     return False
 
 
@@ -858,7 +1055,6 @@ def collect(
     configuration: str = "debug",
     swift: str | Path = "swift",
     swiftc: str | Path = "swiftc",
-    sourcekit_lsp: str | Path = "sourcekit-lsp",
     swift_format: str | Path = "swift-format",
     check_product: str,
     expected_check: str,
@@ -881,21 +1077,14 @@ def collect(
     paths = {
         "swift": _which(swift),
         "swiftc": _which(swiftc),
-        "sourcekit_lsp": _which(sourcekit_lsp),
         "swift_format": _which(swift_format),
     }
     tools = {
-        "swift": _probe_version(paths["swift"], root, "swift"),
-        "swiftc": _probe_version(paths["swiftc"], root, "swiftc"),
+        "swift": _probe_version(paths["swift"], root, "swift", exact=PINNED_SEMANTIC_SWIFT),
+        "swiftc": _probe_version(
+            paths["swiftc"], root, "swiftc", exact=PINNED_SEMANTIC_SWIFT
+        ),
         "swift_format": _probe_version(paths["swift_format"], root, "swift_format"),
-        "sourcekit_lsp": {
-            "state": "ready" if paths["sourcekit_lsp"] else "missing",
-            "path": str(paths["sourcekit_lsp"]) if paths["sourcekit_lsp"] else None,
-            "executable_sha256": (
-                _sha256(paths["sourcekit_lsp"]) if paths["sourcekit_lsp"] else None
-            ),
-            "failure_kind": None if paths["sourcekit_lsp"] else "sourcekit_lsp_missing",
-        },
     }
     if _tool_terminal(payload, tools):
         return _finalize(payload)
@@ -908,16 +1097,14 @@ def collect(
     else:
         state = Path(os.path.abspath(state_dir))
         if state.exists() and (state.is_symlink() or any(state.iterdir())):
-            payload.update(status="partial", failure_kind="semantic_state_not_fresh")
+            payload.update(status="partial", failure_kind="compiler_state_not_fresh")
             return _finalize(payload)
         state.mkdir(parents=True, exist_ok=True)
-    payload["index"]["fresh_scratch"] = True
+    payload["compiler"]["fresh_scratch"] = True
     try:
         for name in ("cache", "config", "security", "build"):
             (state / name).mkdir(parents=True, exist_ok=True)
-        assert (
-            paths["swift"] and paths["swiftc"] and paths["sourcekit_lsp"] and paths["swift_format"]
-        )
+        assert paths["swift"] and paths["swiftc"] and paths["swift_format"]
         base = _swiftpm_base(paths["swift"], root, state)
         dump_argv = [*base, "dump-package"]
         dump = _run(dump_argv, root)
@@ -1026,12 +1213,9 @@ def collect(
             "--disable-automatic-resolution",
             "--configuration",
             configuration,
-            "--enable-index-store",
         ]
-        build_started_ns = time.time_ns()
         build = _run(build_argv, root)
-        build_finished_ns = time.time_ns()
-        payload["native_checks"].append(_check("swiftpm-build-index", build_argv, build))
+        payload["native_checks"].append(_check("swiftpm-build", build_argv, build))
         if build.returncode:
             payload.update(
                 status="failed",
@@ -1039,43 +1223,7 @@ def collect(
                 failure_detail=(build.stdout + build.stderr)[-3000:],
             )
             return _finalize(payload)
-        units = [
-            path
-            for path in (state / "build").rglob("*")
-            if path.is_file() and "index/store" in path.as_posix() and "/units/" in path.as_posix()
-        ]
-        selected_files = [
-            root / row["path"] for row in inventory if row["role"] == "selected-production"
-        ]
-        covered = {
-            source.relative_to(root).as_posix(): any(
-                path.name.startswith(f"{source.name}.o-") for path in units
-            )
-            for source in selected_files
-        }
-        fresh_units = bool(units) and all(
-            path.stat().st_mtime_ns >= build_started_ns - 2_000_000_000 for path in units
-        )
-        index_ok = bool(covered) and all(covered.values()) and fresh_units
-        payload["index"].update(
-            {
-                "build_started_ns": build_started_ns,
-                "build_finished_ns": build_finished_ns,
-                "unit_count": len(units),
-                "selected_source_units": covered,
-                "all_selected_sources_indexed": index_ok,
-                "recent_build_required": True,
-            }
-        )
-        index_result = subprocess.CompletedProcess(
-            ["fresh-index-units"], 0 if index_ok else 1, json.dumps(covered), ""
-        )
-        payload["native_checks"].append(
-            _check("fresh-index-units", ["fresh-index-units"], index_result)
-        )
-        if not index_ok:
-            payload.update(status="partial", failure_kind="fresh_index_missing_or_incomplete")
-            return _finalize(payload)
+        payload["compiler"]["selected_sources_compiled"] = True
 
         parse_argv = [str(paths["swiftc"]), "-frontend", "-parse", "<each-selected-source>"]
         parse_runs = [
@@ -1123,43 +1271,59 @@ def collect(
                 return _finalize(payload)
 
         roles = {row["path"]: row["role"] for row in inventory}
+        compiler_files = [
+            root / row["path"]
+            for row in inventory
+            if row["role"] == "selected-production" and row["included"]
+        ]
         try:
-            semantic, symbols, definition_occurrences, lsp_result = _lsp_facts(
-                paths["sourcekit_lsp"],
+            semantic, symbols, definition_occurrences, compiler_result = _compiler_facts(
+                paths["swiftc"],
                 root,
-                state / "build",
-                configuration,
-                semantic_files,
+                target_name,
+                compiler_files,
                 roles,
                 query_names,
             )
         except SwiftFactError as exc:
             semantic = {
-                "state": "partial",
+                "state": "failed",
                 "failure_kind": exc.kind,
                 "detail": str(exc),
                 "capabilities": payload["semantic"]["capabilities"],
-                "wall_clock_budget_seconds": LSP_TOTAL_BUDGET_SECONDS,
+                "wall_clock_budget_seconds": AST_TIMEOUT_SECONDS,
             }
             symbols = []
             definition_occurrences = []
-            lsp_result = {"returncode": 1, "detail": str(exc)}
-        lsp_check = subprocess.CompletedProcess(
-            [str(paths["sourcekit_lsp"])],
-            lsp_result["returncode"],
-            lsp_result.get("detail", ""),
+            compiler_result = {
+                "details": {},
+                "check": {
+                    "returncode": 1,
+                    "command": [str(paths["swiftc"]), "-typecheck", "-dump-ast"],
+                    "detail": str(exc),
+                },
+            }
+        compiler_check = subprocess.CompletedProcess(
+            compiler_result["check"]["command"],
+            compiler_result["check"]["returncode"],
+            compiler_result["check"].get("detail", ""),
             "",
         )
         payload["native_checks"].append(
-            _check("sourcekit-lsp", [str(paths["sourcekit_lsp"]), "<stable-lsp>"], lsp_check)
+            _check(
+                "compiler-ast",
+                compiler_result["check"]["command"],
+                compiler_check,
+            )
         )
         payload["semantic"] = semantic
         payload["symbols"] = symbols
         payload["definition_occurrences"] = definition_occurrences
+        payload["compiler_details"] = compiler_result["details"]
         if semantic.get("state") != "complete":
             payload.update(
-                status="partial",
-                failure_kind=semantic.get("failure_kind", "sourcekit_lsp_incomplete"),
+                status="failed",
+                failure_kind=semantic.get("failure_kind", "compiler_ast_incomplete"),
                 failure_detail=semantic.get("detail"),
             )
         else:
@@ -1230,7 +1394,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--state-dir", type=Path)
     parser.add_argument("--swift", default="swift")
     parser.add_argument("--swiftc", default="swiftc")
-    parser.add_argument("--sourcekit-lsp", default="sourcekit-lsp")
     parser.add_argument("--swift-format", default="swift-format")
     parser.add_argument("--check-product", required=True)
     parser.add_argument("--expected-check", required=True)
@@ -1247,7 +1410,6 @@ def main(argv: list[str] | None = None) -> int:
             configuration=args.configuration,
             swift=args.swift,
             swiftc=args.swiftc,
-            sourcekit_lsp=args.sourcekit_lsp,
             swift_format=args.swift_format,
             check_product=args.check_product,
             expected_check=args.expected_check,

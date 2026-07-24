@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assess a Swift concept rename with SourceKit definition authority."""
+"""Assess a Swift concept rename with swiftc declaration authority."""
 
 from __future__ import annotations
 
@@ -168,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
                             "column": match.start() + 1,
                             "kind": kind,
                             "syntax": line.strip()[:180],
-                            "reason": "the selected SourceKit authority did not own this lexical occurrence",
+                            "reason": "the selected swiftc authority did not own this lexical occurrence",
                         }
                     )
     status = (
@@ -179,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "schema_version": "swift-rename-evidence-v1",
         "language": "swift",
-        "analyzer": "swiftpm-fresh-index+sourcekit-lsp-prepare-rename-definitions",
+        "analyzer": "swiftpm+swiftc-dump-ast-rename-definitions",
         "status": status,
         "reason": None
         if status == "resolved"

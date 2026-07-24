@@ -516,7 +516,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "schema_version": "swift-semantic-duplication-v1",
         "language": "swift",
-        "analyzer": "swiftpm-fresh-index+sourcekit-lsp-definition-graph",
+        "analyzer": "swiftpm+swiftc-dump-ast-definition-graph",
         "status": status,
         "failure_kind": failure_kind,
         "failure_detail": review_error,
@@ -536,7 +536,7 @@ def main(argv: list[str] | None = None) -> int:
         },
         "limits": [
             *facts.get("limits", []),
-            "matching return labels, SourceKit-resolved constructor/callee identities, and distinct resolved callers are review evidence only",
+            "matching return labels, swiftc-resolved constructor/callee identities, and distinct resolved callers are review evidence only",
             "human review is candidate-hash-bound and no consolidation shape is selected automatically",
         ],
     }

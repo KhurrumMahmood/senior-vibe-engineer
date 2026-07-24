@@ -267,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
         symbol = matches[0]
         hover = json.dumps(symbol.get("hover"), sort_keys=True)
         if "String" not in hover:
-            deferred.append({**field, "reason": "SourceKit hover did not confirm String type"})
+            deferred.append({**field, "reason": "swiftc interface type did not confirm String"})
             continue
         operations: list[dict[str, Any]] = []
         literals: set[str] = set()
@@ -379,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "schema_version": "swift-implicit-state-v1",
         "language": "swift",
-        "analyzer": "swiftpm-fresh-index+sourcekit-lsp-field-definitions",
+        "analyzer": "swiftpm+swiftc-dump-ast-field-definitions",
         "status": status,
         "failure_kind": failure_kind,
         "failure_detail": review_error,

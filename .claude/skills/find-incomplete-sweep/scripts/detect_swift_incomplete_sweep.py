@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Find one SourceKit-resolved Swift defaulted-argument sweep omission shape."""
+"""Find one swiftc-resolved Swift defaulted-argument sweep omission shape."""
 
 from __future__ import annotations
 
@@ -361,7 +361,7 @@ def main(argv: list[str] | None = None) -> int:
                     ),
                     "identity_evidence": (
                         "each call occurrence resolves through textDocument/definition to "
-                        "the selected SourceKit declaration"
+                        "the selected swiftc declaration"
                     ),
                 }
                 (findings if newer else gated_out).append(row)
@@ -389,7 +389,7 @@ def main(argv: list[str] | None = None) -> int:
         "schema_version": "swift-incomplete-sweep-v1",
         "language": "swift",
         "band": "swift-defaulted-argument-omission",
-        "analyzer": "swiftpm-fresh-index+sourcekit-lsp-direct-calls",
+        "analyzer": "swiftpm+swiftc-dump-ast-direct-calls",
         "status": status,
         "failure_kind": None
         if status == "complete"

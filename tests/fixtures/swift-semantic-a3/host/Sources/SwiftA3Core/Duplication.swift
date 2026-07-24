@@ -6,6 +6,11 @@ public struct Statement {
     self.total = total
     self.label = label
   }
+
+  public init(total: Double, label: String) {
+    self.total = Int(total)
+    self.label = label
+  }
 }
 
 private func normalize(_ value: Int) -> Int {

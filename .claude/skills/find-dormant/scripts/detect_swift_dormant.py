@@ -211,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
             for row in resolved_edges
         ):
             deferred.append(
-                {**declaration, "reason": "SourceKit did not resolve the declaration to itself"}
+                {**declaration, "reason": "swiftc did not resolve the declaration to itself"}
             )
             continue
         reflection_hits = []
@@ -257,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "schema_version": "swift-dormant-v1",
         "language": "swift",
-        "analyzer": "swiftpm-fresh-index+sourcekit-lsp-definitions",
+        "analyzer": "swiftpm+swiftc-dump-ast-definitions",
         "status": status,
         "failure_kind": facts.get("failure_kind") if status != "complete" else None,
         "read_only": True,
