@@ -76,11 +76,16 @@ python3 -I -S "${SKILL_ROOT}/scripts/propose_swift.py" \
   --output-dir "$PWD/reports/unify-shadows/swift/SWIFT-SD-0001"
 ```
 
-The proposal revalidates the exact selected definitions, every accepted direct
-caller, shared resolved callee identities, selected initializer overload,
-static return shape, source manifest, and all eight pinned native evidence
-rows. It atomically writes exactly `proposal.md`, `evidence.json`, and
-`scope.json`; refusals use the same three-artifact claim-free shape.
+The proposal revalidates the exact selected definitions and every accepted
+direct caller against schema-v2 `resolved_calls` plus each edge's exact
+`containing_caller`. It derives the constructed type, selected initializer
+owner/overload/labels, static return shape, shared resolved callees, and caller
+sets from the hash-bound finding and fact pack; no product type or field list is
+embedded in the consumer. Ordinary `Void` and other-return callers therefore
+remain in scope, while bare function references do not become calls. It also
+revalidates the source manifest and all eight pinned native evidence rows, then
+atomically writes exactly `proposal.md`, `evidence.json`, and `scope.json`;
+refusals use the same three-artifact claim-free shape.
 `keep_separate_document_why` is complete. Static compiler structure does not
 establish behavior, runtime equivalence, error/resource/framework semantics,
 dynamic or protocol dispatch, generated/conditional inputs, external callers,

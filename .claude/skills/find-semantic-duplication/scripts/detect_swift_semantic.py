@@ -18,8 +18,7 @@ from typing import Any
 
 REVIEW_SCHEMA = "swift-semantic-duplication-review-v1"
 VERDICTS = {"consolidate_candidate", "keep_separate_document_why", "not_equivalent"}
-TYPE_KINDS = {5, 10, 11, 23}
-CALLABLE_KINDS = {6, 12}
+CONSTRUCTOR_KIND = 9
 BUILTIN_TYPES = {
     "Any",
     "Bool",
@@ -190,6 +189,42 @@ def _functions(root: Path, target: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _initializer_fields(display_name: object) -> list[str]:
+    if not isinstance(display_name, str) or not display_name.startswith("init("):
+        return []
+    return sorted(
+        label
+        for label in re.findall(r"([A-Za-z_][A-Za-z0-9_]*|_)\s*:", display_name)
+        if label != "_"
+    )
+
+
+def _caller_payload(declaration: dict[str, Any]) -> dict[str, Any]:
+    definitions = declaration.get("definitions", [])
+    return {
+        "name": declaration["name"],
+        "kind": declaration["kind"],
+        "path": declaration["file"],
+        "line": declaration["line"],
+        "semantic_id": declaration["semantic_id"],
+        "interface_type": declaration["interface_type"],
+        "declaration": definitions[0],
+    }
+
+
+def _matches_containing_caller(
+    declaration: dict[str, Any], identity: object
+) -> bool:
+    definitions = declaration.get("definitions", [])
+    return len(definitions) == 1 and identity == {
+        "name": declaration.get("name"),
+        "kind": declaration.get("kind"),
+        "semantic_id": declaration.get("semantic_id"),
+        "interface_type": declaration.get("interface_type"),
+        "declaration": definitions[0],
+    }
+
+
 def _reviews(path: Path | None) -> list[dict[str, Any]]:
     if path is None:
         return []
@@ -320,9 +355,14 @@ def main(argv: list[str] | None = None) -> int:
         _write(output, payload, [], [])
         return 2
     roles = {row["path"]: row["role"] for row in facts.get("source_inventory", [])}
-    symbols = facts.get("symbols", [])
-    occurrences = facts.get("definition_occurrences", [])
-    symbols_by_semantic_id = {row["semantic_id"]: row for row in symbols if row.get("semantic_id")}
+    details = facts.get("compiler_details", {})
+    declarations = details.get("all_declarations", [])
+    calls = details.get("resolved_calls", [])
+    bodies = details.get("function_bodies", [])
+    declarations_by_semantic_id = {
+        row["semantic_id"]: row for row in declarations if row.get("semantic_id")
+    }
+    resolved_functions: list[dict[str, Any]] = []
     selected: list[dict[str, Any]] = []
     uncertain: list[dict[str, Any]] = []
     for function in functions:
@@ -330,7 +370,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         matches = [
             row
-            for row in symbols
+            for row in declarations
             if row.get("name") == function["name"]
             and row.get("file") == function["file"]
             and row.get("line") == function["line"]
@@ -343,88 +383,147 @@ def main(argv: list[str] | None = None) -> int:
             )
             continue
         symbol = matches[0]
-        body_occurrences = [
+        resolved_functions.append({**function, "semantic_id": symbol["semantic_id"]})
+        body_matches = [
             row
-            for row in occurrences
-            if row.get("source") == function["file"]
-            and function["line"] < row.get("line", 0) <= function["end_line"]
+            for row in bodies
+            if row.get("semantic_id") == symbol["semantic_id"]
         ]
-        constructors = sorted(
-            {
-                identity
-                for occurrence in body_occurrences
-                for identity in occurrence.get("definition_semantic_ids", [])
-                if identity in symbols_by_semantic_id
-                and symbols_by_semantic_id[identity].get("kind") in TYPE_KINDS
-                and symbols_by_semantic_id[identity].get("name") == function["return_type"]
-            }
-        )
-        callees = sorted(
-            {
-                identity
-                for occurrence in body_occurrences
-                for identity in occurrence.get("definition_semantic_ids", [])
-                if identity in symbols_by_semantic_id
-                and symbols_by_semantic_id[identity].get("kind") in CALLABLE_KINDS
-                and identity != symbol["semantic_id"]
-            }
-        )
-        callee_names = sorted(
-            {str(symbols_by_semantic_id[identity].get("name")) for identity in callees}
-        )
+        if len(body_matches) != 1:
+            uncertain.append(
+                {"function": function["name"], "reason": "resolved function body unavailable"}
+            )
+            continue
+        body = body_matches[0]
+        owned_calls = [
+            row
+            for row in calls
+            if row.get("containing_caller", {}).get("semantic_id")
+            == symbol["semantic_id"]
+        ]
+        initializer_rows = [
+            row
+            for row in body.get("selected_overloads", [])
+            if row.get("owner") == function["return_type"]
+        ]
+        initializer_ids = {row.get("selected_semantic_id") for row in initializer_rows}
+        if len(initializer_rows) != 1 or len(initializer_ids) != 1 or None in initializer_ids:
+            uncertain.append(
+                {
+                    "function": function["name"],
+                    "reason": "one exact constructed return initializer not established",
+                }
+            )
+            continue
+        initializer_id = next(iter(initializer_ids))
+        initializer = declarations_by_semantic_id.get(initializer_id)
+        if (
+            initializer is None
+            or initializer.get("kind") != CONSTRUCTOR_KIND
+            or initializer.get("parent") != initializer_rows[0].get("owner")
+        ):
+            uncertain.append(
+                {"function": function["name"], "reason": "initializer identity unavailable"}
+            )
+            continue
+        return_fields = _initializer_fields(initializer.get("display_name"))
+        if not return_fields or return_fields != function["return_fields"]:
+            uncertain.append(
+                {"function": function["name"], "reason": "constructed return labels diverged"}
+            )
+            continue
+        constructor_calls = {
+            row.get("target_semantic_id")
+            for row in owned_calls
+            if row.get("target_kind") == CONSTRUCTOR_KIND
+            and row.get("target_semantic_id") == initializer_id
+        }
+        if constructor_calls != {initializer_id}:
+            uncertain.append(
+                {"function": function["name"], "reason": "initializer call identity unavailable"}
+            )
+            continue
+        callee_calls = [
+            row
+            for row in owned_calls
+            if row.get("target_kind") != CONSTRUCTOR_KIND
+            and row.get("target_semantic_id") != symbol["semantic_id"]
+        ]
+        callees = sorted({row["target_semantic_id"] for row in callee_calls})
+        callee_names = sorted({row["target_name"] for row in callee_calls})
+        callers_by_id: dict[str, dict[str, Any]] = {}
+        for call in calls:
+            if call.get("target_semantic_id") != symbol["semantic_id"]:
+                continue
+            caller_identity = call.get("containing_caller", {})
+            caller = declarations_by_semantic_id.get(caller_identity.get("semantic_id"))
+            if (
+                caller is None
+                or roles.get(caller.get("file")) != "selected-production"
+                or not _matches_containing_caller(caller, caller_identity)
+            ):
+                uncertain.append(
+                    {
+                        "function": function["name"],
+                        "reason": "resolved caller identity unavailable",
+                    }
+                )
+                callers_by_id = {}
+                break
+            callers_by_id[caller["semantic_id"]] = _caller_payload(caller)
         selected.append(
             {
                 **function,
+                "return_type": initializer["parent"],
+                "return_fields": return_fields,
                 "semantic_id": symbol["semantic_id"],
-                "constructor_ids": constructors,
+                "constructor_ids": [initializer_id],
                 "resolved_callee_ids": callees,
                 "resolved_callees": callee_names,
-                "production_callers": [],
+                "selected_initializer": {
+                    "semantic_id": initializer_id,
+                    "owner": initializer["parent"],
+                    "display_name": initializer["display_name"],
+                    "interface_type": initializer_rows[0]["selected_interface_type"],
+                    "declaration": initializer_rows[0]["selected_declaration"],
+                    "fields": return_fields,
+                },
+                "production_callers": [
+                    callers_by_id[identity] for identity in sorted(callers_by_id)
+                ],
             }
         )
-    for function in selected:
-        callers: list[dict[str, Any]] = []
-        for occurrence in occurrences:
-            if function["semantic_id"] not in occurrence.get("definition_semantic_ids", []):
+    candidates: list[dict[str, Any]] = []
+    wrapper_pairs: set[frozenset[str]] = set()
+    rejected: list[dict[str, Any]] = []
+    for index, left in enumerate(resolved_functions):
+        for right in resolved_functions[index + 1 :]:
+            if left["return_type"] != right["return_type"]:
                 continue
-            if roles.get(occurrence.get("source")) != "selected-production":
-                continue
-            if (
-                occurrence.get("source") == function["file"]
-                and occurrence.get("line") == function["line"]
+            pair_ids = frozenset({left["semantic_id"], right["semantic_id"]})
+            if any(
+                call.get("target_semantic_id") in pair_ids
+                and call.get("containing_caller", {}).get("semantic_id") in pair_ids
+                and call.get("target_semantic_id")
+                != call.get("containing_caller", {}).get("semantic_id")
+                for call in calls
             ):
-                continue
-            enclosing = [
-                row
-                for row in selected
-                if row["file"] == occurrence.get("source")
-                and row["line"] < occurrence.get("line", 0) <= row["end_line"]
-            ]
-            if len(enclosing) == 1:
-                caller = enclosing[0]
-                callers.append(
+                wrapper_pairs.add(pair_ids)
+                rejected.append(
                     {
-                        "name": caller["name"],
-                        "path": caller["file"],
-                        "line": caller["line"],
-                        "semantic_id": caller["semantic_id"],
+                        "functions": [left["name"], right["name"]],
+                        "reason": "direct_wrapper_relationship",
                     }
                 )
-        function["production_callers"] = callers
-    candidates: list[dict[str, Any]] = []
-    rejected: list[dict[str, Any]] = []
     for index, left in enumerate(selected):
         for right in selected[index + 1 :]:
             pair = [left["name"], right["name"]]
             if left["return_type"] != right["return_type"]:
                 continue
+            if frozenset({left["semantic_id"], right["semantic_id"]}) in wrapper_pairs:
+                continue
             if left["body_normalized"] == right["body_normalized"]:
                 rejected.append({"functions": pair, "reason": "lexical_clone_only"})
-                continue
-            if re.search(rf"\b{re.escape(right['name'])}\s*\(", left["body"]) or re.search(
-                rf"\b{re.escape(left['name'])}\s*\(", right["body"]
-            ):
-                rejected.append({"functions": pair, "reason": "direct_wrapper_relationship"})
                 continue
             if not left["return_fields"] or left["return_fields"] != right["return_fields"]:
                 rejected.append({"functions": pair, "reason": "return_shape_mismatch"})
@@ -435,11 +534,11 @@ def main(argv: list[str] | None = None) -> int:
             if left["resolved_callee_ids"] != right["resolved_callee_ids"]:
                 rejected.append({"functions": pair, "reason": "resolved_callee_set_mismatch"})
                 continue
-            caller_files = [
-                {row["path"] for row in function["production_callers"]}
+            caller_ids = [
+                {row["semantic_id"] for row in function["production_callers"]}
                 for function in (left, right)
             ]
-            if not all(caller_files) or caller_files[0] == caller_files[1]:
+            if not all(caller_ids) or caller_ids[0] == caller_ids[1]:
                 uncertain.append(
                     {
                         "functions": pair,
@@ -454,15 +553,17 @@ def main(argv: list[str] | None = None) -> int:
                         key: value
                         for key, value in function.items()
                         if key
-                        not in {"body", "body_normalized", "constructor_ids", "resolved_callee_ids"}
+                        not in {"body", "body_normalized", "constructor_ids"}
                     }
                 )
+            selected_initializer = left["selected_initializer"]
             candidate = {
                 "candidate_id": f"SWIFT-SD-{len(candidates) + 1:04d}",
                 "classification": "review_required_semantic_lead",
                 "functions": functions_payload,
                 "return_shape": {"type": left["return_type"], "fields": left["return_fields"]},
                 "resolved_constructor_ids": left["constructor_ids"],
+                "selected_initializer": selected_initializer,
                 "human_verdict": "required",
                 "boundary": "static selected-configuration lead, not behavioral equivalence or refactor safety",
             }

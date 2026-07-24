@@ -6,13 +6,16 @@ acceptance. It does not import or run detection and does not parse or scan
 Swift source. The accepted disposition must be compatible with the upstream
 verdict; keeping the pair separate is a complete outcome.
 
-The consumer rejoins the exact `buildStatement` and `summarizeInvoice`
-definitions, all accepted compiler-resolved direct callers, the common
-`normalize` callee, the selected `Statement` initializer overload, and the
-static `Statement(label:total:)` return shape. The extra `wrapperDecoy` call is
-retained because it is a real direct call in the facts; lexical intent is not a
-license to omit compiler evidence. The two selected functions still have
-distinct caller sets through `billingSurface` and `invoiceSurface`.
+The consumer is product-agnostic: it rejoins each accepted definition and all
+accepted callers through schema-v2 `resolved_calls` and their exact
+`containing_caller` identities, then derives the constructed type, initializer
+owner/overload/labels, return shape, shared callees, and caller sets from the
+hash-bound finding and fact pack. It proves this for both
+`buildStatement`/`summarizeInvoice` with `Statement(label:total:)` and
+`makeReceipt`/`summarizeReceipt` with `Receipt(cents:code:)`; no type or field
+names are embedded in the proposer. The real `wrapperDecoy`, `Void`, and `Int`
+callers remain visible, while typed factory-reference decoys do not become call
+sites.
 
 Freshness and authority bind the facts, source manifest, accepted analysis,
 candidate, provider, proposer, all boundary verdicts, and all eight successful

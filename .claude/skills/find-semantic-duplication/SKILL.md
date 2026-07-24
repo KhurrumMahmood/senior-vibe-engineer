@@ -44,6 +44,25 @@ Overrides/extensions, reflection, delegation, generated
 and plugin sources, Gradle variants, Java, runtime behavior, side effects,
 equivalence, and consolidation safety remain unresolved.
 
+## Swift 6.3.3 semantic branch
+
+Consume only a current complete `swift-semantic-facts-v2` pack from the sibling
+`_swift-semantic-readonly` provider, then run
+`scripts/detect_swift_semantic.py`. Candidate calls and incoming caller sets
+come from `compiler_details.resolved_calls`: every incoming edge is rejoined to
+its exact `containing_caller`, so ordinary `Void` and other-return production
+callers remain visible while a bare function reference is not treated as a
+call. Constructor owner, initializer overload, and return labels come from the
+resolved declaration and selected-overload facts rather than a product-specific
+type or field list.
+
+Matching constructed return shape, constructor identity, direct callee
+identities, and distinct resolved caller sets are content-addressed review
+evidence only. Wrappers are rejected through resolved call edges. Dynamic,
+protocol, Objective-C, reflective, generated, conditional, external, runtime,
+behavioral-equivalence, refactor-safety, and mutation claims remain outside the
+branch.
+
 ## C++20 branch
 
 Use `scripts/detect_cpp_semantic.py` with `_cpp-semantic`; run the script with

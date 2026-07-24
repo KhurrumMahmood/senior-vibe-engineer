@@ -27,7 +27,8 @@ QUERIES = sorted(
     {
         "Statement", "billingSurface", "buildStatement", "cloneOne", "cloneTwo",
         "invoiceSurface", "normalize", "policyDecoy", "policyFee",
-        "summarizeInvoice", "wrapperDecoy",
+        "Receipt", "receiptFactoryReference", "roundCents", "statementFactoryReference",
+        "summarizeInvoice", "summarizeReceipt", "makeReceipt", "wrapperDecoy",
     }
 )
 GATES = {
@@ -129,6 +130,7 @@ def _analysis(
     facts: Path,
     verdict: str,
     detector: Path = DETECTOR,
+    pair: tuple[str, str] = ("buildStatement", "summarizeInvoice"),
 ) -> tuple[Path, dict[str, Any]]:
     output = host / "reports/semantic-duplication/swift"
     reviews = host / "reports/semantic-duplication/reviews"
@@ -137,21 +139,26 @@ def _analysis(
         "--target-name", "SwiftA3Core", "--target", "Sources/SwiftA3Core",
         "--facts", facts, "--output-dir", output, cwd=host.parent,
     )
-    candidate = json.loads((output / "candidates.jsonl").read_text(encoding="utf-8").strip())
-    assert [row["name"] for row in candidate["functions"]] == [
-        "buildStatement", "summarizeInvoice"
+    candidates = [
+        json.loads(line)
+        for line in (output / "candidates.jsonl").read_text(encoding="utf-8").splitlines()
     ]
-    _write(
-        reviews / f'{candidate["candidate_id"]}.json',
-        {
-            "schema_version": "swift-semantic-duplication-review-v1",
-            "candidate_id": candidate["candidate_id"],
-            "candidate_sha256": candidate["candidate_sha256"],
-            "human_verdict": "accepted",
-            "verdict": verdict,
-            "notes": "Reviewed the exact static pair, caller split, and non-equivalence limits.",
-        },
-    )
+    assert [[row["name"] for row in candidate["functions"]] for candidate in candidates] == [
+        ["buildStatement", "summarizeInvoice"],
+        ["makeReceipt", "summarizeReceipt"],
+    ]
+    for candidate in candidates:
+        _write(
+            reviews / f'{candidate["candidate_id"]}.json',
+            {
+                "schema_version": "swift-semantic-duplication-review-v1",
+                "candidate_id": candidate["candidate_id"],
+                "candidate_sha256": candidate["candidate_sha256"],
+                "human_verdict": "accepted",
+                "verdict": verdict,
+                "notes": "Reviewed the exact static pair, caller split, and non-equivalence limits.",
+            },
+        )
     _run(
         PYTHON, "-I", "-S", detector, "--project-root", host,
         "--target-name", "SwiftA3Core", "--target", "Sources/SwiftA3Core",
@@ -159,7 +166,11 @@ def _analysis(
         cwd=host.parent,
     )
     analysis = output / "analysis.json"
-    finding = _json(analysis)["findings"][0]
+    finding = next(
+        row
+        for row in _json(analysis)["findings"]
+        if tuple(function["name"] for function in row["functions"]) == pair
+    )
     assert finding["verdict"] == verdict
     return analysis, finding
 
@@ -268,13 +279,57 @@ def test_swift_unify_shadows_copied_value_refusal_and_recovery(tmp_path: Path) -
         {row["caller"]["name"] for row in member["resolved_callers"]}
         for member in scope["members"]
     ]
-    assert callers == [{"billingSurface", "wrapperDecoy"}, {"invoiceSurface"}]
+    assert callers == [
+        {"billingSurface", "recordStatement", "statementTotal", "wrapperDecoy"},
+        {"invoiceSurface"},
+    ]
+    assert "statementFactoryReference" not in callers[0]
     assert callers[0].isdisjoint(callers[1])
     assert scope["static_shape"]["shared_resolved_callees"] == ["normalize"]
     assert scope["static_shape"]["return_shape"] == {
         "fields": ["label", "total"], "type": "Statement"
     }
     assert scope["static_shape"]["selected_initializer_overload"]["line"] == 5
+
+    receipt_acceptance = _acceptance(
+        host,
+        facts,
+        analysis,
+        next(
+            row
+            for row in _json(analysis)["findings"]
+            if [function["name"] for function in row["functions"]]
+            == ["makeReceipt", "summarizeReceipt"]
+        ),
+        "share_utilities",
+        copied_proposer,
+    )
+    receipt_output = _propose(
+        host,
+        facts,
+        analysis,
+        receipt_acceptance,
+        copied_proposer,
+        name="SWIFT-SD-0002",
+    )
+    receipt_scope = _json(receipt_output / "scope.json")
+    assert receipt_scope["static_shape"]["return_shape"] == {
+        "fields": ["cents", "code"],
+        "type": "Receipt",
+    }
+    assert receipt_scope["static_shape"]["shared_resolved_callees"] == ["roundCents"]
+    assert receipt_scope["static_shape"]["selected_initializer_overload"]["parent"] == (
+        "Receipt"
+    )
+    assert [
+        {row["caller"]["name"] for row in member["resolved_callers"]}
+        for member in receipt_scope["members"]
+    ] == [{"checkoutReceipt"}, {"receiptTotal"}]
+    assert "receiptFactoryReference" not in {
+        row["caller"]["name"]
+        for member in receipt_scope["members"]
+        for row in member["resolved_callers"]
+    }
     assert _state(host) == before
     copied_text = copied_proposer.read_text(encoding="utf-8")
     assert str(ROOT) not in copied_text

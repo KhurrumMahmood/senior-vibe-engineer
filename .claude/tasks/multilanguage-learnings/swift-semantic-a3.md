@@ -35,15 +35,22 @@ One content-bound Swift-local fact pack supports five read-only consumers:
 - `find-incomplete-sweep` binds direct call sites to one defaulted-argument
   declaration before Git trajectory and packet-hash-bound human triage.
 - `find-semantic-duplication` compares compiler-resolved constructor and direct
-  callee identities plus static return shape; lexical clones, wrappers, and
+  callee identities plus static return shape. It derives incoming caller sets
+  from schema-v2 `resolved_calls` and exact `containing_caller` identities, so
+  ordinary `Void` and other-return callers remain visible while callable
+  references do not become calls. Lexical clones, resolved wrappers, and
   mismatched policy callees remain rejected.
 - `rename-concept` separates exact old/new type references from comments,
   strings, excluded roles, and unrelated lexical matches, and applies no edit.
 
 The positive fixture yields exactly `dormantDiscount`, `Job.state`, the omitted
-`charge` audit argument, the `buildStatement`/`summarizeInvoice` pair, and the
-`LegacyStatus`/`CanonicalStatus` assessment. The clean target reaches complete
-empty outcomes for all five.
+`charge` audit argument, two independent duplication leads
+(`buildStatement`/`summarizeInvoice` constructing `Statement(label:total:)` and
+`makeReceipt`/`summarizeReceipt` constructing `Receipt(cents:code:)`), and the
+`LegacyStatus`/`CanonicalStatus` assessment. Ordinary `Void` and `Int` callers
+are retained for those leads; typed factory-reference decoys are absent from
+their caller sets. The clean target reaches complete empty outcomes for all
+five.
 
 ## Contract and lifecycle
 

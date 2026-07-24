@@ -57,8 +57,14 @@ QUERY_GROUPS = {
         "normalize",
         "policyDecoy",
         "policyFee",
+        "Receipt",
+        "receiptFactoryReference",
+        "roundCents",
         "Statement",
+        "statementFactoryReference",
         "summarizeInvoice",
+        "summarizeReceipt",
+        "makeReceipt",
         "wrapperDecoy",
     ],
     "rename": ["CanonicalStatus", "LegacyStatus"],
@@ -330,6 +336,26 @@ def test_compiler_ast_is_bounded_deterministic_and_resolved(tmp_path: Path) -> N
     assert ("billingSurface", "buildStatement", "Sources/SwiftA3Core/SurfaceA.swift", 2) in (
         call_pairs
     )
+    assert ("recordStatement", "buildStatement", "Sources/SwiftA3Core/Callers.swift", 2) in (
+        call_pairs
+    )
+    assert ("statementTotal", "buildStatement", "Sources/SwiftA3Core/Callers.swift", 6) in (
+        call_pairs
+    )
+    assert not any(
+        caller == "statementFactoryReference" and target == "buildStatement"
+        for caller, target, _source, _line in call_pairs
+    )
+    assert ("checkoutReceipt", "makeReceipt", "Sources/SwiftA3Core/ReceiptSurfaces.swift", 2) in (
+        call_pairs
+    )
+    assert ("receiptTotal", "summarizeReceipt", "Sources/SwiftA3Core/ReceiptSurfaces.swift", 6) in (
+        call_pairs
+    )
+    assert not any(
+        caller == "receiptFactoryReference" and target == "makeReceipt"
+        for caller, target, _source, _line in call_pairs
+    )
     assert ("legacyChargePath", "charge", "Sources/SwiftA3Core/Sweep.swift", 6) in (
         call_pairs
     )
@@ -415,8 +441,11 @@ def test_copied_union_reaches_five_outcomes_reviews_and_lifecycle(tmp_path: Path
         "name": "SwiftA3Core",
         "path": "Sources/SwiftA3Core",
         "sources": [
+            "Callers.swift",
             "Dormant.swift",
             "Duplication.swift",
+            "ReceiptDuplication.swift",
+            "ReceiptSurfaces.swift",
             "Rename.swift",
             "State.swift",
             "SurfaceA.swift",
@@ -644,26 +673,67 @@ def test_copied_union_reaches_five_outcomes_reviews_and_lifecycle(tmp_path: Path
         json.loads(line) for line in (duplicate_dir / "candidates.jsonl").read_text().splitlines()
     ]
     assert [[item["name"] for item in lead["functions"]] for lead in leads] == [
-        ["buildStatement", "summarizeInvoice"]
+        ["buildStatement", "summarizeInvoice"],
+        ["makeReceipt", "summarizeReceipt"],
     ]
+    statement, receipt = leads
+    assert {
+        row["name"]
+        for row in statement["functions"][0]["production_callers"]
+    } == {"billingSurface", "recordStatement", "statementTotal", "wrapperDecoy"}
+    record_statement = next(
+        row
+        for row in statement["functions"][0]["production_callers"]
+        if row["name"] == "recordStatement"
+    )
+    assert record_statement["interface_type"] == "(Int) -> ()"
+    assert record_statement["declaration"] == {
+        "column": 13,
+        "external": False,
+        "line": 1,
+        "path": "Sources/SwiftA3Core/Callers.swift",
+    }
+    assert {
+        row["name"]
+        for row in statement["functions"][1]["production_callers"]
+    } == {"invoiceSurface"}
+    assert "statementFactoryReference" not in {
+        row["name"]
+        for function in statement["functions"]
+        for row in function["production_callers"]
+    }
+    assert receipt["return_shape"] == {"fields": ["cents", "code"], "type": "Receipt"}
+    assert [row["resolved_callees"] for row in receipt["functions"]] == [
+        ["roundCents"],
+        ["roundCents"],
+    ]
+    assert [
+        {row["name"] for row in function["production_callers"]}
+        for function in receipt["functions"]
+    ] == [{"checkoutReceipt"}, {"receiptTotal"}]
+    assert "receiptFactoryReference" not in {
+        row["name"]
+        for function in receipt["functions"]
+        for row in function["production_callers"]
+    }
     assert {row["reason"] for row in duplicate_pending["rejected"]} >= {
         "direct_wrapper_relationship",
         "lexical_clone_only",
         "resolved_callee_set_mismatch",
     }
     duplicate_reviews = tmp_path / "duplicate-reviews"
-    lead = leads[0]
-    _write_json(
-        duplicate_reviews / f"{lead['candidate_id']}.json",
-        {
-            "schema_version": "swift-semantic-duplication-review-v1",
-            "candidate_id": lead["candidate_id"],
-            "candidate_sha256": lead["candidate_sha256"],
-            "human_verdict": "accepted",
-            "verdict": "keep_separate_document_why",
-            "notes": "The static capability overlap is real; product ownership remains distinct.",
-        },
-    )
+    for lead in leads:
+        _write_json(
+            duplicate_reviews / f"{lead['candidate_id']}.json",
+            {
+                "schema_version": "swift-semantic-duplication-review-v1",
+                "candidate_id": lead["candidate_id"],
+                "candidate_sha256": lead["candidate_sha256"],
+                "human_verdict": "accepted",
+                "verdict": "keep_separate_document_why",
+                "notes": "The static capability overlap is real; product ownership remains distinct.",
+            },
+        )
     _consumer(
         copied["duplicate"],
         host,
@@ -675,7 +745,8 @@ def test_copied_union_reaches_five_outcomes_reviews_and_lifecycle(tmp_path: Path
     )
     duplicate = json.loads((duplicate_dir / "analysis.json").read_text())
     assert duplicate["status"] == "complete"
-    assert duplicate["findings"][0]["human_verdict"] == "accepted"
+    assert len(duplicate["findings"]) == 2
+    assert all(row["human_verdict"] == "accepted" for row in duplicate["findings"])
     matrix = duplicate_dir / "capability-matrix-swift-sd-0001.md"
     assert matrix.is_file()
 

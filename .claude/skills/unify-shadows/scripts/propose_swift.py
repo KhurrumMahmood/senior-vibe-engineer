@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import stat
 import sys
@@ -54,6 +55,7 @@ EXPECTED_CAPABILITIES = {
     "overload_selection": True,
     "static_function_bodies": True,
 }
+CONSTRUCTOR_KIND = 9
 
 
 class ProposalError(RuntimeError):
@@ -293,10 +295,12 @@ def _validate_facts(
             function.get("name"),
             function.get("return_type"),
             *function.get("resolved_callees", []),
-            *(row.get("name") for row in function.get("production_callers", [])),
         ]
         if isinstance(value, str) and value
     }
+    return_shape = finding.get("return_shape", {})
+    if isinstance(return_shape.get("type"), str):
+        queries.add(return_shape["type"])
     try:
         facts = PROVIDER.load_fact_pack(
             facts_path, root, accepted.get("target_name", ""), sorted(queries)
@@ -332,19 +336,59 @@ def _one(rows: list[dict[str, Any]], label: str) -> dict[str, Any]:
     return rows[0]
 
 
+def _initializer_fields(display_name: object) -> list[str]:
+    if not isinstance(display_name, str) or not display_name.startswith("init("):
+        return []
+    return sorted(
+        label
+        for label in re.findall(r"([A-Za-z_][A-Za-z0-9_]*|_)\s*:", display_name)
+        if label != "_"
+    )
+
+
+def _caller_projection(declaration: dict[str, Any]) -> dict[str, Any]:
+    definitions = declaration.get("definitions", [])
+    return {
+        "name": declaration["name"],
+        "kind": declaration["kind"],
+        "path": declaration["file"],
+        "line": declaration["line"],
+        "semantic_id": declaration["semantic_id"],
+        "interface_type": declaration["interface_type"],
+        "declaration": definitions[0],
+    }
+
+
+def _matches_containing_caller(
+    declaration: dict[str, Any], identity: object
+) -> bool:
+    definitions = declaration.get("definitions", [])
+    return len(definitions) == 1 and identity == {
+        "name": declaration.get("name"),
+        "kind": declaration.get("kind"),
+        "semantic_id": declaration.get("semantic_id"),
+        "interface_type": declaration.get("interface_type"),
+        "declaration": definitions[0],
+    }
+
+
 def _scope(facts: dict[str, Any], finding: dict[str, Any], decision: str) -> dict[str, Any]:
-    symbols = facts.get("symbols", [])
-    occurrences = facts.get("definition_occurrences", [])
+    details = facts.get("compiler_details", {})
+    declarations = details.get("all_declarations", [])
+    calls = details.get("resolved_calls", [])
+    bodies = details.get("function_bodies", [])
+    declarations_by_id = {
+        row["semantic_id"]: row for row in declarations if row.get("semantic_id")
+    }
     roles = {row.get("path"): row.get("role") for row in facts.get("source_inventory", [])}
-    bodies = facts.get("compiler_details", {}).get("function_bodies", [])
     members: list[dict[str, Any]] = []
     caller_sets: list[set[str]] = []
-    body_rows: list[dict[str, Any]] = []
+    member_shapes: list[dict[str, Any]] = []
     for member in finding["functions"]:
         definition = _one(
             [
                 row
-                for row in symbols
+                for row in declarations
                 if row.get("semantic_id") == member.get("semantic_id")
                 and row.get("name") == member.get("name")
                 and row.get("file") == member.get("file")
@@ -362,85 +406,144 @@ def _scope(facts: dict[str, Any], finding: dict[str, Any], decision: str) -> dic
         producer_callers = member.get("production_callers")
         if not isinstance(producer_callers, list) or not producer_callers:
             raise ProposalError("caller_evidence_ambiguous", "each member needs production callers")
-        resolved_callers: list[dict[str, Any]] = []
-        for expected in producer_callers:
-            caller = _one(
-                [
-                    row
-                    for row in symbols
-                    if row.get("semantic_id") == expected.get("semantic_id")
-                    and row.get("name") == expected.get("name")
-                    and row.get("file") == expected.get("path")
-                    and row.get("line") == expected.get("line")
-                    and row.get("top_level") is True
-                    and row.get("role") == "selected-production"
-                ],
-                f'caller {expected.get("name")}',
+        expected_callers = {
+            row.get("semantic_id"): row
+            for row in producer_callers
+            if isinstance(row, dict) and isinstance(row.get("semantic_id"), str)
+        }
+        if len(expected_callers) != len(producer_callers):
+            raise ProposalError("caller_evidence_ambiguous", "accepted callers must be unique")
+        incoming = [
+            row
+            for row in calls
+            if row.get("target_semantic_id") == definition["semantic_id"]
+            and roles.get(row.get("source")) == "selected-production"
+        ]
+        actual_calls: dict[str, list[dict[str, Any]]] = {}
+        for call in incoming:
+            caller_identity = call.get("containing_caller", {})
+            caller_id = caller_identity.get("semantic_id")
+            caller = declarations_by_id.get(caller_id)
+            if (
+                caller is None
+                or roles.get(caller.get("file")) != "selected-production"
+                or not _matches_containing_caller(caller, caller_identity)
+            ):
+                raise ProposalError(
+                    "caller_evidence_mismatch", "resolved call has an invalid caller identity"
+                )
+            actual_calls.setdefault(caller_id, []).append(call)
+        if set(actual_calls) != set(expected_callers):
+            raise ProposalError(
+                "caller_evidence_mismatch", "accepted and fact caller sets diverged"
             )
-            callsites = [
-                row
-                for row in occurrences
-                if definition["semantic_id"] in row.get("definition_semantic_ids", [])
-                and row.get("source") == caller["file"]
-                and caller["line"] < row.get("line", 0) <= caller["end_line"]
-                and roles.get(row.get("source")) == "selected-production"
-            ]
-            if not callsites:
-                raise ProposalError("caller_evidence_mismatch", "resolved caller has no fact callsite")
-            resolved_callers.append({"caller": caller, "occurrences": callsites})
-        expected_ids = {row.get("semantic_id") for row in producer_callers}
-        actual_ids = {row["caller"]["semantic_id"] for row in resolved_callers}
-        if expected_ids != actual_ids:
-            raise ProposalError("caller_evidence_mismatch", "producer and fact callers diverged")
-        caller_sets.append(actual_ids)
-        body_rows.append(body)
-        members.append({"definition": definition, "resolved_callers": resolved_callers})
-    if caller_sets[0] & caller_sets[1]:
-        raise ProposalError("caller_evidence_ambiguous", "selected caller sets must be distinct")
-    callee_ids = [set(row.get("direct_call_target_ids", [])) for row in body_rows]
-    if not callee_ids[0] or callee_ids[0] != callee_ids[1]:
-        raise ProposalError("static_shape_mismatch", "selected resolved callee sets changed")
-    callee_names = sorted(
-        {
-            row["name"]
-            for row in symbols
-            if row.get("semantic_id") in callee_ids[0]
+        resolved_callers: list[dict[str, Any]] = []
+        for caller_id in sorted(actual_calls):
+            caller = declarations_by_id[caller_id]
+            if expected_callers[caller_id] != _caller_projection(caller):
+                raise ProposalError(
+                    "caller_evidence_mismatch", "accepted caller identity changed"
+                )
+            resolved_callers.append(
+                {"caller": caller, "occurrences": actual_calls[caller_id]}
+            )
+        caller_sets.append(set(actual_calls))
+        owned_calls = [
+            row
+            for row in calls
+            if row.get("containing_caller", {}).get("semantic_id")
+            == definition["semantic_id"]
+        ]
+        callee_calls = [
+            row
+            for row in owned_calls
+            if row.get("target_kind") != CONSTRUCTOR_KIND
+            and row.get("target_semantic_id") != definition["semantic_id"]
+        ]
+        callee_ids = sorted({row["target_semantic_id"] for row in callee_calls})
+        callee_names = sorted({row["target_name"] for row in callee_calls})
+        if (
+            member.get("resolved_callee_ids") != callee_ids
+            or member.get("resolved_callees") != callee_names
+            or body.get("direct_call_target_ids") != callee_ids
+            or body.get("direct_call_targets") != callee_names
+        ):
+            raise ProposalError("static_shape_mismatch", "accepted resolved callees changed")
+        initializer = finding.get("selected_initializer")
+        if not isinstance(initializer, dict):
+            raise ProposalError("overload_evidence_mismatch", "accepted initializer is missing")
+        initializer_id = initializer.get("semantic_id")
+        constructor_calls = [
+            row
+            for row in owned_calls
+            if row.get("target_kind") == CONSTRUCTOR_KIND
+            and row.get("target_semantic_id") == initializer_id
+        ]
+        overloads = [
+            row
+            for row in body.get("selected_overloads", [])
+            if row.get("selected_semantic_id") == initializer_id
+        ]
+        if len(constructor_calls) != 1 or len(overloads) != 1:
+            raise ProposalError(
+                "overload_evidence_mismatch", "one exact return initializer call is required"
+            )
+        initializer_declaration = declarations_by_id.get(initializer_id)
+        if initializer_declaration is None:
+            raise ProposalError("overload_evidence_mismatch", "initializer declaration is missing")
+        actual_initializer = {
+            "semantic_id": initializer_id,
+            "owner": initializer_declaration.get("parent"),
+            "display_name": initializer_declaration.get("display_name"),
+            "interface_type": overloads[0].get("selected_interface_type"),
+            "declaration": overloads[0].get("selected_declaration"),
+            "fields": _initializer_fields(initializer_declaration.get("display_name")),
         }
-    )
-    expected_callees = [sorted(row.get("resolved_callees", [])) for row in finding["functions"]]
-    if expected_callees != [callee_names, callee_names]:
-        raise ProposalError("static_shape_mismatch", "accepted resolved callee names changed")
-    overloads = [
-        row
-        for body in body_rows
-        for row in body.get("selected_overloads", [])
-    ]
-    selected = {
-        _canonical(
+        if member.get("selected_initializer") != actual_initializer:
+            raise ProposalError("overload_evidence_mismatch", "member initializer changed")
+        member_shapes.append(
             {
-                "declaration": row.get("selected_declaration"),
-                "interface_type": row.get("selected_interface_type"),
+                "callee_ids": callee_ids,
+                "callee_names": callee_names,
+                "initializer": actual_initializer,
+                "initializer_declaration": initializer_declaration,
+                "selected_interface_type": overloads[0].get("selected_interface_type"),
             }
-        ): {
-            **row.get("selected_declaration", {}),
-            "interface_type": row.get("selected_interface_type"),
-        }
-        for row in overloads
-    }
-    if len(selected) != 1 or len(overloads) != 2:
+        )
+        members.append({"definition": definition, "resolved_callers": resolved_callers})
+    if caller_sets[0] == caller_sets[1]:
+        raise ProposalError("caller_evidence_ambiguous", "selected caller sets must differ")
+    if (
+        not member_shapes[0]["callee_ids"]
+        or member_shapes[0]["callee_ids"] != member_shapes[1]["callee_ids"]
+        or member_shapes[0]["callee_names"] != member_shapes[1]["callee_names"]
+    ):
+        raise ProposalError("static_shape_mismatch", "selected resolved callee sets changed")
+    if member_shapes[0]["initializer"] != member_shapes[1]["initializer"]:
         raise ProposalError("overload_evidence_mismatch", "one shared selected overload is required")
     return_shape = finding.get("return_shape")
     if (
-        return_shape != {"type": "Statement", "fields": ["label", "total"]}
-        or len(finding.get("resolved_constructor_ids", [])) != 1
+        return_shape
+        != {
+            "type": member_shapes[0]["initializer"]["owner"],
+            "fields": member_shapes[0]["initializer"]["fields"],
+        }
+        or finding.get("resolved_constructor_ids")
+        != [member_shapes[0]["initializer"]["semantic_id"]]
+        or finding.get("selected_initializer") != member_shapes[0]["initializer"]
     ):
         raise ProposalError("static_shape_mismatch", "accepted constructor or return shape changed")
+    initializer_declaration = member_shapes[0]["initializer_declaration"]
     static_shape = {
         "return_shape": return_shape,
         "resolved_constructor_ids": finding["resolved_constructor_ids"],
-        "shared_resolved_callee_ids": sorted(callee_ids[0]),
-        "shared_resolved_callees": callee_names,
-        "selected_initializer_overload": next(iter(selected.values())),
+        "shared_resolved_callee_ids": member_shapes[0]["callee_ids"],
+        "shared_resolved_callees": member_shapes[0]["callee_names"],
+        "selected_initializer_overload": {
+            **initializer_declaration,
+            "selected_interface_type": member_shapes[0]["selected_interface_type"],
+            "fields": member_shapes[0]["initializer"]["fields"],
+        },
     }
     return {
         "schema_version": "swift-unify-shadows-scope-v1",
