@@ -1,6 +1,6 @@
 ---
 name: move-path
-description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move; checked Dart supports one evidence-authorized private library file or leaf-directory move with analyzer-resolved directive rewrites and public-barrel preservation. TypeScript/TSX source imports are never rewritten in v1.
+description: Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move; checked Ruby supports one evidence-authorized plain-gem module file move with Prism-attributed edits; checked Dart supports one evidence-authorized private library file or leaf-directory move with analyzer-resolved directive rewrites and public-barrel preservation. TypeScript/TSX source imports are never rewritten in v1.
 argument-hint: "--plan moves.json --dry-run|--apply|--check"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 user-invocable: true
@@ -21,6 +21,8 @@ best_for: |
   target-directory move that retains module identity and has an executable smoke product.
   Use the checked-Rust mode only for one reviewed conventional leaf-module
   file or directory move in a regular Cargo library target.
+  Use the checked-Ruby mode only for one reviewed plain-gem module file move
+  with explicit before/after constant identities and native test/smoke outputs.
   Use the checked-Dart mode only for one reviewed private `lib/src` library
   file or leaf-directory move in a dependency-free Dart 3.12 package with a
   pre-existing package configuration, direct native test/smoke, and declared
@@ -34,13 +36,13 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [dart, go, java, javascript, php, rust, swift, typescript]
+scans: [dart, go, java, javascript, php, ruby, rust, swift, typescript]
 ---
 
 # /move-path
 
 You are the orchestrator for safe batched standalone TypeScript/TSX path
-moves, plus opt-in bounded checked-Dart, JavaScript, Go, Java, PHP, Rust, and SwiftPM modes. The deterministic
+moves, plus opt-in bounded checked-Dart, JavaScript, Go, Java, PHP, Ruby, Rust, and SwiftPM modes. The deterministic
 script owns filesystem moves, path normalization, reference resolution, patch
 generation, and verification. Your job is to prepare or inspect the plan, run
 dry-run first, review uncertainty buckets and ignored-import risk, then apply
@@ -223,6 +225,29 @@ moves, and ambiguous topology remain `partial` and block writes. Post-apply or
 exact-after-tree failure restores the full pre-apply snapshot. This is not a
 crate/package rename or arbitrary Rust refactoring engine.
 
+## Checked-Ruby Module Boundary
+
+Use `scripts/ruby_module_move.py` for exactly one authored `.rb` module file
+move in a dependency-free plain Ruby gem. The plan must name the exact
+`constant_before` and `constant_after`; filesystem paths alone do not establish
+Ruby constant identity. Dry-run uses bundled Prism facts to produce exact
+namespace, `require_relative`, and uniquely resolved constant-reference edits,
+runs per-file syntax plus frozen Bundler/native test/smoke checks, and writes
+content-addressed `evidence.json`.
+
+Apply requires the reviewed evidence file and its SHA-256. Changed source,
+modes, symlinks, plan, adapter/tool facts, edit spans, or expected after-tree
+invalidates that authority. Postflight repeats all native checks, rejects old
+identity residue or unexpected mutations, and restores the complete pre-apply
+tree on failure.
+
+Dynamic or non-relative loading of the moved identity, autoload, reflection,
+constant reopening, Rails/Zeitwerk, generated/vendor/build ownership, malformed
+source, symlink impact, multiple moves, and directory moves stop before writes.
+Unrelated dynamic Ruby remains preserved and does not globally block the one
+static move. This is not a class rename, autoload migration, Rails refactor, or
+general Ruby code-movement engine.
+
 ## Checked-Dart Library Boundary
 
 Use `scripts/dart_library_move.py` for exactly one private Dart library file
@@ -340,6 +365,42 @@ fi
 python3 "${SKILL_ROOT}/scripts/rust_module_move.py" "${RUST_ARGS[@]}"
 ```
 <!-- installed-command:rust-move:end -->
+
+For Ruby, invoke the copied standalone adapter. Dry-run produces the evidence
+hash; apply must repeat that reviewed hash explicitly:
+
+<!-- installed-command:ruby-move:start -->
+```bash
+MOVE_PLAN="${MOVE_PLAN:-moves.json}"
+MOVE_MODE="${MOVE_MODE:---dry-run}" # --dry-run | --apply | --check
+MOVE_REPORT_DIR="${MOVE_REPORT_DIR:-reports/move-path}"
+SKILL_ROOT=""
+for SKILL_CANDIDATE in \
+  ".agents/skills/on-demand/move-path" \
+  ".agents/skills/move-path" \
+  ".claude/skills/move-path"
+do
+  if [ -f "${SKILL_CANDIDATE}/scripts/ruby_module_move.py" ]; then
+    SKILL_ROOT="$(cd "${SKILL_CANDIDATE}" && pwd)"
+    break
+  fi
+done
+if [ -z "${SKILL_ROOT}" ]; then
+  printf '%s\n' "Ruby move-path skill is not installed" >&2
+  exit 2
+fi
+RUBY_ARGS=(--plan "${MOVE_PLAN}" --project-root "$(pwd)" \
+  --report-dir "${MOVE_REPORT_DIR}" "${MOVE_MODE}" --json)
+if [ "${MOVE_MODE}" = "--apply" ]; then
+  : "${APPROVED_EVIDENCE_SHA256:?Set from the reviewed dry-run evidence}"
+  RUBY_ARGS+=(--evidence "${MOVE_REPORT_DIR}/evidence.json" \
+    --approve-evidence-sha256 "${APPROVED_EVIDENCE_SHA256}")
+elif [ "${MOVE_MODE}" = "--check" ]; then
+  RUBY_ARGS+=(--evidence "${MOVE_REPORT_DIR}/evidence.json")
+fi
+python3 "${SKILL_ROOT}/scripts/ruby_module_move.py" "${RUBY_ARGS[@]}"
+```
+<!-- installed-command:ruby-move:end -->
 
 For Dart, invoke the copied standalone adapter. Dry-run produces the evidence
 hash; apply must repeat that reviewed hash explicitly:
@@ -521,6 +582,29 @@ the host-owned toolchain plus an executable smoke expectation:
 }
 ```
 
+For the bounded Ruby module move, name the exact constant transition and
+native outcomes:
+
+```json
+{
+  "version": 1,
+  "moves": [
+    {"from": "lib/billing/invoice_registry.rb", "to": "lib/invoicing/invoice_registry.rb", "mode": "file"}
+  ],
+  "rewrite": {"code_imports": "update-ruby"},
+  "ruby": {
+    "binary": "/absolute/path/to/ruby",
+    "bundler": "/absolute/path/to/bundle",
+    "constant_before": "Billing::InvoiceRegistry",
+    "constant_after": "Invoicing::InvoiceRegistry",
+    "native_test": "test/invoice_service_test.rb",
+    "native_test_expected_stdout": "native-test:ok\n",
+    "smoke": "bin/ruby-pilot-smoke",
+    "smoke_expected_stdout": "invoice:INV-42:125\n"
+  }
+}
+```
+
 For the bounded Dart private-library move, declare the audited host scope,
 pre-existing configuration, direct native obligations, and stable barrel:
 
@@ -581,6 +665,9 @@ describing the old layout rather than linking to the current identity.
    In checked-Rust mode, require a `complete` Rust status, review the exact
    module declaration/path edits and source fingerprint, and resolve every
    cfg, macro, include, build-output, symlink, excluded-root, or topology refusal.
+   In checked-Ruby mode, require a `complete` dry-run, review the exact
+   namespace/load/constant edits, then pass the content-addressed evidence hash
+   explicitly to apply. Dynamic or stale evidence is a stop.
    In checked-Dart mode, require a `complete` dry-run, review every exact
    analyzer-resolved directive edit and the declared public barrel, then pass
    the content-addressed evidence hash explicitly to apply. Any partial or
@@ -605,8 +692,8 @@ language adapters:
 - `--stage` stages changed old and new paths after apply; otherwise the tool
   leaves the index alone.
 
-The standalone Dart adapter uses filesystem rename after the content-addressed
-current-tree check. It has no dirty-touched or `--stage` mode; the user owns Git
+The standalone Ruby and Dart adapters use filesystem rename after the content-addressed
+current-tree check. They have no dirty-touched or `--stage` mode; the user owns Git
 staging after a complete apply/check.
 
 - After manual reference or signpost edits, run `--check` before commit. If

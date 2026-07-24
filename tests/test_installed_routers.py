@@ -522,6 +522,32 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     ] == "ruby-supported"
     assert supported_ruby_map_payload["optional_install"]["available"] is True
 
+    supported_ruby_move = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use move-path for this Ruby module file move",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "ruby",
+        "--json",
+        cwd=host,
+    )
+    supported_ruby_move_payload = _json_output(supported_ruby_move)
+    assert supported_ruby_move_payload["recommendation"] == "move-path"
+    assert supported_ruby_move_payload["handoff"]["available"] is True
+    ruby_move_capability = supported_ruby_move_payload["handoff"]["capabilities"][
+        "skills"
+    ][0]
+    assert ruby_move_capability["ruby_disposition"] == "ruby-supported"
+    assert ruby_move_capability["closure_skills"] == ["move-path"]
+    assert supported_ruby_move_payload["optional_install"]["available"] is True
+    assert (
+        library_root
+        / ".claude/skills/move-path/scripts/ruby_module_move.py"
+    ).is_file()
+
     supported_ruby_adapt = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this Ruby repository",

@@ -90,8 +90,7 @@ EXPECTED_CPP_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_RUBY_COUNTS = {
-    "ruby-supported": 21,
-    "ruby-pending-implementation": 1,
+    "ruby-supported": 22,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -596,6 +595,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "rename-concept",
         "unify-shadows",
         "map-subsystem",
+        "move-path",
     }
     assert {
         row["skill"]
@@ -685,6 +685,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "rename-concept",
         "unify-shadows",
     }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row.get("ruby_closure_mode") == "stock-selected-install"
+    } == {"move-path"}
     assert {
         row["skill"]
         for row in language_rows

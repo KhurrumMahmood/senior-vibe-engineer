@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "9dcc45888aa6801131b98fc99e39af412f900d6df688af0199f2ea6237c574d8"
+      "sha256": "9b04e4e7ba35699fad866c8e47c69e22d90f8eb99e752c7f22961dc8ccd9e389"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -39,7 +39,7 @@
     },
     {
       "path": ".claude/tasks/ruby-language-coverage.json",
-      "sha256": "a54469c6f39762780deee0015bd2ae60fa90457ca89dad2c551ffc8e343629b3"
+      "sha256": "2158325154c87bcd5f450fb20e1d3485cfa37a0325e91b3fbc381ab698d6b875"
     },
     {
       "path": ".claude/tasks/rust-language-coverage.json",
@@ -6098,13 +6098,14 @@
       ],
       "cpp_reviewed_revision": "87aa13548487eb169a57d3ca8b4de6a7f0b9d8ec",
       "cpp_limitation": "Deferred until semantic lineage, include/build/ODR impacts, rollback, and native verification are proven.",
-      "ruby_disposition": "ruby-pending-implementation",
-      "ruby_evidence_path": ".claude/tasks/p7-baseline/ruby-pilot-baseline.json",
+      "ruby_disposition": "ruby-supported",
+      "ruby_evidence_path": ".claude/tasks/multilanguage-learnings/ruby-a5-move-path.md",
       "ruby_native_check": [
-        "mutation intentionally not performed; frozen positive/refusal/native contract only"
+        "Prism-attributed preview and content-addressed human approval",
+        "exact namespace, require_relative, and constant edits; per-file syntax, frozen Bundler, native test/smoke, exact after-tree, rollback, and copied standalone closure"
       ],
-      "ruby_reviewed_revision": "ee1f8bd98caeb8bd96229c26e17cc810e0ef16f5",
-      "ruby_limitation": "Static lineage, exact edits, rollback, stale clearing, and all native verification remain unproved.",
+      "ruby_reviewed_revision": "e727449",
+      "ruby_limitation": "One authored plain-gem module file move only; dynamic/non-relative loading, autoload, reflection, reopening, Rails/Zeitwerk, generated/vendor/build ownership, symlink impact, multiple/directory moves, and general Ruby refactoring remain refused.",
       "rust_disposition": "rust-supported",
       "rust_evidence_path": ".claude/tasks/multilanguage-learnings/rust-move-path.md",
       "rust_native_check": [
@@ -6114,6 +6115,7 @@
       "rust_reviewed_revision": "af9ecc6e77623bff42a04c7643bdde09210b413b",
       "rust_limitation": "Version 1 supports one conventional leaf module in one regular Cargo library target; cfg/path attributes, macros, include!, build output, reflective strings, multiple/cross-package moves, arbitrary files, and non-Cargo/nightly/no_std/cross-target shapes remain partial and block writes.",
       "dart_disposition": "dart-supported",
+      "ruby_closure_mode": "stock-selected-install",
       "dart_closure_mode": "external-library",
       "dart_evidence_path": ".claude/tasks/multilanguage-learnings/dart-d8-move-path.md",
       "dart_native_check": [
@@ -6135,6 +6137,7 @@
           "java",
           "javascript",
           "php",
+          "ruby",
           "rust",
           "swift",
           "typescript"

@@ -460,13 +460,14 @@ def test_ruby_frozen_cohort_contracts_and_all_22_initial_dispositions() -> None:
         "find-semantic-duplication",
         "find-standard-gaps",
         "map-subsystem",
+        "move-path",
         "prevent-regression",
         "propose-boundary",
         "propose-folder-reorganization",
         "rename-concept",
         "unify-shadows",
     }
-    assert sum(value == "ruby-pending-implementation" for value in dispositions.values()) == 1
+    assert sum(value == "ruby-pending-implementation" for value in dispositions.values()) == 0
     assert all(
         row["evidence_path"]
         and row["native_check"]

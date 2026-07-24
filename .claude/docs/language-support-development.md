@@ -240,6 +240,17 @@ helpers language-local: Composer/PSR-4 identity and RBS/dynamic Ruby authority
 are not one portable evidence schema. Guards are staged and verified but not
 installed; proposals remain read-only and require separate mutation approval.
 
+### 11. Ruby mutation evidence
+
+Ruby reaches all 22 bounded language outcomes with one self-contained
+`move-path` adapter rather than another shared rewrite platform. The accepted
+shape requires explicit old/new constant identity, Prism-attributed static
+edits, content-addressed preview approval, per-file syntax, frozen Bundler,
+native test/smoke, exact after-tree verification, and full rollback. Unrelated
+dynamic Ruby is preserved; dynamic loading or reflection involving the moved
+identity refuses. Reuse this transaction shape selectively, but keep each
+language's identity and native-verification rules local.
+
 ## Native foundations for queued languages
 
 | Language | Preferred foundations | Honest boundary |
