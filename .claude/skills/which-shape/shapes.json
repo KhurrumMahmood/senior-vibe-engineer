@@ -73,9 +73,6 @@
                   "unknown",
                   "inherited"
                 ]
-              },
-              {
-                "type": "not-narrow"
               }
             ],
             "weight": 36,
@@ -205,7 +202,8 @@
       "summary": "Drive a glossary-worthy domain-concept rename to completion across every surface.",
       "first_next": "/rename-concept",
       "install_with": [
-        "find-concept-divergence"
+        "find-concept-divergence",
+        "map-subsystem"
       ],
       "sequence": [
         "/rename-concept <old> <new> \u2014 assess the scope-gate + two-band completeness gate",
@@ -712,6 +710,10 @@
       "title": "Regression Prevention",
       "summary": "Convert repeated failures or completed cleanup lessons into guards.",
       "first_next": "/prevent-regression",
+      "install_with": [
+        "find-implicit-state",
+        "map-subsystem"
+      ],
       "sequence": [
         "name the recurring failure shape",
         "/prevent-regression",

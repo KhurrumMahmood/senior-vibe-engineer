@@ -453,6 +453,18 @@ def _score_shape(
     return score, rationale or ["fallback shape candidate"]
 
 
+def _discriminating_question(task_tokens: set[str], confidence: str) -> str | None:
+    """Ask before routing a generic database migration plan."""
+    if confidence != "low" or not {"database", "migration"} <= task_tokens:
+        return None
+    if not task_tokens & {"draft", "plan", "planning", "proposal", "propose"}:
+        return None
+    return (
+        "Is the schema or rollout choice still open, or are you planning an "
+        "already-approved database change?"
+    )
+
+
 def _inactive_steps(
     first_next: str, sequence: list[str], project_root: Path, skills_dir: Path
 ) -> list[dict[str, str]]:
@@ -597,6 +609,9 @@ def route(
             "mode": "first_ordered_phase",
             "text": first_phase,
         }
+    question = _discriminating_question(task_tokens, confidence)
+    if question is not None:
+        result["discriminating_question"] = question
     return result
 
 
@@ -921,6 +936,10 @@ def render_markdown(result: dict[str, Any]) -> str:
     lines.extend(["", f"First next: {rec['first_next']}", "", "Loop:"])
     lines.extend(f"- {step}" for step in rec["sequence"])
     lines.extend(["", f"Stop/reassess: {rec['stop']}"])
+    if result.get("discriminating_question"):
+        lines.extend(
+            ["", f"Discriminating question: {result['discriminating_question']}"]
+        )
     if result.get("handoff"):
         lines.extend(["", "Use this closure on demand:"])
         for item in result["handoff"]["guides"]:
