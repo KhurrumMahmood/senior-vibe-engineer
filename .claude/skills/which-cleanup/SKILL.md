@@ -104,7 +104,10 @@ For each relevant recommendation:
 1. Skip it explicitly if it is irrelevant to the actual change.
 2. For a tiny check, read only its `handoff.guides` paths directly.
 3. For a non-trivial independent check, create a fresh non-context sub-agent
-   with the bounded changed paths, reason, and returned guide/tool paths.
+   with the bounded `scan_request`, recommendation `scan` contract, reason, and
+   returned guide/tool paths. The adapter says whether changed paths seed wider
+   analysis or the request triggers a project scan; do not hunk-clip those
+   findings.
 4. Follow that skill’s own support and runtime claims; a location is not a
    claim that the tooling is language-neutral or independently installable.
 
@@ -144,5 +147,6 @@ multiple read-only checks can run independently.
 └── scripts/
     ├── route.py          # portable stdlib-only installed router
     ├── scan_request.py   # paths, Git changes, and new-side line ranges
-    └── scope_modes.py    # per-scanner effective-mode projection
+    ├── scope_modes.py    # per-scanner effective-mode projection
+    └── finding_envelope.py # normalized artifact + shared scope adapters
 ```

@@ -261,6 +261,15 @@ row and run `.venv/bin/python scripts/check_scan_scope_contracts.py`; never add
 output smaller. Project/skill roots and ignores remain the file-universe layer;
 the scope contract describes how an invocation uses that universe.
 
+`which-cleanup/scripts/finding_envelope.py` is the shared adapter boundary. It
+derives `line-filter`, `path-seed`, `project-trigger`, or `scope-neutral` from
+the reviewed diff semantics, carries the originating scan request once at the
+artifact level, and keeps producer-specific evidence/detail inside each
+normalized finding. A new producer does not implement a second hunk parser or
+silently clip wider findings; add its contract row and make the all-producer
+conformance harness pass. Target modes are not routing claims until that
+rollout's real-family and copied-library gates are recorded in the active plan.
+
 | Skill | What it detects | When |
 |---|---|---|
 | `/find-dormant` | Dead code, orphan endpoints, silently-broken handlers, orphan-entry-with-live-internals | After feature removals; after a prototype graduates into a real workflow; quarterly cleanup. |

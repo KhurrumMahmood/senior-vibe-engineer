@@ -254,6 +254,7 @@ def test_staged_content_drift_degrades_line_filter_explicitly(tmp_path: Path) ->
 
     assert payload["scan_request"]["line_filter_safe"] is False
     assert comment["scan"] == {
+        "adapter": "line-filter",
         "diff_semantics": "filter-findings",
         "effective_mode": "changed-files",
         "reason": "content_basis_mismatch",

@@ -960,6 +960,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         item["skill"]: item for item in cleanup_payload["recommendations"]
     }
     assert cleanup_recommendations["find-comment-drift"]["scan"] == {
+        "adapter": "line-filter",
         "diff_semantics": "filter-findings",
         "effective_mode": "paths",
         "requested_mode": "auto",

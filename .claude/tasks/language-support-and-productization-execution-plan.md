@@ -534,16 +534,18 @@ Acceptance:
   non-default mode using a minimal fixture/fake finding envelope. At least one
   real scanner from each behavior family proves its final user-facing artifact:
   line-local, symbol/file semantic, multi-site/history, and project/global.
-- [ ] A normalized finding envelope carries namespaced kind, stable subject,
-  path, optional line range, evidence fields, completeness/error state, and the
-  originating scan request. Producer-specific detail remains available without
-  forcing one universal finding taxonomy.
+- [ ] A normalized finding artifact carries the originating scan request once;
+  each finding envelope carries namespaced kind, stable subject, path, optional
+  line range, evidence fields, completeness/error state, and producer-specific
+  detail. The protocol does not repeat a potentially large request per finding
+  or force one universal finding taxonomy.
 - [ ] The rollout reuses the external on-demand library. The default ambient
   install remains exactly three routers, and a copied-library conformance run
   proves no repository-relative imports or hidden host configuration are needed.
-- [ ] Generated catalogs/matrices and contributor docs are refreshed from the
-  same committed truth, and drift/conformance checks fail if a producer is added
-  or its claimed modes change without matching implementation evidence.
+- [ ] Contributor docs and every generated catalog/matrix that publishes scope
+  fields are refreshed from the same committed truth (none are invented merely
+  to satisfy this criterion). Drift/conformance checks fail if a producer is
+  added or its claimed modes change without matching implementation evidence.
 
 Evidence:
 
@@ -1534,6 +1536,7 @@ Evidence:
 
 | Date | Phase | Change | Reason/evidence | User decision |
 |---|---|---|---|---|
+| 2026-07-23 | P7/F2C AC1-S4 | Carry one scan request per normalized artifact rather than repeating it inside every finding; refresh only real scope projections rather than inventing a generated catalog | Request payloads can contain many paths and ranges. Repeating them per finding would add exactly the context/artifact bloat the user wants avoided, while a single artifact-level request preserves full auditability | Efficiency clarification found while implementing the reviewed S4 acceptance contract |
 | 2026-07-23 | P7/F2C AC1-S3 | Keep the canonical scan resolver inside the installed `which-cleanup` skill and exchange its serialized protocol with on-demand scanners | The stock skills installer copies only the selected skill directory. Leaving the resolver under sibling `_common` would make the default router depend on ambient or repository-only files; copying it twice would create the coherence problem this phase is meant to remove | Implementation repair required by the existing exactly-three-router installation contract |
 | 2026-07-23 | P7/F2C AC1-S3 | Interpret `diff-lines` per lens: filter line-local findings, but explicitly widen file/symbol/multi-site/project obligations to their narrowest honest supported mode | A global hunk limit would suppress test, duplication, omnibus, and other wider obligations. The medium fixture now proves one line-local filter plus preserved changed-file and multi-site lenses in the same closeout | Criteria-preserving clarification found during the owner-requested implementation/review loop |
 | 2026-07-23 | P7/F2C AC1-S2 | Require each diff request to declare its content basis and detect staged/historical snapshot drift before line filtering | Staged hunk numbers describe the index, and commit/range hunk numbers describe a selected tree; a scanner normally reads the working tree. Without an equality/safety check, a valid hunk range could filter the wrong current lines when unstaged or later edits exist | Criteria strengthened during test-first implementation under the owner's instruction to add what final verification requires |

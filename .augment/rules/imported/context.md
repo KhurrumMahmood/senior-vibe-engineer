@@ -55,6 +55,10 @@ public skill counts aligned after significant skill changes.
 Every `find-*` producer is also registered in
 `.claude/skills/_common/scan_scope_contracts.json`; update and validate that
 contract when a producer's target or diff semantics change.
+`which-cleanup/scripts/finding_envelope.py` owns the shared line-filter,
+path-seed, project-trigger, and scope-neutral adapters; producers must not grow
+independent hunk parsers. Target modes become router claims only after the
+all-producer and copied-library conformance gates pass.
 
 ## Planning ladder
 
