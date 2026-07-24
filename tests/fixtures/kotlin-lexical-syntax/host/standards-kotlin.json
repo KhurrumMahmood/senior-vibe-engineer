@@ -1,0 +1,16 @@
+{
+  "ideas": [
+    {
+      "id": "guard-parse",
+      "label": "Guard parseBilling spellings with an if",
+      "contract": {
+        "detector": {
+          "kind": "syntax",
+          "paths": ["src/main/kotlin/cohort/Syntax.kt"],
+          "call_matches": "parseBilling",
+          "enclosed_by": "if"
+        }
+      }
+    }
+  ]
+}

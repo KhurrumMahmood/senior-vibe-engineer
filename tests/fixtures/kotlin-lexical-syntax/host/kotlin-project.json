@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "jvm_target": "17",
+  "sources": [
+    "src/main/kotlin/cohort/BillingModel.kt",
+    "src/main/kotlin/cohort/BillingParser.kt",
+    "src/main/kotlin/cohort/BillingTypes.kt",
+    "src/main/kotlin/cohort/BillingValidator.kt",
+    "src/main/kotlin/cohort/Omnibus.kt",
+    "src/main/kotlin/cohort/Syntax.kt",
+    "src/main/kotlin/cohort/Main.kt"
+  ],
+  "tests": [
+    "tests/cohort/KotlinLexicalTest.kt"
+  ],
+  "test_main": "cohort.KotlinLexicalTestKt",
+  "smoke_output": "kotlin-lexical:12:queued\n"
+}

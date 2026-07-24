@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+"""Carry Kotlin source-name omnibus candidates through a scout gate."""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_kotlin"))
+from kotlin_consumers import omnibus_main  # noqa: E402
+
+if __name__ == "__main__":
+    raise SystemExit(omnibus_main())
