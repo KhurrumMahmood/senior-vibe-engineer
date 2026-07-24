@@ -1,0 +1,8 @@
+{
+  "candidate_id": "candidate-001",
+  "bucket": "confirmed_omnibus",
+  "domains_confirmed": ["credentials", "admin", "export", "invoice"],
+  "facets_collapsed": [],
+  "decomposition_depth_note": "Four independently understandable domains have paired operations.",
+  "recommendation": "scaffold a decomposition spec, then run /refactor-subsystem"
+}
