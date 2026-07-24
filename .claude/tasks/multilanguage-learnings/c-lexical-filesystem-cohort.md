@@ -48,8 +48,8 @@ that each consumer imports `collect_snapshot` while embedding none of the
 compile-database, generated-marker, or native-failure policy.
 
 The provider is 762 physical/692 nonblank lines; the five consumers are 787/729
-and the focused test is 424/371. Shared provider + consumers + test is 1,973
-physical lines versus 5,021 with five literal provider copies, a **60.71%**
+and the focused test is 451/394. Shared provider + consumers + test is 2,000
+physical lines versus 5,048 with five literal provider copies, a **60.38%**
 maintenance reduction. The installed unique provider/consumer union is 57,137
 bytes versus 173,713 bytes with five provider copies, a **67.11%** reduction.
 
@@ -89,7 +89,7 @@ Clang -> complete transitions at the same destinations. It also proves:
 
 Verification completed without installation, network, or caches:
 
-- focused cohort: `14 passed in 16.89s`;
+- focused cohort: `14 passed in 17.45s`;
 - targeted Ruff over the provider, five consumers, and focused test: passed;
 - preserved map/comment/spine replay: 25 passed, one pre-existing frozen
   runtime-closure manifest mismatch described below.

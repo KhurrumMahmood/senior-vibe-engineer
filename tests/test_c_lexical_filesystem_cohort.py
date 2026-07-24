@@ -377,6 +377,20 @@ def _fake_make(path: Path, *, test_exit: int) -> Path:
     return path
 
 
+def _fake_clang(path: Path, *, version: str) -> Path:
+    path.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = "--version" ]; then\n'
+        f"  printf '%s\\n' 'Apple clang version {version}'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 9\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+    return path
+
+
 def test_compile_database_and_native_failure_states_replace_artifacts(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     _prepare(host)
@@ -402,6 +416,19 @@ def test_compile_database_and_native_failure_states_replace_artifacts(tmp_path: 
     missing = _invoke("adapt-project", copied["adapt-project"], host)
     assert missing.returncode == 2
     assert _artifact("adapt-project", host)["analysis"]["c"]["failure_kind"] == "compile-database-missing"
+
+    _prepare(host)
+    old_clang = _fake_clang(tmp_path / "old-clang", version="20.0.0")
+    old = _invoke("adapt-project", copied["adapt-project"], host, clang=old_clang)
+    assert old.returncode == 2
+    assert _artifact("adapt-project", host)["analysis"]["c"]["failure_kind"] == "clang-version-too-old"
+
+    database = host / "compile_commands.json"
+    newer = database.stat().st_mtime_ns + 2_000_000_000
+    os.utime(host / "src" / "main.c", ns=(newer, newer))
+    stale = _invoke("adapt-project", copied["adapt-project"], host)
+    assert stale.returncode == 2
+    assert _artifact("adapt-project", host)["analysis"]["c"]["failure_kind"] == "compile-database-stale"
 
 
 def test_shared_provider_deletion_and_caller_knowledge_boundary() -> None:
