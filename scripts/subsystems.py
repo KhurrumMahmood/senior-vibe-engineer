@@ -11,8 +11,11 @@ answers four questions:
   show <name>         Full entry for one subsystem.
 
 This is the substrate the planned coverage tracker, query planner, and
-`/audit-decisions` `applies_to` validator all build on. Keep it small;
-keep it dependency-light.
+`/audit-decisions` `applies_to` validator all build on. Registry integrity is
+not registry completeness: ``scripts/coherence_audit.py`` derives candidates
+from the host-declared ``.engineering/project/surfaces.json`` and requires each
+to be registered or explicitly exempted. Keep this lookup small; keep it
+dependency-light.
 
 Exit codes:
   0  match / list / show ok

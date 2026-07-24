@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "first_party_surface_roots": [
+    {
+      "path": ".claude/skills",
+      "group": "skills",
+      "candidate_depth": 0,
+      "minimum_entries": 1
+    },
+    {
+      "path": "scripts",
+      "group": "tooling",
+      "candidate_depth": 0,
+      "minimum_entries": 1
+    }
+  ],
+  "exemptions": []
+}

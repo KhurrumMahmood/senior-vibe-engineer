@@ -146,3 +146,11 @@ repos:
         language: python
         files: ^(\.engineering/quality/finding-(decisions\.jsonl|decision-schema\.json)|\.claude/skills/which-cleanup/scripts/reviewed_findings\.py|tests/test_reviewed_findings\.py)$
         pass_filenames: false
+
+      - id: coherence-audit
+        name: "coherence-audit (decision impacts and subsystem coverage stay disposed)"
+        entry: python scripts/coherence_audit.py
+        language: python
+        additional_dependencies: ["PyYAML>=6.0"]
+        files: ^(README\.md|docs/|\.augment/rules/imported/|\.engineering/(project/surfaces\.json|subsystems\.yaml|quality/decision-impacts/)|\.claude/(ideas/log\.jsonl|skills/_common/(engineering_home\.py|scan_scope_contracts\.json))|scripts/(coherence_audit|host_migrations)\.py|tests/test_coherence_audit\.py)
+        pass_filenames: false

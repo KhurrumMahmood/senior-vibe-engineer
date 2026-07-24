@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "decision": "0021-engineering-folder-state-home",
+  "obligations": [
+    {
+      "surface": "code",
+      "disposition": "complete",
+      "evidence": [
+        ".claude/skills/_common/engineering_home.py",
+        "scripts/host_migrations.py"
+      ]
+    },
+    {
+      "surface": "skill-prose",
+      "disposition": "deferred:agent-neutral-subsystem-maps",
+      "source_links": [
+        "ai-docs/decisions/0021-engineering-folder-state-home.md",
+        ".claude/skills/map-subsystem/SKILL.md"
+      ],
+      "review_trigger": "AC1-M2 selects and implements the second real host-state migration"
+    },
+    {
+      "surface": "durable-docs",
+      "disposition": "complete",
+      "evidence": [
+        "ai-docs/decisions/0021-engineering-folder-state-home.md",
+        ".claude/docs/installation-and-on-demand-library.md"
+      ]
+    },
+    {
+      "surface": "tests",
+      "disposition": "complete",
+      "evidence": [
+        "tests/test_engineering_home.py",
+        "tests/test_host_migrations.py"
+      ]
+    },
+    {
+      "surface": "generated-projections",
+      "disposition": "deferred:agent-neutral-subsystem-maps",
+      "source_links": [
+        ".claude/skills/which-skill/catalog.json",
+        "scripts/build_router_catalog.py"
+      ],
+      "review_trigger": "Regenerate router/catalog claims in the AC1-M2 subsystem-map migration"
+    },
+    {
+      "surface": "host-configuration-state",
+      "disposition": "complete",
+      "evidence": [
+        ".engineering/manifest.json",
+        ".engineering/.gitignore",
+        ".engineering/subsystems.yaml"
+      ]
+    },
+    {
+      "surface": "migration",
+      "disposition": "deferred:agent-neutral-subsystem-maps",
+      "source_links": [
+        "scripts/host_migrations.py",
+        ".claude/tasks/language-support-and-productization-execution-plan.md"
+      ],
+      "review_trigger": "AC1-M2 proves schema-1 to schema-3 skipped-release composition"
+    },
+    {
+      "surface": "release",
+      "disposition": "deferred:versioned-host-state-migrations",
+      "source_links": [
+        ".claude/docs/installation-and-on-demand-library.md",
+        ".claude/tasks/language-support-and-productization-execution-plan.md"
+      ],
+      "review_trigger": "P8-U1 runs the stock prior-release update journey at two public refs"
+    }
+  ],
+  "legacy_fallbacks": [
+    {
+      "legacy": ".claude/subsystems.yaml",
+      "canonical": ".engineering/subsystems.yaml",
+      "owner": "scripts/host_migrations.py migration 0001-subsystem-registry-home",
+      "removal_condition": "P8-U1 proves supported hosts have upgraded and OLDEST_READABLE_SCHEMA advances to 2",
+      "review_trigger": "P8-U1 stock prior-release update replay",
+      "allowed_reference_prefixes": [
+        ".claude/docs/installation-and-on-demand-library.md",
+        "ai-docs/decisions/0023-which-cleanup-closeout-router.md",
+        "scripts/host_migrations.py",
+        ".claude/skills/_common/engineering_home.py"
+      ]
+    },
+    {
+      "legacy": ".claude/docs/subsystems/",
+      "canonical": ".engineering/docs/subsystems/",
+      "owner": "idea:agent-neutral-subsystem-maps",
+      "removal_condition": "AC1-M2 migrates existing maps, updates producers/consumers, and regenerates catalog claims",
+      "review_trigger": "AC1-M2 second real migration",
+      "allowed_reference_prefixes": [
+        ".claude/skills/",
+        ".claude/docs/quality-coordination-kernel.md",
+        ".claude/docs/skill-catalog.md",
+        "ai-docs/decisions/0016-importance-map-shape.md"
+      ]
+    },
+    {
+      "legacy": ".project-state.json",
+      "canonical": ".engineering/project-state.json",
+      "owner": "ADR 0021 compatibility readers",
+      "removal_condition": "P8-U1 proves the oldest supported release no longer needs the root fallback",
+      "review_trigger": "P8-U1 stock prior-release update replay",
+      "allowed_reference_prefixes": [
+        ".claude/skills/find-standard-gaps/",
+        ".claude/skills/orient/",
+        "ai-docs/decisions/0021-engineering-folder-state-home.md"
+      ]
+    },
+    {
+      "legacy": ".claude/docs/todo-tuning.md",
+      "canonical": ".engineering/docs/todo-tuning.md",
+      "owner": "find-orphaned-ideas compatibility reader",
+      "removal_condition": "P8-U1 proves the oldest supported release no longer needs the doc fallback",
+      "review_trigger": "P8-U1 stock prior-release update replay",
+      "allowed_reference_prefixes": [
+        ".claude/skills/find-orphaned-ideas/"
+      ]
+    },
+    {
+      "legacy": ".claude/docs/importance-map.md",
+      "canonical": ".engineering/docs/importance-map.md",
+      "owner": "find-orphaned-ideas compatibility reader",
+      "removal_condition": "P8-U1 proves the oldest supported release no longer needs the doc fallback",
+      "review_trigger": "P8-U1 stock prior-release update replay",
+      "allowed_reference_prefixes": [
+        ".claude/skills/find-orphaned-ideas/",
+        "ai-docs/decisions/0016-importance-map-shape.md"
+      ]
+    }
+  ]
+}

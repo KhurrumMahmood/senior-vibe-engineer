@@ -929,6 +929,17 @@ their producer artifacts, and exact hashes are language-neutral. The optional
 AST normalization discussed elsewhere remains an observed host-a experiment,
 not a prerequisite or current ecosystem-wide claim.
 
+Decision propagation has a similarly narrow executable slice. A decision-
+impact record under `.engineering/quality/decision-impacts/` must dispose the
+code, skill-prose, durable-doc, test, generated-projection, host-state,
+migration, and release surfaces exactly once. `scripts/coherence_audit.py`
+validates those dispositions, verifies deferred work still exists in the
+durable idea ledger, classifies legacy references against named fallback
+owners/removal conditions, and keeps subsystem integrity separate from
+register-or-exempt completeness. Candidate project surfaces come only from the
+host-authored `.engineering/project/surfaces.json`; framework folder names are
+not embedded in the portable audit.
+
 Drift state is what makes the renderer reactive rather than
 poll-based: changing a rule flips its edges to dirty; the
 maintenance loop's job becomes "drain the dirty queue," not

@@ -1,0 +1,13 @@
+subsystems:
+  skill-ecosystem:
+    description: Portable task skills, routers, shared skill contracts, and fixtures.
+    paths:
+      - .claude/skills/
+    related_skills: []
+    adjacency: []
+  toolkit-scripts:
+    description: Repository-level validation, generation, migration, and release tooling.
+    paths:
+      - scripts/
+    related_skills: []
+    adjacency: []
