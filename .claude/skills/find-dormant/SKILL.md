@@ -1,7 +1,7 @@
 ---
 name: find-dormant
-description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart have narrow static review branches for human review. Never infers safe deletion from static evidence.
-argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java|kotlin|csharp|php|ruby|rust|dart]"
+description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, Dart, and Swift have narrow static review branches for human review. Never infers safe deletion from static evidence.
+argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java|kotlin|csharp|php|ruby|rust|dart|swift]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -27,7 +27,7 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, swift, c, cpp]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
@@ -54,6 +54,16 @@ deletion. The deprecated K1 API, reflection/callable references, overrides and
 extensions, delegation, generated/KAPT/KSP and plugin sources, Gradle variants,
 Java/external callers, framework registration, and runtime reachability remain
 the guide's explicit boundaries.
+
+## Swift 6.3.3 semantic branch
+
+Use `scripts/detect_swift_dormant.py` only with one current complete
+`swift-semantic-facts-v2` pack from sibling `_swift-semantic-readonly`. Exact
+selected-target private declarations with zero compiler-resolved direct
+references are review leads, never deletion authority. Reflection and string
+spellings defer promotion; Objective-C/dynamic/protocol dispatch, callbacks,
+generated or conditional inputs, external callers, frameworks, runtime
+reachability, and safe deletion remain unresolved.
 
 ## C++20 branch
 

@@ -224,9 +224,19 @@ working semantic foundation—such as a verified full-Xcode SourceKit path or a
 bounded SwiftSyntax-based provider—reaches the final artifacts. A passing warm
 benchmark does not override a non-reproducible user journey.
 
+That SourceKit-LSP result remains the historical diagnosis; it was not edited
+away when Swift later completed. The accepted replacement is a different
+foundation: pinned Apple Swift 6.3.3 `swiftc -typecheck -dump-ast` output,
+normalized only for nondeterministic transport data and replayed cold and
+repeated with stable hashes. `swift-semantic-facts-v2` now supplies exact
+selected-target declaration, direct reference/call, containing-caller,
+selected-overload/default-argument, assignment, and function-body facts to five
+read-only consumers. It does not rehabilitate the failed protocol path or turn
+compiler AST into whole-program/runtime evidence.
+
 ### 10. Cohort A accepted-evidence consumers
 
-PHP and Ruby now consume accepted producer evidence for five downstream
+PHP, Ruby, and Swift now consume accepted producer evidence for downstream
 outcomes: enum proposal, exact-field regression guard, boundary proposal,
 folder proposal, and shadow-unification proposal. These consumers never rerun
 detection. Each validates current source and human authority, preserves the
@@ -237,7 +247,12 @@ The PHP helper saves `44.59%` maintained LOC with `0%` closure growth and
 `+3.50%` median latency. The Ruby helper saves `43.37%` maintained LOC and
 `52.78%` runtime-closure LOC, with a `3.37%` median improvement. Keep both
 helpers language-local: Composer/PSR-4 identity and RBS/dynamic Ruby authority
-are not one portable evidence schema. Guards are staged and verified but not
+are not one portable evidence schema. Swift likewise keeps
+`swift_accepted_evidence.py` and `swift_structure_proposals.py` beside its
+schema-v2 provider in `_swift-semantic-readonly`. Its accepted enum,
+exact-property guard, shadow, boundary, and folder consumers retain separate
+content-addressed authority, atomic refusal/recovery, current or disposable
+native proof, and no-mutation claims. Guards are staged and verified but not
 installed; proposals remain read-only and require separate mutation approval.
 
 ### 11. Ruby mutation evidence
@@ -356,6 +371,32 @@ variants, frameworks, serialization, trimming/AOT, interop, binary
 compatibility, deletion, equivalence, structure proposals, or mutation beyond
 the one accepted source-location move.
 
+### 16. Swift completion evidence
+
+Swift reaches all 22 bounded language-level outcomes under Apple Swift 6.3.3.
+The authoritative coverage file is
+`.claude/tasks/swift-language-coverage.json`; all rows are
+`swift-supported`, with no pending, partial, or unsupported outcome. The
+original SourceKit-LSP failure remains historical evidence above. Current
+semantic authority comes from stable cold/repeated compiler-AST replay over one
+exact dependency-free SwiftPM selected target, not from that failed protocol.
+
+Five read-only semantic consumers use `swift-semantic-facts-v2`. The enum and
+guard consumers use the accepted-evidence helper; the two structure proposals
+use the structure helper; shadow unification rejoins the accepted finding to
+the current fact pack without redetection. All three helpers live in the
+declared `_swift-semantic-readonly` external-library closure. Nineteen outcomes
+require that full external library, while `find-omnibus`, `map-subsystem`, and
+`move-path` retain their proven stock-selected-install closures.
+
+The accepted facts and proposals do not establish whole-program or runtime
+behavior, conditional-compilation completeness, macro/plugin or generated
+inputs, reflection, Objective-C/dynamic or protocol/existential runtime
+dispatch, external callers, Xcode projects/workspaces, Apple frameworks,
+resources, arbitrary dependencies, mixed-language targets, deletion or
+equivalence safety, ABI/release compatibility, or mutation beyond the one
+accepted target-directory move.
+
 ## Native foundations and queued languages
 
 | Language | Preferred foundations | Honest boundary |
@@ -364,7 +405,7 @@ the one accepted source-location move.
 | Ruby | Prism and `ruby -c`; project-local Sorbet or Steep when already configured | dynamic reference/type claims otherwise remain partial |
 | C# | completed at 22/22 with SDK-bundled Roslyn, direct `csc`, native `dotnet ... --no-restore` gates, and accepted structure proposals | selected manifests are authoritative; inferred project/solution graphs, runtime dispatch, frameworks, binary compatibility, and mutation authority remain outside the bounded claim |
 | Rust | `cargo metadata`, `cargo check`, Clippy; rust-analyzer for bounded reference operations | prefer stable Cargo JSON/LSP boundaries over private compiler APIs |
-| Swift | SwiftSyntax, SourceKit-LSP, and SwiftPM | indexed cross-module facts may require a recent build |
+| Swift | completed at 22/22 with restrictive SwiftPM gates and pinned Apple Swift 6.3.3 compiler-AST facts; historical SourceKit-LSP failure retained | one selected dependency-free target is authoritative; dynamic/protocol/Objective-C dispatch, generated/conditional inputs, Xcode/frameworks, external callers, runtime behavior, ABI, and general mutation remain outside the bounded claim |
 | Dart | analyzer/Analysis Server plus `dart analyze` and native tests | pin to the SDK and treat analyzer API churn explicitly |
 | Kotlin | completed with Kotlin/JVM 2.4.10, JDK 17, exact manifests, K2 native gates, and a pinned K1 internal semantic boundary | K1 `BindingContext` is not stable Analysis API; Gradle variants, generated/plugin inputs, Java/external callers, runtime dispatch, and JVM ABI remain outside the bounded claim |
 | C/C++ | Clang/LibTooling or clangd plus native build/test commands | project semantics are partial without trustworthy compile commands |

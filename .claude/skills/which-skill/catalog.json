@@ -282,7 +282,7 @@
     },
     {
       "name": "extract-enum",
-      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or accepted Go, Java 17, Kotlin/JVM, PHP, Ruby, bounded Rust, or bounded Dart implicit-state evidence into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.",
+      "description": "Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or accepted Go, Java 17, Kotlin/JVM, PHP, Ruby, bounded Rust, Dart, or Swift implicit-state evidence into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A confirmed Django model implicit-state target ready for a TextChoices class,\ncaller table, data-migration risk review, and stop condition. Decided in:\n0001 (TextChoices for state).\nFor TypeScript or checked JavaScript, consume a closed-state detector JSONL\nrecord and design its exported as-const runtime value object, derived union,\ncaller changes, and named vendor boundaries.\nFor Go, consume go/types-resolved repeated-operation evidence for a named\nstring type plus typed constants.\nFor Java, consume exactly one complete JDK-resolved direct String field\nfinding for an enum migration with caller-impact review.\n",
@@ -301,6 +301,7 @@
         "ruby",
         "rust",
         "dart",
+        "swift",
         "c",
         "cpp"
       ],
@@ -487,7 +488,7 @@
     },
     {
       "name": "find-dormant",
-      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart have narrow static review branches for human review. Never infers safe deletion from static evidence.",
+      "description": "Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, Dart, and Swift have narrow static review branches for human review. Never infers safe deletion from static evidence.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "TypeScript private implementations that appear statically unreferenced and\nneed a conservative dormant-code review with no safe-deletion claim.\nDetecting dead and quasi-dead Python code, unused URL patterns,\ndefined-but-unreferenced symbols. Validates against real call sites\nand template URL-name usage; cross-checks git-log recency. Never\ndeletes — surfaces evidence for /fix-workflow delete:<id>. TypeScript/TSX\nv1 reports only non-exported top-level implementations with zero resolved\nstatic symbol references, and always requires human runtime review.\nGo v1 reports only unexported package-level functions and function-valued\nvariables with zero `go/types` uses in the selected active-build package.\nJava v1 reports only private methods with zero compiler-resolved source uses.\n",
@@ -506,6 +507,7 @@
         "ruby",
         "rust",
         "dart",
+        "swift",
         "c",
         "cpp"
       ],
@@ -600,7 +602,7 @@
     },
     {
       "name": "find-implicit-state",
-      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Kotlin/JVM, PHP, Ruby, Rust, and Dart state branches. Semantic branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.",
+      "description": "Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Kotlin/JVM, PHP, Ruby, Rust, Dart, and Swift state branches. Semantic branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Stringly-typed status / phase / state comparisons against bare\nliterals; `.filter(status=..., *_at__...)` tuple-inferred identity.\nTargets the stringly-typed-state smell. Decided in: 0001\n(TextChoices for state).\nIn TypeScript, closed state receivers with repeated bare string\ncomparisons or assignments and a host-owned Compiler API.\n",
@@ -619,6 +621,7 @@
         "ruby",
         "rust",
         "dart",
+        "swift",
         "c",
         "cpp"
       ],
@@ -629,7 +632,7 @@
     },
     {
       "name": "find-incomplete-sweep",
-      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence; Go uses host Go `go/types`\nfor one direct top-level function / keyed struct-option shape; Java 17 uses the JDK\ncompiler tree API for one direct record/options-constructor shape; PHP uses\nbounded Composer PSR-4 direct constructions; Ruby requires project-authored\nRBS constructor contracts; Kotlin/JVM uses pinned direct constructor-call\nfacts; Rust uses\ncompiler-resolved direct calls for one struct-option omission shape; Dart\nuses SDK-LSP-resolved top-level calls for one named-argument omission shape. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
+      "description": "Advisory SUSPECT scan for incomplete sweeps — multi-site changes that were\nstarted but never finished, leaving a forgotten sibling call site at the old\nshape (\"updated N-1 of N\"). Python retains the keyword-argument omission\nband; TypeScript/TSX and checked JavaScript use the host-pinned TypeScript Compiler API to group\nresolved project function calls by object-option property presence; Go uses host Go `go/types`\nfor one direct top-level function / keyed struct-option shape; Java 17 uses the JDK\ncompiler tree API for one direct record/options-constructor shape; PHP uses\nbounded Composer PSR-4 direct constructions; Ruby requires project-authored\nRBS constructor contracts; Kotlin/JVM uses pinned direct constructor-call\nfacts; Rust uses\ncompiler-resolved direct calls for one struct-option omission shape; Dart\nuses SDK-LSP-resolved top-level calls for one named-argument omission shape;\nSwift uses compiler-AST-resolved direct calls and default-argument ownership. Gated on a git-trajectory\nsignal: a divergence counts as a forgotten sweep only when the\nkwarg-present sites were touched more recently than the straggler (the sweep\nlanded after the straggler was last edited). A straggler edited just as\nrecently is reported separately as likely-deliberate. Distinguishes\nabandoned partial work from legitimate post-completion cleanup via residue\ndirection. Detection-only — never edits code; hands off to /fix-workflow.\n",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Reviewing a human- or AI-authored multi-file change where a sweep across\nsibling call sites may have stopped short: a new keyword argument threaded\nthrough some callers, a proxy/config param added to some call sites, an\noption passed at most but not all of a callee's call sites. The straggler is\nfully live (old shape still referenced and executing), so /find-dormant\ncannot see it. The git-trajectory gate keeps the signal to recently-swept\ndivergences rather than long-stable intentional asymmetry.\n",
@@ -648,6 +651,7 @@
         "ruby",
         "rust",
         "dart",
+        "swift",
         "c",
         "cpp"
       ],
@@ -754,7 +758,7 @@
     },
     {
       "name": "find-semantic-duplication",
-      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart function-level leads using host-native semantic facts. Semantic branches report bounded static candidates with human review; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.",
+      "description": "Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, Dart, and Swift function-level leads using host-native semantic facts. Semantic branches report bounded static candidates with human review; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.",
       "tier": "maintenance",
       "job": "suspect",
       "best_for": "Two independently-written, live functions that plausibly solve the same\nproblem with different code shape. Python uses scout confirmation; TypeScript\nGo, and Java use typed return-shape and direct-call evidence before human review.\n",
@@ -773,6 +777,7 @@
         "ruby",
         "rust",
         "dart",
+        "swift",
         "c",
         "cpp"
       ],
@@ -998,7 +1003,7 @@
     },
     {
       "name": "map-subsystem",
-      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Kotlin/JVM, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .engineering/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.",
+      "description": "Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Kotlin/JVM, C# 14/.NET 10, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .engineering/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.",
       "tier": "maintenance",
       "job": "map",
       "best_for": "Producing or refreshing a durable inventory doc for a subsystem at\n`.engineering/docs/subsystems/<name>.md` — file list, public surface,\nresponsibility table, dependency graph, convention-compliance\nscore. MAP skill in the maintenance nervous system.\n",
@@ -1036,22 +1041,22 @@
     },
     {
       "name": "move-path",
-      "description": "Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked Kotlin supports one same-package authored .kt source-location move with compiler-proved JVM identity; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move; checked Ruby supports one evidence-authorized plain-gem module file move with Prism-attributed edits; checked Dart supports one evidence-authorized private library file or leaf-directory move with analyzer-resolved directive rewrites and public-barrel preservation. TypeScript/TSX source imports are never rewritten in v1.",
+      "description": "Deterministically plan, dry-run, apply, and verify standalone path moves while updating identity-resolved Markdown, HTML, config, backtick, and exact path references. Checked JavaScript updates bounded literal module references; checked Go supports one leaf non-main package-directory move in one root module; checked Java supports one leaf package-directory move with compiler-attributed package/import/FQCN edits; checked Kotlin supports one same-package authored .kt source-location move with compiler-proved JVM identity; checked C# supports one same-namespace, same-filename authored .cs implementation-file location move in one strict dependency-free net10.0 executable project; checked PHP supports one Composer PSR-4 leaf namespace-directory move; checked Swift supports one dependency-free SwiftPM target-directory move while retaining module identity; checked Rust supports one conventional Cargo library leaf-module file or directory move; checked Ruby supports one evidence-authorized plain-gem module file move with Prism-attributed edits; checked Dart supports one evidence-authorized private library file or leaf-directory move with analyzer-resolved directive rewrites and public-barrel preservation. TypeScript/TSX source imports are never rewritten in v1.",
       "tier": "maintenance",
       "job": "refactor",
-      "best_for": "Everyday but high-blast path moves: moving or renaming Markdown docs,\ndirectories, fixtures, scripts, or mixed repo surfaces where references\nshould update in one batch. Best when a move map can be reviewed first\nand the desired behavior is \"compute a virtual after-tree, rewrite safe\nreferences once, apply with git-aware moves, then verify.\"\nAlso use the checked-JavaScript mode for explicit `.js`, `.jsx`, `.mjs`, or\n`.cjs` file moves that must update safe relative imports and checked-project\nconfiguration while leaving unrelated TypeScript source unchanged.\nUse the checked-Java mode for one reviewed standalone-JDK leaf-package move\nwhose package, import, and fully-qualified type identities must stay exact.\nUse the checked-Swift mode only for one reviewed dependency-free SwiftPM\ntarget-directory move that retains module identity and has an executable smoke product.\nUse the checked-Rust mode only for one reviewed conventional leaf-module\nfile or directory move in a regular Cargo library target.\nUse the checked-Ruby mode only for one reviewed plain-gem module file move\nwith explicit before/after constant identities and native test/smoke outputs.\nUse the checked-Dart mode only for one reviewed private `lib/src` library\nfile or leaf-directory move in a dependency-free Dart 3.12 package with a\npre-existing package configuration, direct native test/smoke, and declared\nstable public barrel.\n",
+      "best_for": "Everyday but high-blast path moves: moving or renaming Markdown docs,\ndirectories, fixtures, scripts, or mixed repo surfaces where references\nshould update in one batch. Best when a move map can be reviewed first\nand the desired behavior is \"compute a virtual after-tree, rewrite safe\nreferences once, apply with git-aware moves, then verify.\"\nAlso use the checked-JavaScript mode for explicit `.js`, `.jsx`, `.mjs`, or\n`.cjs` file moves that must update safe relative imports and checked-project\nconfiguration while leaving unrelated TypeScript source unchanged.\nUse the checked-Java mode for one reviewed standalone-JDK leaf-package move\nwhose package, import, and fully-qualified type identities must stay exact.\nUse the checked-Swift mode only for one reviewed dependency-free SwiftPM\ntarget-directory move that retains module identity and has an executable smoke product.\nUse the checked-Rust mode only for one reviewed conventional leaf-module\nfile or directory move in a regular Cargo library target.\nUse the checked-Ruby mode only for one reviewed plain-gem module file move\nwith explicit before/after constant identities and native test/smoke outputs.\nUse the checked-C# mode only for one reviewed same-filename implementation\nfile location move in one strict dependency-free net10.0 executable project\nwhose namespace, type, assembly, source bytes, and native outcomes stay exact.\nUse the checked-Dart mode only for one reviewed private `lib/src` library\nfile or leaf-directory move in a dependency-free Dart 3.12 package with a\npre-existing package configuration, direct native test/smoke, and declared\nstable public barrel.\n",
       "not_for": "Explaining or annotating code behavior or public exports (use /explain-code).\nDomain-concept terminology renames in prose (use /rename-concept).\nPython/TypeScript import refactors unless a language adapter has been\nexplicitly added and enabled. Large behavior-changing subsystem splits\nthat need characterization tests and human Phase 4 sign-off (use\n/refactor-subsystem). Blind global find-and-replace.\n",
       "language": "any",
       "framework": "any",
       "scans": [
         "c",
         "cpp",
+        "csharp",
         "dart",
         "go",
         "java",
         "javascript",
         "kotlin",
-        "csharp",
         "php",
         "ruby",
         "rust",
@@ -1173,6 +1178,7 @@
         "ruby",
         "rust",
         "dart",
+        "swift",
         "c",
         "cpp"
       ],
@@ -1220,7 +1226,7 @@
     },
     {
       "name": "propose-boundary",
-      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, Kotlin/JVM, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
+      "description": "Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, Kotlin/JVM, C#, Swift 6.3.3, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A TypeScript or checked-JavaScript target needing resolved symbol, import, and call-graph evidence\nfor a stable public interface, backward-compatible barrel, and caller-impact proposal.\nA file or directory where distinct domain concerns live side-by-side\nwith no defined public contract — sibling modules reach into each\nother's private helpers, change-amplification touches the same N\nfiles for every feature, test setup explodes because exercising one\ncluster requires fixturing the others. Produces candidate seams +\nproposed public API + shim shape + characterization-test matrix.\nRead-only. Works on `.claude/skills/<name>/` directories too —\nsub-phases (parsed from SKILL.md `## Phase N` headings) are treated\nas symbols, naming-prefix alignment as the cluster signal.\n",
@@ -1235,6 +1241,7 @@
         "java",
         "kotlin",
         "csharp",
+        "swift",
         "php",
         "ruby",
         "rust",
@@ -1246,7 +1253,7 @@
     },
     {
       "name": "propose-folder-reorganization",
-      "description": "Turn a confirmed Python, Go, Java 17, Kotlin/JVM, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
+      "description": "Turn a confirmed Python, Go, Java 17, Kotlin/JVM, C#, Swift 6.3.3, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "A Java 17 flat-prefix cluster needing a compiler-resolved subpackage move plan.\nA TypeScript or checked-JavaScript flat-prefix folder cluster needing resolved import impact,\na target tree, barrel/subpath compatibility, and native verification plan.\nA confirmed folder-topology drift finding ready for a per-cluster\nreorganization proposal — produces the current → proposed tree,\nfile-move table, import-impact summary, characterization-test\nmatrix, and the rule-of-thumb call (`tests_by_prefix` opportunistic\nvs `flat_prefix_cluster` per-PR). Read-only. Decided in: ADR 0006\n(folder-organization).\n",
@@ -1259,6 +1266,7 @@
         "java",
         "kotlin",
         "csharp",
+        "swift",
         "typescript",
         "javascript",
         "php",
@@ -1294,7 +1302,7 @@
     },
     {
       "name": "rename-concept",
-      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, TSX, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`\nclassifies project-exported concept declarations and their references while\nretaining fields, import aliases, locals, inactive source, and diagnostics.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX, checked-JavaScript, Go, or Rust host additionally needs a successful native semantic\nevidence run that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\na semantic language is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
+      "description": "Assess a domain-concept rename against its full lifecycle and a mandatory\ntwo-band completeness gate, read-only. Renaming a concept that lives in the\nglossary spans many surfaces — identifiers, docs, the cross-tool agent\nmirrors — and is executed from tribal knowledge with no front door and no\ncompleteness gate, so renames land half-applied. This skill (v0, assess-only)\nreports the scope-gate verdict, blast radius, a per-step lifecycle status\ntable, and the completeness gate. It performs strict lexical assessment of\nPython, JavaScript, TypeScript, TSX, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, Dart, and Swift text. For `.ts`, `.tsx`, and checked\n`.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,\ndeclarations, and references; it does not claim whole-project type-checking,\nJSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`\nclassifies project-exported concept declarations and their references while\nretaining fields, import aliases, locals, inactive source, and diagnostics.\nThe old and new names must not co-occur lexically in\nlive code (/find-concept-divergence superseded_co_occurrence, band 3) AND no\nretired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)\n— both must be CLEAN for a lexical candidate assessment to pass. A\nTypeScript/TSX, checked-JavaScript, Go, Rust, or Swift host additionally needs a successful native semantic\nevidence run that resolves old/new identifier candidates. Definition of done is the\ntwo-band gate, every lifecycle step resolved, and that evidence where\na semantic language is in scope — NOT a codemod having run. Drives the two\nrename-relevant /find-concept-divergence bands through a required coupled\ninstallation; the assessment logic does not duplicate their matching rules.\nThe write half (author + dry-run a codemod plan, scaffold a reintroduction\nlint, --apply) is a v1 gap pending a codemod harness in this\necosystem (see Deferred, below).\n",
       "tier": "maintenance",
       "job": "refactor",
       "best_for": "A TypeScript, JavaScript, Go, Rust, or Python glossary concept rename lifecycle\nassessment with a persistent completeness gate. Assessing whether a\nglossary-worthy, wide-blast change is COMPLETE —\nthe long tail (string-literal references, the guard lint, the cross-tool\nagent mirrors, the docs) is exactly what a rushed pass forgets, and the\ntwo-band gate is what catches a rename that is identifier-clean but still\ncarries retired prose. Use when the rename is glossary-tracked and the cost\nof a half-applied result is real. Pairs with /find-concept-divergence (which\nDETECTS the drift): this skill consumes that detector and frames it as a\nper-rename definition of done.\n",
@@ -1313,6 +1321,7 @@
         "ruby",
         "rust",
         "dart",
+        "swift",
         "c",
         "cpp",
         "markdown",
@@ -1409,7 +1418,7 @@
     },
     {
       "name": "unify-shadows",
-      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, Kotlin/JVM, PHP, Ruby, bounded Rust, and Dart consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
+      "description": "Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, Kotlin/JVM, PHP, Ruby, bounded Rust, Dart, and Swift consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.",
       "tier": "maintenance",
       "job": "explain",
       "best_for": "One confirmed Python, TypeScript, checked-JavaScript, Go, or Java semantic-duplication finding from\n/find-semantic-duplication (shape =\nkeep_separate_document_why | share_utilities | complete_migration |\nmerge_at_workflow). Produces an implementation-ready proposal at\n`reports/unify-shadows/<finding-id>/proposal.md` with migration\nplan, caller impact, test matrix, and stop condition.\n",
@@ -1428,6 +1437,7 @@
         "ruby",
         "rust",
         "dart",
+        "swift",
         "c",
         "cpp"
       ],

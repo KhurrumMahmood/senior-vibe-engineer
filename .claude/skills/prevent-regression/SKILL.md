@@ -33,7 +33,7 @@ not_for: |
   fix in place).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, swift, c, cpp]
 install_with: [find-implicit-state, map-subsystem]
 ---
 

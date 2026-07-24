@@ -243,7 +243,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "go_disposition": "go-supported",
         "java_disposition": "java-supported",
         "php_disposition": "php-supported",
-        "swift_disposition": "swift-pending-implementation",
+        "swift_disposition": "swift-supported",
         "c_disposition": "c-supported",
         "cpp_disposition": "cpp-supported",
         "ruby_disposition": "ruby-supported",
@@ -255,6 +255,14 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "outcome_class": "read-only-report",
         "framework_family": None,
         "closure_skills": ["find-implicit-state", "map-subsystem"],
+        "closure_helpers": {
+            "swift": [
+                str(
+                    library_root
+                    / ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+                )
+            ]
+        },
         "optional_install_status": "passed",
     }
 
@@ -405,6 +413,67 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert supported_swift_payload["optional_install"]["reason"] == (
         "selected_language_requires_external_library"
     )
+
+    swift_unify = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use unify-shadows on this accepted Swift semantic finding",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "swift",
+        "--json",
+        cwd=host,
+    )
+    swift_unify_payload = _json_output(swift_unify)
+    assert swift_unify_payload["recommendation"] == "unify-shadows"
+    swift_unify_capability = swift_unify_payload["handoff"]["capabilities"][
+        "skills"
+    ][0]
+    assert swift_unify_capability["swift_disposition"] == "swift-supported"
+    assert swift_unify_capability["closure_helpers"] == {
+        "swift": [
+            str(
+                library_root
+                / ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+            )
+        ]
+    }
+    assert (
+        library_root
+        / ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+    ).is_file()
+    assert swift_unify_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+
+    helper = (
+        library_root
+        / ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+    )
+    helper_bytes = helper.read_bytes()
+    helper.unlink()
+    try:
+        missing_helper = _run_isolated(
+            installed["which-skill"] / "scripts" / "match.py",
+            "use unify-shadows on this accepted Swift semantic finding",
+            "--project-root",
+            str(host),
+            "--library-root",
+            str(library_root),
+            "--language",
+            "swift",
+            "--json",
+            cwd=host,
+        )
+        missing_helper_payload = _json_output(missing_helper)
+        assert missing_helper_payload["handoff"]["available"] is False
+        assert missing_helper_payload["handoff"]["capabilities"]["reason"] == (
+            "required_helper_missing"
+        )
+    finally:
+        helper.write_bytes(helper_bytes)
 
     c_routed = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",

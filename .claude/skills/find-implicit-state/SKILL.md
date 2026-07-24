@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
-description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Kotlin/JVM, PHP, Ruby, Rust, and Dart state branches. Semantic branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
-argument-hint: "--target <directory> [--language typescript|javascript|go|java|kotlin|csharp|php|ruby|rust|dart]"
+description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Kotlin/JVM, PHP, Ruby, Rust, Dart, and Swift state branches. Semantic branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
+argument-hint: "--target <directory> [--language typescript|javascript|go|java|kotlin|csharp|php|ruby|rust|dart|swift]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -21,7 +21,7 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, swift, c, cpp]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
@@ -47,6 +47,16 @@ review lead, not a closed-domain proof; the deprecated K1 API is not a stable
 Analysis API. Delegates/custom setters, overrides,
 reflection, generated/plugin sources, Gradle variants, Java, frameworks,
 runtime writes, enum safety, and mutation remain unresolved.
+
+## Swift 6.3.3 semantic branch
+
+Use `scripts/detect_swift_state.py` only with one current complete
+`swift-semantic-facts-v2` pack from sibling `_swift-semantic-readonly`. It
+reports compiler-resolved direct literal writes and comparisons for one exact
+selected-target `String` state/status/phase property, then requires a
+candidate-hash-bound human verdict. Observed literals do not prove a closed
+runtime domain, serialization compatibility, framework/dynamic consumers,
+generated or conditional variants, enum safety, or mutation authority.
 
 ## C++20 branch
 

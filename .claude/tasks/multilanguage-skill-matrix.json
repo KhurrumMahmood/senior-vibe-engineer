@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "4eae4134de63eb3d20cccae97cdc8ddd6e1a86950df3280794b0aea9de1a11c9"
+      "sha256": "7adad86f1c32dad4a3031c6f670b6b6b6813f6f6a12577bba463bbd4f96bdf9c"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",
@@ -27,7 +27,7 @@
     },
     {
       "path": ".claude/tasks/swift-language-coverage.json",
-      "sha256": "9a229ea0eb4626e6fd30615395fab85fee7eb34265fd84951ef6f7e93bc84e08"
+      "sha256": "6e090e3f83e324ac1ecba9e1fc82c123302c1f9d5718430d23f18e21d2b46ef0"
     },
     {
       "path": ".claude/tasks/c-language-coverage.json",
@@ -296,6 +296,7 @@
             "bundled_tooling": ".claude/skills/adapt-project/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -401,6 +402,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -565,6 +567,7 @@
             "bundled_tooling": ".claude/skills/audit-decisions/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -670,6 +673,7 @@
             "bundled_tooling": ".claude/skills/brainstorm-ideas/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -773,6 +777,7 @@
             "bundled_tooling": ".claude/skills/check-ecosystem-consistency/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -876,6 +881,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -979,6 +985,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -1082,6 +1089,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -1185,6 +1193,7 @@
             "bundled_tooling": ".claude/skills/diagnose/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -1288,6 +1297,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -1453,6 +1463,7 @@
             "bundled_tooling": ".claude/skills/explain-code/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -1558,6 +1569,7 @@
             "bundled_tooling": ".claude/skills/extract-cotton-primitive/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -1615,14 +1627,14 @@
       ],
       "php_reviewed_revision": "0b38efa",
       "php_limitation": "Proposal-only; observed literals do not prove a closed runtime, wire, persistence, framework, or external domain.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-state-proposal-guard.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift enum proposal validated"
+        "accepted exact String property, observed raw values, and compiler-identified existing enum with content-addressed reviewer authority",
+        "copied read-only enum proposal for identity and non-identity case mappings, terminal refusal recovery, and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No resolved type/reference evidence reaches the proposal boundary.",
+      "swift_reviewed_revision": "f03cf8a9b93ff637011cf4d20cb5cdad47282b1e",
+      "swift_limitation": "Proposal only; runtime closure, raw-value/Codable compatibility, Objective-C/dynamic identity, protocol dispatch, external/framework callers, generated/conditional variants, ABI, mutation, and release safety remain unresolved.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-state-proposal-guard.md",
       "c_native_check": [
@@ -1657,6 +1669,7 @@
       "rust_limitation": "Proposal-only; macros, build/include output, cfg variants, traits/generics, unsafe/FFI, serialization/wire behavior, exhaustiveness, public compatibility, and source mutation remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "stock-selected-install",
       "cpp_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
@@ -1704,6 +1717,7 @@
           "ruby",
           "rust",
           "dart",
+          "swift",
           "c",
           "cpp"
         ],
@@ -1739,6 +1753,12 @@
             "bundled_tooling": ".claude/skills/map-subsystem/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py",
+            ".claude/skills/_swift-semantic-readonly/swift_accepted_evidence.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -1845,6 +1865,7 @@
             "bundled_tooling": ".claude/skills/extract-existing-ideas/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -1948,6 +1969,7 @@
             "bundled_tooling": ".claude/skills/extract-state-type/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -2051,6 +2073,7 @@
             "bundled_tooling": ".claude/skills/extract-workflow-registry/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -2157,6 +2180,7 @@
             "bundled_tooling": ".claude/skills/find-async-lifecycle-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -2320,6 +2344,7 @@
             "bundled_tooling": ".claude/skills/find-comment-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -2484,6 +2509,7 @@
             "bundled_tooling": ".claude/skills/find-complexity-hotspots/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -2652,6 +2678,7 @@
             "bundled_tooling": ".claude/skills/find-concept-divergence/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -2761,6 +2788,7 @@
             "bundled_tooling": ".claude/skills/find-contract-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -2868,6 +2896,7 @@
             "bundled_tooling": ".claude/skills/find-dead-route-surface/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -2971,6 +3000,7 @@
             "bundled_tooling": ".claude/skills/find-doc-route-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -3028,14 +3058,14 @@
       ],
       "php_reviewed_revision": "42f6236",
       "php_limitation": "Direct final-class private methods only; dynamic/framework/external reachability and safe deletion remain unresolved.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-semantic-a3.md",
       "swift_native_check": [
-        "SourceKit-LSP completeness unproven",
-        "no Swift dormant report validated"
+        "schema-v2 compiler-AST declaration identities and exact direct-reference counts over the selected target",
+        "copied review-only dormant artifact, reflection/string deferral, clean outcome, stale recovery, and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "Recent successful indexing, mixed-target failure inspection, and reflective use limits are unresolved.",
+      "swift_reviewed_revision": "c5addab9dd4cfd5e16cbc1719d6e104c706ab84f",
+      "swift_limitation": "Zero selected-target static references are not runtime unreachability or deletion safety; reflection, selectors, Objective-C/dynamic dispatch, protocols, external consumers, generated/conditional variants, frameworks, and behavior remain unresolved.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
@@ -3070,6 +3100,7 @@
       "rust_limitation": "No safe-deletion claim; feature/target roots, macros/build output, doctests, callbacks, traits/generics, external APIs, reflection, and unsafe/FFI remain deferred.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "external-library",
       "cpp_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
@@ -3117,6 +3148,7 @@
           "ruby",
           "rust",
           "dart",
+          "swift",
           "c",
           "cpp"
         ],
@@ -3144,6 +3176,11 @@
             "bundled_tooling": ".claude/skills/map-subsystem/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -3311,6 +3348,7 @@
             "bundled_tooling": ".claude/skills/find-duplication/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -3477,6 +3515,7 @@
             "bundled_tooling": ".claude/skills/find-folder-topology-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -3585,6 +3624,7 @@
             "bundled_tooling": ".claude/skills/find-frontend-contract-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -3691,6 +3731,7 @@
             "bundled_tooling": ".claude/skills/find-frontend-duplication/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -3749,14 +3790,14 @@
       ],
       "php_reviewed_revision": "42f6236",
       "php_limitation": "A direct string-field pattern is review evidence only; dynamic properties, frameworks, runtime domains, and enum safety remain unresolved.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-semantic-a3.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift implicit-state findings validated"
+        "schema-v2 compiler-resolved String property writes/comparisons and observed literal values",
+        "candidate-hash-bound human review, copied final artifacts, clean outcome, lifecycle replacement, and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No resolved type/reference producer reaches this contract.",
+      "swift_reviewed_revision": "c5addab9dd4cfd5e16cbc1719d6e104c706ab84f",
+      "swift_limitation": "Selected static String operations do not prove a closed runtime domain, serialization compatibility, framework/dynamic consumers, generated/conditional variants, or safe enum migration.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
@@ -3791,6 +3832,7 @@
       "rust_limitation": "Human extract-enum verdict required; the domain is not proven closed, and statics, interior mutability, environment/thread state, traits/generics, macros/cfg, registries, and unsafe/FFI remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "external-library",
       "cpp_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
@@ -3838,6 +3880,7 @@
           "ruby",
           "rust",
           "dart",
+          "swift",
           "c",
           "cpp"
         ],
@@ -3865,6 +3908,11 @@
             "bundled_tooling": ".claude/skills/map-subsystem/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -3926,14 +3974,14 @@
       ],
       "php_reviewed_revision": "42f6236",
       "php_limitation": "Direct named constructions in the selected PSR-4 project only; dynamic calls, external consumers, and framework variants remain unresolved.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-semantic-a3.md",
       "swift_native_check": [
-        "SourceKit/index facts are not yet accepted",
-        "no Swift sweep validated"
+        "schema-v2 exact direct calls and selected default-argument owner/parameter identity",
+        "Git trajectory, fixed scout verdict, packet-hash-bound triage, copied final artifacts, stale recovery, and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "Resolved call targets and complete cross-target evidence are unavailable.",
+      "swift_reviewed_revision": "c5addab9dd4cfd5e16cbc1719d6e104c706ab84f",
+      "swift_limitation": "One selected direct-call/default-argument sweep only; dynamic dispatch, indirect calls, cross-configuration or external callers, generated/conditional inputs, intent, and mutation remain unresolved.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
@@ -3968,6 +4016,7 @@
       "rust_limitation": "One direct struct-option omission shape only; target/cfg variants, macros/build output, dynamic/trait/generic calls, optional dependencies, external crates, and missing Git evidence remain deferred.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "external-library",
       "cpp_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
@@ -4015,6 +4064,7 @@
           "ruby",
           "rust",
           "dart",
+          "swift",
           "c",
           "cpp"
         ],
@@ -4042,6 +4092,11 @@
             "bundled_tooling": ".claude/skills/map-subsystem/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -4148,6 +4203,7 @@
             "bundled_tooling": ".claude/skills/find-layer-violation/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -4244,6 +4300,7 @@
       "rust_limitation": "Scout judgment remains mandatory; macros, generated/build output, impl/trait defaults, cfg variants, and runtime responsibility remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "stock-selected-install",
       "c_closure_mode": "external-library",
       "cpp_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
@@ -4310,6 +4367,7 @@
             "bundled_tooling": ".claude/skills/find-omnibus/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -4415,6 +4473,7 @@
             "bundled_tooling": ".claude/skills/find-orphaned-ideas/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -4518,6 +4577,7 @@
             "bundled_tooling": ".claude/skills/find-perimeter-gaps/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -4621,6 +4681,7 @@
             "bundled_tooling": ".claude/skills/find-query-mutation/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -4724,6 +4785,7 @@
             "bundled_tooling": ".claude/skills/find-route-sprawl/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -4829,6 +4891,7 @@
             "bundled_tooling": ".claude/skills/find-rule-surface-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -4887,14 +4950,14 @@
       ],
       "php_reviewed_revision": "42f6236",
       "php_limitation": "Matching direct constructor shapes are review leads, never behavioral equivalence or safe consolidation authority.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-semantic-a3.md",
       "swift_native_check": [
-        "SourceKit-LSP completeness unproven",
-        "no Swift semantic-duplication artifact validated"
+        "schema-v2 exact constructor/overload, return labels, resolved callee identities, and containing-caller identities for two independent value shapes",
+        "ordinary Void/Int callers retained, function-reference decoys excluded, candidate-hash-bound review, copied lifecycle, and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No accepted project semantic index reaches final triage.",
+      "swift_reviewed_revision": "2d411cb6feb0c4d5acc49ef547f61c81ec3f6f61",
+      "swift_limitation": "Static selected-configuration capability overlap is not behavioral equivalence or consolidation safety; dynamic/protocol/Objective-C dispatch, reflection, generated/conditional inputs, external callers, side effects, ABI, and mutation remain unresolved.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
@@ -4929,6 +4992,7 @@
       "rust_limitation": "No behavioral-equivalence or safe-refactor claim; traits/blanket impls, generics, macros/cfg, unsafe behavior, runtime dispatch, external APIs, and type/const inference remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "external-library",
       "cpp_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
@@ -4976,6 +5040,7 @@
           "ruby",
           "rust",
           "dart",
+          "swift",
           "c",
           "cpp"
         ],
@@ -5003,6 +5068,11 @@
             "bundled_tooling": ".claude/skills/map-subsystem/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -5112,6 +5182,7 @@
             "bundled_tooling": ".claude/skills/find-skill-artifact-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -5215,6 +5286,7 @@
             "bundled_tooling": ".claude/skills/find-skill-intent-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -5320,6 +5392,7 @@
             "bundled_tooling": ".claude/skills/find-stale-artifacts/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -5482,6 +5555,7 @@
             "bundled_tooling": ".claude/skills/find-standard-gaps/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -5591,6 +5665,7 @@
             "bundled_tooling": ".claude/skills/find-test-obligation-drift/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -5694,6 +5769,7 @@
             "bundled_tooling": ".claude/skills/find-transaction-overreach/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -5802,6 +5878,7 @@
             "bundled_tooling": ".claude/skills/find-workflow-duplication/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -5908,6 +5985,7 @@
             "bundled_tooling": ".claude/skills/find-workflow-state-gaps/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -6011,6 +6089,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -6114,6 +6193,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -6217,6 +6297,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -6320,6 +6401,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -6423,6 +6505,7 @@
             "bundled_tooling": ".claude/skills/introduce-fk/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -6526,6 +6609,7 @@
             "bundled_tooling": ".claude/skills/map-product-workflow/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -6625,6 +6709,7 @@
       "rust_reviewed_revision": "aee1e4a863f66d259e2683fb7ca18437c6ed38da",
       "rust_limitation": "The bounded selected-configuration map contract is supported; macro/procedural expansion, build-script OUT_DIR, include!, unselected cfg/feature/target variants, and runtime trait-object dispatch remain explicit runtime-partial completeness rather than inferred facts.",
       "dart_disposition": "dart-supported",
+      "swift_closure_mode": "stock-selected-install",
       "c_closure_mode": "stock-selected-install",
       "cpp_closure_mode": "stock-selected-install",
       "dart_closure_mode": "stock-selected-install",
@@ -6691,6 +6776,7 @@
             "bundled_tooling": ".claude/skills/map-subsystem/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -6796,6 +6882,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -6896,6 +6983,7 @@
       "rust_reviewed_revision": "af9ecc6e77623bff42a04c7643bdde09210b413b",
       "rust_limitation": "Version 1 supports one conventional leaf module in one regular Cargo library target; cfg/path attributes, macros, include!, build output, reflective strings, multiple/cross-package moves, arbitrary files, and non-Cargo/nightly/no_std/cross-target shapes remain partial and block writes.",
       "dart_disposition": "dart-supported",
+      "swift_closure_mode": "stock-selected-install",
       "c_closure_mode": "stock-selected-install",
       "cpp_closure_mode": "stock-selected-install",
       "ruby_closure_mode": "stock-selected-install",
@@ -6935,12 +7023,12 @@
         "scans": [
           "c",
           "cpp",
+          "csharp",
           "dart",
           "go",
           "java",
           "javascript",
           "kotlin",
-          "csharp",
           "php",
           "ruby",
           "rust",
@@ -6962,6 +7050,7 @@
             "bundled_tooling": ".claude/skills/move-path/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -7067,6 +7156,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -7170,6 +7260,7 @@
             "bundled_tooling": ".claude/skills/orient/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -7273,6 +7364,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -7376,6 +7468,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -7479,6 +7572,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -7536,14 +7630,14 @@
       ],
       "php_reviewed_revision": "0b38efa",
       "php_limitation": "Exact reviewed property/type guard only; it is staged, not installed, and proves no general PHP enum or runtime invariant.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-state-proposal-guard.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift guard chain validated"
+        "fresh accepted enum proposal plus exact migrated source inventory and String-reversion authority",
+        "copied staged same-module type guard passes the migrated tree and rejects a buildable String reversion, with atomic refusal recovery and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No accepted Swift producer evidence reaches the guard boundary.",
+      "swift_reviewed_revision": "f03cf8a9b93ff637011cf4d20cb5cdad47282b1e",
+      "swift_limitation": "The guard is staged, not installed; it proves one accepted property type under the exact selected SwiftPM configuration, not runtime closure, serialization, dynamic/framework callers, ABI, mutation, or release safety.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-state-proposal-guard.md",
       "c_native_check": [
@@ -7578,6 +7672,7 @@
       "rust_limitation": "Exact reviewed field only; private fields abstain, and this is not a universal Rust lint or a claim about macros, cfg variants, traits/generics, unsafe/FFI, serialization, wire behavior, or compatibility.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "stock-selected-install",
       "cpp_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
@@ -7626,6 +7721,7 @@
           "ruby",
           "rust",
           "dart",
+          "swift",
           "c",
           "cpp"
         ],
@@ -7661,6 +7757,12 @@
             "bundled_tooling": ".claude/skills/map-subsystem/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py",
+            ".claude/skills/_swift-semantic-readonly/swift_accepted_evidence.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -7767,6 +7869,7 @@
             "bundled_tooling": ".claude/skills/project-interview/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -7824,14 +7927,14 @@
       ],
       "php_reviewed_revision": "0b38efa",
       "php_limitation": "Accepted direct project evidence only; dynamic/framework/external wiring and refactor safety remain unresolved.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-structure-proposals.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift boundary proposal validated"
+        "accepted final omnibus row plus current schema-v2 definitions, callers, and separate content-addressed proposal verdict",
+        "copied read-only shim-preserving boundary plan passes current and independently applied disposable after-tree native checks, refusal recovery, and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No complete resolved dependency graph reaches the proposal boundary.",
+      "swift_reviewed_revision": "50dfd13aafd2b721a3555b96cb688941b8d917b0",
+      "swift_limitation": "One internal boundary with retained public shims only; dynamic/protocol/Objective-C dispatch, reflection, macros/conditional/generated inputs, external callers, Xcode/mixed-language, ABI, host mutation, and release authority remain unresolved.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-structure-proposals.md",
       "c_native_check": [
@@ -7866,6 +7969,7 @@
       "rust_limitation": "Proposal-only; macros/proc macros, build/generated/include inputs, cfg/feature/target variants, traits/generics, unsafe/FFI, external APIs, public compatibility, and semver remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "stock-selected-install",
       "cpp_closure_mode": "stock-selected-install",
       "ruby_closure_mode": "external-library",
@@ -7910,6 +8014,7 @@
           "java",
           "kotlin",
           "csharp",
+          "swift",
           "php",
           "ruby",
           "rust",
@@ -7932,6 +8037,12 @@
             "bundled_tooling": ".claude/skills/propose-boundary/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py",
+            ".claude/skills/_swift-semantic-readonly/swift_structure_proposals.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -7991,14 +8102,14 @@
       ],
       "php_reviewed_revision": "0b38efa",
       "php_limitation": "One reviewed PSR-4 layout plan only; frameworks, dynamic loading, external consumers, and mutation safety remain human-owned.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-structure-proposals.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift reorganization proposal validated"
+        "accepted final topology row plus current schema-v2 source, target, declaration, call, and reference identities",
+        "copied read-only four-file folder plan passes current and independently applied disposable after-tree native checks without manifest/module/API drift, with refusal recovery and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "SwiftPM target and source layout rules need a dedicated final-outcome pass.",
+      "swift_reviewed_revision": "50dfd13aafd2b721a3555b96cb688941b8d917b0",
+      "swift_limitation": "One direct-sibling SwiftPM subfolder plan only; Xcode/workspaces, custom target paths, mixed language, resources, protocols/actors, reflection/dynamic dispatch, macros/conditional/generated inputs, ABI, mutation, and release authority remain unresolved.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-structure-proposals.md",
       "c_native_check": [
@@ -8033,6 +8144,7 @@
       "rust_limitation": "Proposal-only and requires a human split/cohesive judgment; macros/proc macros, build/generated/include inputs, cfg variants, traits/generics, unsafe/FFI, external/public/semver compatibility, and automatic moves remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "stock-selected-install",
       "cpp_closure_mode": "stock-selected-install",
       "ruby_closure_mode": "external-library",
@@ -8075,6 +8187,7 @@
           "java",
           "kotlin",
           "csharp",
+          "swift",
           "typescript",
           "javascript",
           "php",
@@ -8099,6 +8212,12 @@
             "bundled_tooling": ".claude/skills/propose-folder-reorganization/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py",
+            ".claude/skills/_swift-semantic-readonly/swift_structure_proposals.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -8205,6 +8324,7 @@
             "bundled_tooling": ".claude/skills/query-patterns/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -8308,6 +8428,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -8366,14 +8487,14 @@
       ],
       "php_reviewed_revision": "42f6236",
       "php_limitation": "Assessment-only direct identifier evidence; strings, reflection, aliases, frameworks, runtime consumers, and rename safety remain unresolved.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-semantic-a3.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift rename assessment validated"
+        "schema-v2 exact old/new declaration and reference identities with comments, strings, excluded roles, and unrelated lexical decoys separated",
+        "copied assessment, clean outcome, stale recovery, terminal replacement, and source preservation with no edit applied"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "Conditional compilation, reflection, dynamic dispatch, and cross-module references are unresolved.",
+      "swift_reviewed_revision": "c5addab9dd4cfd5e16cbc1719d6e104c706ab84f",
+      "swift_limitation": "Selected static identifier evidence is not a codemod or whole-program rename proof; conditional compilation, reflection, dynamic/Objective-C/protocol dispatch, generated inputs, external modules, frameworks, ABI, and mutation remain unresolved.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-semantic-read-only.md",
       "c_native_check": [
@@ -8408,6 +8529,7 @@
       "rust_limitation": "Assess-only; macros/proc macros, imports/re-exports, associated items, cfg variants, generated code, reflection strings/symbols, external APIs, mutation safety, and compatibility remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "external-library",
       "cpp_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
@@ -8455,6 +8577,7 @@
           "ruby",
           "rust",
           "dart",
+          "swift",
           "c",
           "cpp",
           "markdown",
@@ -8492,6 +8615,11 @@
             "bundled_tooling": ".claude/skills/map-subsystem/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -8599,6 +8727,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -8702,6 +8831,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -8805,6 +8935,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -8908,6 +9039,7 @@
             "bundled_tooling": ".claude/skills/track-idea/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -9011,6 +9143,7 @@
             "bundled_tooling": null
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -9068,14 +9201,14 @@
       ],
       "php_reviewed_revision": "0b38efa",
       "php_limitation": "Static constructor-shape evidence is not behavioral equivalence; consolidation and mutation require separate human authority.",
-      "swift_disposition": "swift-pending-implementation",
-      "swift_evidence_path": ".claude/tasks/p7-baseline/swift-pilot-baseline.json",
+      "swift_disposition": "swift-supported",
+      "swift_evidence_path": ".claude/tasks/multilanguage-learnings/swift-unify-shadows.md",
       "swift_native_check": [
-        "spine final-outcome census",
-        "no Swift unification proposal validated"
+        "fresh accepted semantic-duplication finding rejoined to exact schema-v2 definitions, containing callers, initializer overload, return shape, and shared callees without redetection",
+        "copied three-artifact proposal/keep-separate/refusal lifecycle, verdict compatibility, valid-invalid-valid recovery, eight native evidence rows, and source preservation"
       ],
-      "swift_reviewed_revision": "c29e1f158c74a1a803fabcc45ab06672a9173c71",
-      "swift_limitation": "No accepted Swift producer evidence reaches the proposal boundary.",
+      "swift_reviewed_revision": "2d411cb6feb0c4d5acc49ef547f61c81ec3f6f61",
+      "swift_limitation": "Read-only disposition only; static structure is not behavioral/runtime equivalence, and external callers, variants, side effects, frameworks/resources/errors, dynamic/protocol dispatch, concurrency, ABI, survivor choice, mutation, and release authority remain human-owned.",
       "c_disposition": "c-supported",
       "c_evidence_path": ".claude/tasks/multilanguage-learnings/c-unify-shadows.md",
       "c_native_check": [
@@ -9110,6 +9243,7 @@
       "rust_limitation": "No behavioral-equivalence or mutation authority; traits/blanket impls, generics, macros/cfg variants, unsafe/FFI, runtime behavior, external APIs, and semver compatibility remain unresolved.",
       "dart_disposition": "dart-supported",
       "php_closure_mode": "external-library",
+      "swift_closure_mode": "external-library",
       "c_closure_mode": "stock-selected-install",
       "cpp_closure_mode": "external-library",
       "ruby_closure_mode": "external-library",
@@ -9157,6 +9291,7 @@
           "ruby",
           "rust",
           "dart",
+          "swift",
           "c",
           "cpp"
         ],
@@ -9175,6 +9310,11 @@
             "bundled_tooling": ".claude/skills/unify-shadows/scripts"
           }
         ],
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -9281,6 +9421,7 @@
             "bundled_tooling": ".claude/skills/which-cleanup/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -9384,6 +9525,7 @@
             "bundled_tooling": ".claude/skills/which-shape/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"
@@ -9487,6 +9629,7 @@
             "bundled_tooling": ".claude/skills/which-skill/scripts"
           }
         ],
+        "language_helpers": {},
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"

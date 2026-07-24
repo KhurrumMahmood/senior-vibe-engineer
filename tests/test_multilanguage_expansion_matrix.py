@@ -71,8 +71,7 @@ EXPECTED_PHP_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_SWIFT_COUNTS = {
-    "swift-supported": 12,
-    "swift-pending-implementation": 10,
+    "swift-supported": 22,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -268,6 +267,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         assert [guide["skill"] for guide in closure["guides"]] == closure[
             "closure_skills"
         ]
+        language_helpers = closure["language_helpers"]
+        assert isinstance(language_helpers, dict)
+        for paths in language_helpers.values():
+            assert paths
+            assert all((REPO_ROOT / path).is_file() for path in paths)
         for guide in closure["guides"]:
             assert (REPO_ROOT / guide["skill_root"]).is_dir(), row
             assert (REPO_ROOT / guide["guide"]).is_file(), row
@@ -590,20 +594,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["swift_disposition"] == "swift-supported"
-    } == {
-        "adapt-project",
-        "audit-decisions",
-        "explain-code",
-        "find-comment-drift",
-        "find-complexity-hotspots",
-        "find-concept-divergence",
-        "find-duplication",
-        "find-folder-topology-drift",
-        "find-omnibus",
-        "find-standard-gaps",
-        "map-subsystem",
-        "move-path",
-    }
+    } == {row["skill"] for row in language_rows}
     assert {
         row["skill"]
         for row in language_rows
@@ -863,17 +854,16 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row.get("swift_closure_mode") == "external-library"
-    } == {
-        "adapt-project",
-        "audit-decisions",
-        "explain-code",
-        "find-comment-drift",
-        "find-complexity-hotspots",
-        "find-concept-divergence",
-        "find-duplication",
-        "find-folder-topology-drift",
-        "find-standard-gaps",
+    } == {row["skill"] for row in language_rows} - {
+        "find-omnibus",
+        "map-subsystem",
+        "move-path",
     }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row.get("swift_closure_mode") == "stock-selected-install"
+    } == {"find-omnibus", "map-subsystem", "move-path"}
     assert {
         row["skill"]
         for row in language_rows

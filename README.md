@@ -6,7 +6,7 @@ discoveries into durable guardrails. Extracted from a real production codebase.
 **Its origin and shared runtime remain Python/Django-flavored** — the lint
 substrate and most worked examples are Django. TypeScript and Go each have
 22/22 language-level coverage; standalone-JDK Java, Kotlin/JVM, PHP, Ruby,
-Rust, Dart, C, C++, and C# also have 22/22 bounded coverage. These claims do not
+Swift, Rust, Dart, C, C++, and C# also have 22/22 bounded coverage. These claims do not
 extend to the 22 deliberately stack-bound framework skills: Java support does
 not imply Spring or Android, and Kotlin support does not imply Android,
 Multiplatform, or arbitrary Gradle variants. See
@@ -247,6 +247,12 @@ reports/
   source graphs only; structure proposals remain read-only, accepted-evidence
   consumers and do not establish runtime behavior, ABI compatibility, or
   mutation authority.
+  Swift separately earns 22/22 bounded outcomes under Apple Swift 6.3.3 in
+  `.claude/tasks/swift-language-coverage.json`. Its compiler-AST semantic facts
+  cover one exact dependency-free SwiftPM selected target; they do not imply
+  Xcode/framework support, dynamic or protocol runtime dispatch, generated or
+  conditional variants, external callers, behavioral equivalence, ABI safety,
+  or general mutation authority.
 
 ## Where to read next
 

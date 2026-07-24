@@ -1,4 +1,25 @@
-# Swift P7 pilot closeout
+# Swift P7 pilot and full-publication closeout
+
+## Current publication outcome
+
+Swift now reaches 22 of 22 bounded language-level outcomes under Apple Swift
+6.3.3. The original three pilot outcomes remain valid. Nine project/lexical and
+syntax outcomes use their established family-local evidence; five read-only
+semantic outcomes use the reproducible `swiftc -typecheck -dump-ast`
+`swift-semantic-facts-v2` boundary; accepted evidence feeds enum, guard,
+boundary, folder, and shadow proposals without redetection. Nineteen outcomes
+require the external on-demand library, including the declared sibling
+`_swift-semantic-readonly` helpers. `find-omnibus`, `map-subsystem`, and
+`move-path` retain their stock-selected-install closures.
+
+The supported claim remains selected and static. Conditional compilation,
+macros/plugins, generated inputs, reflection, Objective-C/dynamic or protocol
+runtime dispatch, external callers, Xcode projects/workspaces, Apple
+frameworks, resources, arbitrary dependencies, mixed-language targets,
+behavior, ABI/release compatibility, and broader mutation authority are not
+established.
+
+## Historical pilot outcome (superseded)
 
 ## Outcome
 
@@ -8,8 +29,10 @@ The dependency-free SwiftPM pilot supports three representative final outcomes:
 - `map-subsystem`: SwiftPM/build/SourceKit/symbol-graph project map; and
 - `move-path`: one target-directory move that retains module identity.
 
-The other 19 language-level skills remain explicitly `swift-unsupported`.
-That is a product boundary, not a pending claim. Detailed evidence lives in
+At the time of the initial pilot, the other 19 language-level skills remained
+explicitly `swift-unsupported`. That stop decision was later superseded by the
+full-language pending-work rule and the accepted compiler-AST cohorts. Detailed
+pilot evidence lives in
 `swift-find-omnibus.md`, `swift-map-subsystem.md`, and `swift-move-path.md`.
 
 ## Setup and tools

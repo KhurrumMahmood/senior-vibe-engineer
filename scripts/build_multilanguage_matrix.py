@@ -135,6 +135,28 @@ LEARNING_PACKETS = {
     ],
 }
 
+SWIFT_PROVIDER = ".claude/skills/_swift-semantic-readonly/swift_semantic_facts.py"
+SWIFT_ACCEPTED_EVIDENCE = (
+    ".claude/skills/_swift-semantic-readonly/swift_accepted_evidence.py"
+)
+SWIFT_STRUCTURE_PROPOSALS = (
+    ".claude/skills/_swift-semantic-readonly/swift_structure_proposals.py"
+)
+LANGUAGE_CLOSURE_HELPERS = {
+    "extract-enum": {"swift": [SWIFT_PROVIDER, SWIFT_ACCEPTED_EVIDENCE]},
+    "find-dormant": {"swift": [SWIFT_PROVIDER]},
+    "find-implicit-state": {"swift": [SWIFT_PROVIDER]},
+    "find-incomplete-sweep": {"swift": [SWIFT_PROVIDER]},
+    "find-semantic-duplication": {"swift": [SWIFT_PROVIDER]},
+    "prevent-regression": {"swift": [SWIFT_PROVIDER, SWIFT_ACCEPTED_EVIDENCE]},
+    "propose-boundary": {"swift": [SWIFT_PROVIDER, SWIFT_STRUCTURE_PROPOSALS]},
+    "propose-folder-reorganization": {
+        "swift": [SWIFT_PROVIDER, SWIFT_STRUCTURE_PROPOSALS]
+    },
+    "rename-concept": {"swift": [SWIFT_PROVIDER]},
+    "unify-shadows": {"swift": [SWIFT_PROVIDER]},
+}
+
 FRAMEWORK_FAMILIES = {
     "frontend-ui": {
         "extract-cotton-primitive",
@@ -306,10 +328,16 @@ def _on_demand_closure(skill: str, companions: list[str]) -> dict:
                 "bundled_tooling": str(tooling) if (REPO_ROOT / tooling).is_dir() else None,
             }
         )
+    language_helpers = LANGUAGE_CLOSURE_HELPERS.get(skill, {})
+    for paths in language_helpers.values():
+        missing = [path for path in paths if not (REPO_ROOT / path).is_file()]
+        if missing:
+            raise ValueError(f"missing on-demand helpers for {skill}: {missing}")
     return {
         "mode": "on-demand-library",
         "closure_skills": closure_skills,
         "guides": guides,
+        "language_helpers": language_helpers,
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs",
@@ -531,6 +559,12 @@ def _swift_coverage(payload: dict) -> dict[str, dict]:
         supported_disposition="swift-supported",
     )
     for skill, row in coverage.items():
+        if row["disposition"] == "swift-supported" and row.get(
+            "closure_mode"
+        ) not in {"stock-selected-install", "external-library"}:
+            raise ValueError(
+                f"accepted Swift row lacks an explicit closure mode: {skill}"
+            )
         if row["disposition"] in {
             "swift-pending-implementation",
             "swift-partial",

@@ -683,6 +683,7 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
             ):
                 raise TypeError("selected capability fields are invalid")
             closure = row["on_demand_closure"]["closure_skills"]
+            closure_helpers = row["on_demand_closure"].get("language_helpers", {})
             install_status = row["optional_install"]["status"]
             if (
                 not isinstance(closure, list)
@@ -691,16 +692,38 @@ def capability_handoff(library_root: Path, skills: list[str]) -> dict:
                 or len(closure) != len(set(closure))
                 or any(not isinstance(member, str) or not member for member in closure)
                 or any(member not in by_name for member in closure)
+                or not isinstance(closure_helpers, dict)
+                or any(
+                    not isinstance(language, str)
+                    or not language
+                    or not isinstance(paths, list)
+                    or not paths
+                    or any(not isinstance(path, str) or not path for path in paths)
+                    for language, paths in closure_helpers.items()
+                )
                 or not isinstance(install_status, str)
             ):
                 raise TypeError("selected capability closure is invalid")
-            selected.append(
-                {
-                    **{field: row[field] for field in CAPABILITY_FIELDS},
-                    "closure_skills": closure,
-                    "optional_install_status": install_status,
-                }
-            )
+            capability = {
+                **{field: row[field] for field in CAPABILITY_FIELDS},
+                "closure_skills": closure,
+                "optional_install_status": install_status,
+            }
+            if closure_helpers:
+                resolved_helpers: dict[str, list[str]] = {}
+                for language, paths in closure_helpers.items():
+                    resolved_paths = []
+                    for path in paths:
+                        relative = Path(path)
+                        if relative.is_absolute() or ".." in relative.parts:
+                            raise TypeError("selected capability helper path is unsafe")
+                        helper = library_root / relative
+                        if not helper.is_file():
+                            return {**unavailable, "reason": "required_helper_missing"}
+                        resolved_paths.append(str(helper))
+                    resolved_helpers[language] = resolved_paths
+                capability["closure_helpers"] = resolved_helpers
+            selected.append(capability)
         if selected and selected[0]["closure_skills"] != skills:
             raise TypeError("router handoff does not match the declared closure")
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError):
@@ -847,9 +870,11 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
     common_guidance = library_root / ".claude" / "skills" / "_common"
     shared_guidance = library_root / ".claude" / "docs"
     runtime_python = library_root / ".venv" / "bin" / "python"
+    capabilities = capability_handoff(library_root, skills)
     return {
         "mode": "on_demand_library",
-        "available": all(Path(item["guide"]).is_file() for item in guides),
+        "available": all(Path(item["guide"]).is_file() for item in guides)
+        and capabilities["available"],
         "default_execution": "fresh_non_context_subagent",
         "library_root": str(library_root),
         "skills": skills,
@@ -862,7 +887,7 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
             "available": runtime_python.is_file(),
             "python": str(runtime_python),
         },
-        "capabilities": capability_handoff(library_root, skills),
+        "capabilities": capabilities,
         "instruction": (
             "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
             "task packet, selected skill roots, library runtime Python, and shared guidance/tool "

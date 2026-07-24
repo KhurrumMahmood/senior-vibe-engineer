@@ -12,21 +12,22 @@ description: |
   RBS constructor contracts; Kotlin/JVM uses pinned direct constructor-call
   facts; Rust uses
   compiler-resolved direct calls for one struct-option omission shape; Dart
-  uses SDK-LSP-resolved top-level calls for one named-argument omission shape. Gated on a git-trajectory
+  uses SDK-LSP-resolved top-level calls for one named-argument omission shape;
+  Swift uses compiler-AST-resolved direct calls and default-argument ownership. Gated on a git-trajectory
   signal: a divergence counts as a forgotten sweep only when the
   kwarg-present sites were touched more recently than the straggler (the sweep
   landed after the straggler was last edited). A straggler edited just as
   recently is reported separately as likely-deliberate. Distinguishes
   abandoned partial work from legitimate post-completion cleanup via residue
   direction. Detection-only — never edits code; hands off to /fix-workflow.
-argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config>; Go/Java/Rust/Dart: --target . --report-dir reports/find-incomplete-sweep/<name>"
+argument-hint: "Python: [--band kwarg|placeholder|all] --paths scripts ...; TypeScript/JavaScript: --target src --tsconfig <config>; Go/Java/Rust/Dart/Swift: --target . --report-dir reports/find-incomplete-sweep/<name>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, swift, c, cpp]
 install_with: [map-subsystem]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
@@ -81,6 +82,16 @@ deprecated K1 API is not a stable Analysis API. Factories,
 callable references, overrides/delegation, reflection, generated/plugin inputs,
 Gradle variants, Java/external callers, runtime behavior, history, and fixes
 remain unresolved.
+
+## Swift 6.3.3 semantic branch
+
+Use `scripts/detect_swift_incomplete_sweep.py` only with one current complete
+`swift-semantic-facts-v2` pack from sibling `_swift-semantic-readonly`. The
+detector binds direct selected-target call sites to one exact defaulted
+argument declaration before Git trajectory, fixed scout verdict, and
+packet-hash-bound triage. Indirect/dynamic calls, factories, protocol dispatch,
+external or conditional variants, generated inputs, developer intent, and
+automatic fixes remain unresolved.
 
 ## C++20 branch
 

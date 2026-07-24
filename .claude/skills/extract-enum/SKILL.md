@@ -1,6 +1,6 @@
 ---
 name: extract-enum
-description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or accepted Go, Java 17, Kotlin/JVM, PHP, Ruby, bounded Rust, or bounded Dart implicit-state evidence into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
+description: Turn a confirmed Django string-state field into a TextChoices proposal, a reviewed TypeScript or checked-JavaScript result into an as-const value-object proposal, or accepted Go, Java 17, Kotlin/JVM, PHP, Ruby, bounded Rust, Dart, or Swift implicit-state evidence into a typed-constant/enum proposal. Emits a caller and boundary inventory without editing production code.
 argument-hint: "<implicit-state:ID or FILE::FIELD>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -28,7 +28,7 @@ not_for: |
   enumerations whose convention lacks fixture evidence.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, swift, c, cpp]
 install_with: [find-implicit-state, map-subsystem]
 ---
 

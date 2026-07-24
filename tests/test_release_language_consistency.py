@@ -48,11 +48,15 @@ def _route(language: str) -> dict:
     return json.loads(result.stdout)
 
 
-def test_public_go_and_java_counts_match_coverage_matrix_and_router() -> None:
+def test_public_language_counts_match_coverage_matrix_and_router() -> None:
     readme = " ".join(README.read_text(encoding="utf-8").split())
     matrix = json.loads(MATRIX.read_text(encoding="utf-8"))["skills"]
 
-    for display_name, language in (("Go", "go"), ("Java", "java")):
+    for display_name, language in (
+        ("Go", "go"),
+        ("Java", "java"),
+        ("Swift", "swift"),
+    ):
         row_count, supported = _coverage(language)
         assert row_count == 22
         assert len(supported) == 22

@@ -1,7 +1,7 @@
 ---
 name: find-semantic-duplication
-description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart function-level leads using host-native semantic facts. Semantic branches report bounded static candidates with human review; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
-argument-hint: "--target <directory> [--language python|typescript|javascript|go|java|kotlin|csharp|php|ruby|rust|dart]"
+description: Detect behavioral duplication in Python functions through a scout triage pipeline, or produce conservative TypeScript/TSX, checked-JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, Dart, and Swift function-level leads using host-native semantic facts. Semantic branches report bounded static candidates with human review; they do not infer behavioral equivalence, workflows, structural duplication, or safe refactors.
+argument-hint: "--target <directory> [--language python|typescript|javascript|go|java|kotlin|csharp|php|ruby|rust|dart|swift]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
 tier: maintenance
@@ -18,7 +18,7 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, swift, c, cpp]
 install_with: [map-subsystem]
 ---
 

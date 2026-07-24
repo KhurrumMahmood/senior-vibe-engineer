@@ -8,7 +8,7 @@ description: |
   completeness gate, so renames land half-applied. This skill (v0, assess-only)
   reports the scope-gate verdict, blast radius, a per-step lifecycle status
   table, and the completeness gate. It performs strict lexical assessment of
-  Python, JavaScript, TypeScript, TSX, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart text. For `.ts`, `.tsx`, and checked
+  Python, JavaScript, TypeScript, TSX, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, Dart, and Swift text. For `.ts`, `.tsx`, and checked
   `.js`/`.jsx`/`.mjs`/`.cjs`, a host-pinned TypeScript Compiler API resolves glossary identifier candidates,
   declarations, and references; it does not claim whole-project type-checking,
   JSX runtime behavior, or codemod safety. For Go, Go 1.22+ `go/types`
@@ -18,7 +18,7 @@ description: |
   live code (/find-concept-divergence superseded_co_occurrence, band 3) AND no
   retired phrasing may remain (/find-concept-divergence avoid_term_hit, band 1)
   — both must be CLEAN for a lexical candidate assessment to pass. A
-  TypeScript/TSX, checked-JavaScript, Go, or Rust host additionally needs a successful native semantic
+  TypeScript/TSX, checked-JavaScript, Go, Rust, or Swift host additionally needs a successful native semantic
   evidence run that resolves old/new identifier candidates. Definition of done is the
   two-band gate, every lifecycle step resolved, and that evidence where
   a semantic language is in scope — NOT a codemod having run. Drives the two
@@ -72,7 +72,7 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp, markdown, templates]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, rust, dart, swift, c, cpp, markdown, templates]
 install_with: [find-concept-divergence, map-subsystem]
 ---
 
@@ -98,6 +98,16 @@ API, not a stable Analysis API, and do not cover strings,
 reflection/callable references, aliases, named arguments, overrides or
 delegation, generated/plugin sources, Gradle variants, Java/external callers,
 runtime/framework compatibility, ABI, codemod safety, or mutation.
+
+## Swift 6.3.3 semantic branch
+
+Use `scripts/swift_identifier_evidence.py` only with one current complete
+`swift-semantic-facts-v2` pack from sibling `_swift-semantic-readonly`. The
+assessment separates exact selected-target old/new declarations and references
+from comments, strings, excluded roles, and unrelated lexical matches; it
+applies no edit. Conditional compilation, reflection, Objective-C/dynamic or
+protocol dispatch, generated inputs, external modules, frameworks, ABI,
+codemod safety, and mutation remain unresolved.
 
 ## C++20 branch
 

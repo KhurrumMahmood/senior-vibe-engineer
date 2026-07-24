@@ -248,7 +248,7 @@ def test_swift_frozen_cohorts_preserve_fact_and_mutation_boundaries() -> None:
     assert baseline["mutation_performed"] is False
 
 
-def test_all_22_swift_skill_rows_have_explicit_closeout_dispositions() -> None:
+def test_all_22_swift_skill_rows_have_current_supported_dispositions() -> None:
     coverage = json.loads(COVERAGE.read_text(encoding="utf-8"))
     rows = coverage["skills"]
 
@@ -257,19 +257,7 @@ def test_all_22_swift_skill_rows_have_explicit_closeout_dispositions() -> None:
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
     assert {
         row["skill"] for row in rows if row["disposition"] == "swift-supported"
-    } == {
-        "adapt-project",
-        "audit-decisions",
-        "explain-code",
-        "find-comment-drift",
-        "find-complexity-hotspots",
-        "find-concept-divergence",
-        "find-duplication",
-        "find-folder-topology-drift",
-        "find-omnibus",
-        "find-standard-gaps",
-        "map-subsystem",
-        "move-path",
-    }
-    assert sum(row["disposition"] == "swift-pending-implementation" for row in rows) == 10
+    } == EXPECTED_SKILLS
+    assert sum(row["disposition"] == "swift-pending-implementation" for row in rows) == 0
+    assert coverage["current_assertions"]["pending_skills"] == []
     assert all(row["limitation"] and row["native_check"] for row in rows)
