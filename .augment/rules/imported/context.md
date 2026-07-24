@@ -5,12 +5,13 @@ type: "always_apply"
 # Engineering Skills Ecosystem
 
 ## Project Overview
-This repository hosts a project-agnostic, AI-grown skill ecosystem for
-keeping a codebase healthy as senior engineers work on it: a maintenance
-loop (`map -> suspect -> explain -> refactor -> guard`), a planning
-ladder (Quick / Feature / System / Maintenance), and a diff-scoped lint
-catalogue. It is mirrored from a Django host project but is being
-generalized to stand alone.
+This repository hosts a project-agnostic, AI-grown skill ecosystem for keeping
+a codebase healthy as senior engineers work on it: a maintenance loop (`map ->
+suspect -> explain -> refactor -> guard`), a planning ladder (Quick / Feature /
+System / Maintenance), and a diff-scoped lint catalogue. It originated in a
+Django host project. Its 22 language-level skills now have bounded coverage
+across 13 expansion languages; deliberately framework-bound skills remain
+explicitly coupled.
 
 **Working principle:** Optimal tooling for an AI-grown codebase
 continuously converts hidden structure into explicit structure, and
@@ -28,7 +29,7 @@ one-off discoveries into repeatable guardrails.
   `linting.md`, `testing.md`, `development-workflow.md`,
   `senior-engineer-posture.md`, `quality-coordination-kernel.md`,
   `folder-organization.md`, `language-support-development.md`,
-  `installation-and-on-demand-library.md`, `sub-agents.md`,
+  `installation-and-on-demand-library.md`, `queue-contract.md`, `sub-agents.md`,
   `cross-tool-agent-governance.md`, `skill-catalog.md`, `precedents.yml`.
 - `scripts/lint/` -- diff-scoped lints (silent-catch, stringly-status,
   query-mutation, fat-view, safe-dispatch, comment-drift,
@@ -46,9 +47,12 @@ The five-job loop is the spine: **map -> suspect -> explain -> refactor
 -> guard**. Skipping MAP or EXPLAIN is fine when the target is already
 understood. **Skipping GUARD is a mistake** -- it turns every cleanup
 into a recurring tax. See `.claude/docs/skill-catalog.md` for the full
-skill list and `.claude/docs/architectural-smells.md` for the six
-architectural smells the SUSPECT skills target.
+skill list and `.claude/docs/architectural-smells.md` for the architectural
+smells the SUSPECT skills target.
 
+Only `which-shape`, `which-skill`, and `which-cleanup` enter agent discovery by
+default. The other task/ecosystem skills and their tools remain in the external
+project-scoped library and are selected as exact on-demand closures.
 `/which-shape` chooses the operating loop when the task shape is unclear;
 `/check-ecosystem-consistency` keeps that router, the skill catalog, and
 public skill counts aligned after significant skill changes.

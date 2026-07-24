@@ -13,7 +13,9 @@ entry point.
 ## Sources of truth and working records
 
 - `.claude/tasks/language-support-and-productization-execution-plan.md` is the
-  sole active execution ledger for unfinished installation and language work.
+  completed execution ledger for the 13-language expansion and productization
+  pass. New work starts from the durable contract here and the explicit backlog,
+  not by reopening completed phases.
 - This file owns the reusable development contract and native-tooling
   selection principles.
 - `.claude/tasks/multilanguage-skill-matrix.json` owns current per-skill

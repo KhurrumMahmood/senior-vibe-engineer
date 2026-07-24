@@ -14,21 +14,23 @@ _Shape and ubiquitous-language framing borrowed from
 ## Language
 
 **Skill**:
-A self-contained capability under `.claude/skills/<name>/`. Each skill
+A capability under `.claude/skills/<name>/`. Each skill
 has a `SKILL.md` (agent-facing definition with frontmatter that declares
 tier / job / best_for / not_for), optional `agents/*.md` (scout briefs),
 `knowledge/*.md` (reusable rules and false-positive catalogues),
 `scripts/*.py` (detection/synthesis logic), and `fixtures/` + `tests/`
-(executable checks). Skills are invoked by agents via slash-commands.
+(executable checks). Only the three routers are ambient by default; other
+skills are reached through exact guide/tool closures in the external library.
 _Avoid_: confusing skill with the underlying tool (a skill *uses*
 tools); calling sub-agent briefs "skills."
 
 **Skill body vs Knowledge**:
-The **body** of a skill (its `SKILL.md` and scripts) is project-agnostic
+The **body** of a skill (its `SKILL.md` and scripts) owns the reusable contract
 and lives in this repo. **Knowledge** files (`knowledge/*.md`) carry
-project-specific examples, false-positives, and exemplar paths — they
-get filled in per host project. The deliberate separation lets the body
-travel and the knowledge stay local.
+language/framework guidance, project-specific examples, false positives, and
+exemplar paths. The separation is a portability seam, not proof that copying
+one skill directory is sufficient; the capability matrix and declared
+on-demand closure own that claim.
 _Avoid_: putting host-project examples in the skill body; putting
 ecosystem-wide rules in `knowledge/` where they won't be loaded
 generally.
@@ -72,10 +74,10 @@ patterns.md as a tutorial (it's a catalogue, terse by design).
 
 **Architectural smell**:
 A named anti-pattern that a SUSPECT skill targets. Catalogued in
-`.claude/docs/architectural-smells.md`. Six base smells ship: omnibus
+`.claude/docs/architectural-smells.md`. The current catalogue includes omnibus
 modules, stringly-typed state, query mutation, layer violation,
-format-equivalence gaps (parallel writers), product-topology drift,
-folder-topology drift. Host projects add more.
+format-equivalence gaps, product-topology drift, frontend primitive bypass,
+folder-topology drift, and missing boundaries. Host projects add more.
 _Avoid_: using "smell" as a generic complaint — a smell has a SUSPECT
 skill, an exemplar, a counter-example, and an enforcement story.
 
@@ -112,7 +114,7 @@ Augment, Cursor, Gemini) read the same canonical guide. Implementation:
 `AGENTS.md`, `.cursor/CURSOR.md`, `.gemini/GEMINI.md` are symlinks to
 `.claude/CLAUDE.md`; Augment imports condensed always-apply rules from
 `.augment/rules/imported/`. Editing protocol in
-`docs/cross-tool-agent-governance.md`.
+`.claude/docs/cross-tool-agent-governance.md`.
 _Avoid_: editing the mirrors directly when the source is CLAUDE.md;
 copy-pasting CLAUDE.md to a mirror file instead of symlinking.
 
@@ -155,6 +157,10 @@ that scales in an AI-grown codebase.
 - **Skill body vs knowledge** — separation introduced explicitly to make
   skills portable. Body = generic; knowledge = host-project. The
   `_common/portability-roadmap.md` document pins the porting contract.
+- **Where host-project ADRs live** — this repository's ADR registry governs the
+  toolkit. A host project owns its own `ai-docs/decisions/` registry; installing
+  the routers or external library does not silently copy toolkit ADRs into that
+  host. `/decide` writes against the project in which it is deliberately run.
 
 ### Open
 
@@ -164,11 +170,3 @@ that scales in an AI-grown codebase.
   "finding dismissed without a guard" (deferred tax)? Not blocking, but
   the answer will eventually live in
   `quality-coordination-kernel.md`.
-- **Where host-project ADRs live** — this repo ships nine ADRs
-  (0001–0006, 0013, 0016, 0017) as a foundation. Host projects extend
-  the numbering (`decisions.py init` auto-assigns the next id). The
-  foundation ADRs are import-portable: host-resident `applies_to` paths
-  carry a `host:` prefix, so `link-check` does not read their absence
-  here as drift (see `ai-docs/decisions/README.md`). Still open: does
-  the host fork its own `decisions/` or inherit by reference? Likely
-  fork; pin this once a real consumer uses the ecosystem.

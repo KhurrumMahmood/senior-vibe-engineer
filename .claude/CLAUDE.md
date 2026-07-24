@@ -43,12 +43,12 @@ is machine-checked where possible (`scripts/skill_comply/`); a skill
 whose text cannot be trusted at execution time is a defect even with no
 incident behind it (`/repair-skill`).
 
-Most files are framework-agnostic. Some lint rules, scripts, and helper
-modules grew up around Django/Python — the design has always anticipated
-cross-language adapters (TypeScript, Rust) and cross-framework reuse;
-see `docs/language-support-development.md` before expanding a language and
-`.claude/skills/_common/portability-roadmap.md` for the longer-term porting
-contract.
+Most files are framework-agnostic. Some lint rules, scripts, and helper modules
+grew up around Django/Python. The 22 language-level skills now have bounded
+coverage across 13 expansion languages, while deliberately framework-bound
+skills retain their coupling. See `docs/language-support-development.md` before
+changing a language claim and `.claude/skills/_common/portability-roadmap.md`
+for the longer-term core/language/framework layering contract.
 
 ## Python Environment
 
@@ -255,8 +255,8 @@ Cleanup uses a five-job loop: **map → suspect → explain → refactor →
 guard**, with `/diagnose` beside it for concrete symptoms,
 `/plan-skill` as the intake gate for new/revised skills, and
 `/check-ecosystem-consistency` after significant skill changes. The full
-skill catalogue is in `docs/skill-catalog.md`; the six architectural smells
-the SUSPECT skills target are in
+skill catalogue is in `docs/skill-catalog.md`; the architectural smells the
+SUSPECT skills target are in
 `docs/architectural-smells.md`. Skipping MAP or EXPLAIN is fine when the
 target is already understood. **Skipping GUARD is a mistake** — it turns
 every cleanup into a recurring tax.
@@ -297,9 +297,9 @@ read the file.
 | `idea-ledger.md` | Capturing or projecting an idea (proposed / in-flight / stalled / done), updating event history, or wiring composability edges. Tier 1 of the idea-tracking system (`/track-idea`, `/find-orphaned-ideas`, `/brainstorm-ideas`, `/extract-existing-ideas`); pairs with `pattern-library.md` (Tier 2) and ADR 0013. |
 | `pattern-library.md` | Looking up or promoting a curated pattern from the ledger (≥1 adoption gate); checking generalizability qualifier graduation (`single-constraint-set` → `validated-across-N` → `broadly-applicable`). Read before `/query-patterns` or before promoting a ledger entry. |
 | `query-patterns-inline.md` | Doing a low-friction ad-hoc pattern lookup mid-conversation without invoking the full `/query-patterns` skill — e.g. during `/plan-feature` or `/scope-feature` exploration. |
-| `.engineering/docs/todo-tuning.md` | Calibrating `/find-orphaned-ideas --todo` for the host project — path-skip globs (vendor JS, agent worktrees, generated migrations), `min_words` override. Optional; defaults work without it. |
+| `/.engineering/docs/todo-tuning.md` | Calibrating `/find-orphaned-ideas --todo` for the host project — path-skip globs (vendor JS, agent worktrees, generated migrations), `min_words` override. Optional; defaults work without it. |
 | `review-lane.md` | Customizing the adversarial-gate sub-agent for `/mature-existing-ideas --adversarial`. Default is `general-purpose`; override only when the host project ships a project-specific reviewer. |
-| `.engineering/docs/importance-map.md` | Declaring high-value areas for `/find-orphaned-ideas --attention-gap` (ADR 0016). Mixed `path:` + `kind:` locators, tier vocabulary `critical` > `core` > `supporting`. Absent map = mode emits "no importance map declared" and exits clean. |
+| `/.engineering/docs/importance-map.md` | Declaring high-value areas for `/find-orphaned-ideas --attention-gap` (ADR 0016). Mixed `path:` + `kind:` locators, tier vocabulary `critical` > `core` > `supporting`. Absent map = mode emits "no importance map declared" and exits clean. |
 | `quality-coordination-kernel.md` | Designing a new skill / lint / ADR, evaluating maintenance ROI, or thinking about kernel architecture, the harness layer, or productization across projects. |
 | `senior-engineer-posture.md` | Starting non-trivial new/underdeveloped/major-rework feature work, or any new UI surface — frame the problem class and canonical practices before picking an approach. |
 | `development-workflow.md` | Multi-step / risky implementation work; want test-first / call-path / service / view / testing prose. |
@@ -308,9 +308,10 @@ read the file.
 | `folder-organization.md` | Decomposing a flat folder; placing tests for a new package; proposing a directory package; deciding whether a singleton stays flat; or evaluating whether a small folder should collapse back to siblings. Bidirectional convention — folders earn packaging at ≥3 siblings and lose it below ≥3. |
 | `language-support-development.md` | Adding or expanding language support; selecting native parser/compiler/analyzer tooling; changing shared source inventory, provider, artifact-lifecycle, conformance, or batching infrastructure. |
 | `installation-and-on-demand-library.md` | Changing installation, the router-only/on-demand-library topology, host `AGENTS.md`/`CLAUDE.md`/`GEMINI.md` integration, delegated task packets, or model/effort role mapping. |
+| `queue-contract.md` | Staging, listing, validating, or integrating packet-compatible work under `.engineering/local/queue/`; changing queue lifecycle or status-projection behavior. |
 | `sub-agents.md` | Cross-tool agent bridging (Codex ↔ Claude CLI, sandbox, model-tier picks). |
 | `cross-tool-agent-governance.md` | Editing `CLAUDE.md` / `AGENTS.md` / `.augment/`, or hardening a rule into an enforceable guardrail. |
-| `ai-docs/decisions/0006-folder-organization.md` | The bidirectional folder-packaging convention referenced from `folder-organization.md`. |
+| `/ai-docs/decisions/0006-folder-organization.md` | The bidirectional folder-packaging convention referenced from `folder-organization.md`. |
 
 ## Keeping Docs Current & Cross-Tool Sync
 

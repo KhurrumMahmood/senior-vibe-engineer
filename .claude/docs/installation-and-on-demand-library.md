@@ -1,8 +1,8 @@
 # Installation and on-demand library development
 
 Status: contributor guide for the accepted router-only topology, shipped
-schema-3 host-state migration chain, and proposed host-instruction integration
-follow-up
+schema-3 host-state migration chain, completed Codex lifecycle evidence, and a
+deferred host-instruction integration proposal
 
 ## Sources of truth and working records
 
@@ -12,8 +12,9 @@ follow-up
   host-instruction, task-packet, or model/effort behavior. Sections explicitly
   labeled proposed are not current product claims.
 - `.claude/tasks/language-support-and-productization-execution-plan.md` is the
-  sole active ledger for sequencing, status, release evidence, and the deferred
-  implementation queue. `productization-restart-plan.md` is retained only as
+  completed execution ledger and owns the final release/lifecycle evidence.
+  `.claude/tasks/multilanguage-support-backlog.md` owns deferred language and
+  framework follow-ups. `productization-restart-plan.md` is retained only as
   historical restart evidence.
 - `tests/test_installed_routers.py` owns the runnable installed-boundary
   contract.
@@ -100,17 +101,21 @@ successful `apply` is a no-op.
 
 The focused migration suite proves schema 1→2→3 skipped-release composition,
 schema-2-only upgrade, schema-3 no-op replay, interruption recovery around both
-schema writes, exact reverse restore, and older-tool refusal. P8 still owns the
-public two-ref stock-router/library update journey and its measured user
-experience; do not describe that integrated release journey as shipped yet.
+schema writes, exact reverse restore, and older-tool refusal. P8 subsequently
+proved the public Codex two-ref stock-router/library update, explicit migration,
+route, final selected artifact, closeout, scoped uninstall, and preservation
+journey. Its evidence is retained in
+`.claude/tasks/p8-stock-update-replay-evidence.json`.
 
-## Product principle
+## Product principle and deferred host-instruction integration
 
 Installing skills and adopting project guidance are different permissions.
 The default installation should remain three routers plus the external
 library. Host instruction changes require an explicit selection and a preview.
 
-The installer should offer these modes:
+No host-instruction integration mode shipped: measured P8 use did not establish
+enough friction to justify that extra mutation surface. If a future measured
+consumer reopens the proposal, it should evaluate these modes:
 
 | Mode | Host effect |
 |---|---|
@@ -119,8 +124,9 @@ The installer should offer these modes:
 | `selected-guidance` | Add the signpost plus user-selected shared policies such as verification, planning discipline, language commands, or delegation guidance |
 | `project-template` | Explicit opt-in for a new/minimal repository that wants a fuller generated starting point; never overwrite an established instruction file |
 
-`signpost` is the recommended interactive choice, not a silent default. It
-keeps always-loaded context small while teaching agents how to reach the richer
+`signpost` is the provisional recommended interactive choice for that future
+experiment, not current product behavior or a silent default. It would keep
+always-loaded context small while teaching agents how to reach the richer
 library.
 
 ## Neutral guidance and surface adapters
@@ -194,7 +200,7 @@ mutation, or benchmark validity must be included directly in every applicable
 task packet even if the parent host file also contains them. Advisory style
 preferences may be omitted when irrelevant.
 
-## Minimal implementation slices
+## Deferred implementation slices
 
 1. Define the neutral guidance-unit schema and three small exemplars:
    router/library signpost, verification policy, and non-context delegation.
@@ -208,7 +214,7 @@ preferences may be omitted when irrelevant.
 6. Prove one clean Codex host and one Claude or Gemini host through install,
    route, fresh non-context execution, update, and uninstall.
 
-## Acceptance criteria
+## Promotion criteria if revisited
 
 - Default discovery still contains exactly the three routers.
 - `routers-only` changes no host instruction file.
@@ -237,9 +243,9 @@ preferences may be omitted when irrelevant.
 - Editing user instruction files without preview and explicit consent.
 - Reviving content attestation or the discarded transactional platform.
 
-## Decision still required
+## Deferred storage decision
 
-Before implementation, decide whether the committed project-policy file should
-be a new neutral engineering-skills config or an extension of the existing
-project profile. That is the only material storage fork; exact prose and model
-mappings are implementation details and should remain replaceable.
+If measured evidence justifies implementation, first decide whether the
+committed project-policy file should be a new neutral engineering-skills config
+or an extension of the existing project profile. Do not resolve that storage
+fork merely to make the deferred proposal appear more complete.

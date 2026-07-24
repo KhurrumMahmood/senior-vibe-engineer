@@ -16,9 +16,15 @@ type: "always_apply"
   `best_for`, `not_for`, `language`, `framework`) -- `not_for` is the
   highest-leverage anti-misapplication field.
 - `/which-skill` recommends or rules out a skill from a free-text task
-  description by reading every `SKILL.md` frontmatter.
+  description by reading its generated metadata-only catalog, without loading
+  every skill body into ambient context.
 - `/which-shape` recommends the operating loop before tactical skill choice;
-  update its `shapes.yml` when a new skill changes a durable loop.
+  review its `shapes.json` when a new skill changes a durable loop.
+- `/which-cleanup` recommends bounded post-change checks using explicit Git or
+  path scope; it does not execute those checks automatically.
+- Default discovery contains exactly those three routers. Other skills and
+  supporting tools stay in the external project-scoped library unless the user
+  explicitly requests a validated optional install.
 - `/diagnose` is the concrete-symptom lane beside the maintenance
   loop: reproduce, identify root cause, verify the fix, and name
   the prevention follow-up before broad cleanup.

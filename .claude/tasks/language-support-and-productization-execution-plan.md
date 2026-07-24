@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
-Status: active
-Current phase: F6/P8 router corpus and measurement protocol freeze in progress
-Last updated: 2026-07-24 (F5 is complete at candidate `1c333d2`; P8 started by freezing the pre-change router corpus and measure-only protocol at evidence revision `b1461c8`)
+Status: complete
+Current phase: none — P1 through P9 are complete
+Last updated: 2026-07-24 (final product journey closed at `1a56dd4`; exact public package closeout at `568d2f7`)
 
 ## Objective
 
@@ -16,12 +16,12 @@ Complete the product work in this order:
 5. improve host guidance, routing, batching, context use, and measured user
    outcomes only after the preceding boundaries work.
 
-This file is the sole active resumable execution ledger for unfinished
-installation, language-support, and user-journey work. Durable contributor
-doctrine lives in `.claude/docs/`; experiments and completed evidence remain in
-the task artifacts linked below. `productization-restart-plan.md` and
-`multilanguage-expansion-plan.md` are historical evidence, not competing
-execution authorities.
+This file is the closed, resumable evidence ledger for the completed
+installation, language-support, and measured user-journey program. Durable
+contributor doctrine lives in `.claude/docs/`; new work starts from the relevant
+durable guide and explicit backlog rather than changing completed phase status.
+`productization-restart-plan.md` and `multilanguage-expansion-plan.md` are
+historical evidence, not competing execution authorities.
 
 ## How to use this file
 

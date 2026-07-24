@@ -1,11 +1,11 @@
-# Onboarding
+# Contributor onboarding
 
 Welcome to **engineering-skills** — a portable senior-engineer skill
-ecosystem for AI coding agents. This is the front-desk guide for humans
-new to the codebase. It's a *pointer file*: almost everything you
-actually need is in some other doc, and this is the layer that tells you
-which one and when. **Spend day 1 reading the things this points at, not
-this file.**
+ecosystem for AI coding agents. This is the front-desk guide for people
+contributing to the ecosystem itself. Users installing it into another
+project should start with [`README.md`](README.md). This file is a
+*pointer file*: almost everything a contributor needs is in another doc,
+and this is the layer that says which one and when.
 
 If something here feels stale, fix the link target — not this doc.
 Otherwise this grows into a wiki and the wiki rots.
@@ -25,11 +25,15 @@ ecosystem replaces that default with a deliberate posture: **frame the
 problem class, refactor with a spec, author ADRs for material decisions,
 and convert one-off discoveries into durable guardrails**.
 
-It was extracted from a real Django production codebase, then
-generalized. Some lint rules and skill examples still carry Django/Python
-flavor; the design has always anticipated cross-language adapters
-(TypeScript, Rust). See
-[`.claude/skills/_common/portability-roadmap.md`](.claude/skills/_common/portability-roadmap.md).
+It was extracted from a real Django production codebase, then generalized.
+Some lint rules and worked examples still carry Django/Python flavor. The 22
+language-level skills now have bounded coverage across TypeScript, JavaScript,
+Go, Java, PHP, Ruby, Swift, Rust, Dart, C, C++, Kotlin, and C#; this does not
+make the 22 deliberately framework-bound skills portable. Read
+[`.claude/docs/language-support-development.md`](.claude/docs/language-support-development.md)
+before changing a language claim and
+[`.claude/skills/_common/portability-roadmap.md`](.claude/skills/_common/portability-roadmap.md)
+before changing the longer-term core/language/framework layering.
 
 ---
 
@@ -62,20 +66,27 @@ important rule in the ecosystem.
 ## 3. Getting yourself running
 
 ```bash
-git clone <this-repo>
-cd engineering-skills
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/pre-commit install
+git clone https://github.com/KhurrumMahmood/senior-vibe-engineer # host-ref-allow: public distribution repository
+cd senior-vibe-engineer
+python3 .claude/skills/which-skill/scripts/setup_runtime.py --project-root .
 ```
 
-**Use `.venv/bin/python`, not bare `python`.** Sub-agents don't inherit
-shell activation, so include the venv path in every prompt you hand off.
+The helper health-probes Python 3.11+, creates or repairs `.venv`, installs
+pinned requirements, verifies dependencies, and installs Git hooks. Use
+`.venv/bin/python`, not bare `python`; invoke pip as `.venv/bin/python -m pip`,
+not through the creation-time `.venv/bin/pip` shim. Sub-agents do not inherit
+shell activation, so include the venv path in every handoff.
 
-Most skills are designed to run inside a host project's repo (the skills
-read its code, write reports under `reports/`, propose ADRs under
-`ai-docs/`). If you're working on the ecosystem itself, the scripts and
-lints in `scripts/` are still runnable directly:
+The public installation puts only `which-shape`, `which-skill`, and
+`which-cleanup` into agent discovery. The other 73 task/ecosystem skills and
+their tools live in a project-scoped external library and are selected on
+demand. Read
+[`.claude/docs/installation-and-on-demand-library.md`](.claude/docs/installation-and-on-demand-library.md)
+before changing that topology.
+
+Most task skills operate on a host project's code and write bounded reports or
+governance artifacts there. When working on this ecosystem itself, the scripts
+and lints under `scripts/` remain runnable directly:
 
 ```bash
 .venv/bin/python scripts/decisions.py list
@@ -162,16 +173,19 @@ Roughly in order of how often they catch new contributors:
 
 ## 6. Where to write things down
 
-The ecosystem has three durable capture surfaces. Pick the right one and
-the next reader will find your work; pick the wrong one and it rots.
+The ecosystem has five capture surfaces with different lifecycles. Pick the
+right one and the next reader will find the work; pick the wrong one and it
+rots.
 
 | Where | What goes here | When |
 |---|---|---|
 | [`.claude/docs/precedents.yml`](.claude/docs/precedents.yml) | Implementation case law — recurring mechanisms with exemplar, guard, exceptions, supersession. | Whenever a non-obvious pattern recurs across 2–3 spots. |
 | [`ai-docs/decisions/`](ai-docs/decisions/) | ADRs — choices that constrain future work or exclude alternatives. Scaffold with `python3 scripts/decisions.py init <slug>`. | 2–5 per quarter. |
-| Host-project task diary (`.claude/tasks/lessons.md` is the common location) | Non-obvious fixes, written as **rule + why + how to apply**. Append-only. | Whenever a non-obvious fix lands. (Lives in the host project, not here.) |
+| Host-project `known-issues.md` | Current operational gotchas, updated in place. | While the issue remains true. |
+| Host-project task diary (`.claude/tasks/lessons.md` is the common location) | Non-obvious fixes, written as **rule + why + how to apply**. Append-only. | Whenever a non-obvious fix lands. |
+| [`.claude/skill-use/`](.claude/skill-use/) | Opt-in effectiveness telemetry and committed summary digests. | When a skill opts into outcome measurement. |
 
-The three tiers don't overlap. The split is in
+The five tiers do not overlap. The split is in
 [`.claude/CLAUDE.md`](.claude/CLAUDE.md) "Workflow & Implementation
 Discipline" — read it the first time you're not sure which one a thing
 belongs in.
@@ -182,14 +196,14 @@ belongs in.
 
 ```
 tier 1 — root (human entry surface)
-  README.md                    quick start, layout, where to read next
-  ONBOARDING.md                this file
+  README.md                    public product, install, use, lifecycle, capability truth
+  ONBOARDING.md                contributor entry point (this file)
   CONTEXT.md                   domain glossary for the ecosystem itself
 
 tier 2 — agent operating manual + reference
   .claude/CLAUDE.md            lean operating manual + trigger table
   .claude/docs/*.md            reference docs, demand-loaded by trigger
-  .claude/skills/              the 75 skills
+  .claude/skills/              the 76 skills
 
 tier 3 — formal artifacts
   ai-docs/decisions/           ADRs (case law)

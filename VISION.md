@@ -73,7 +73,8 @@ The maintenance loop is the engine; the stages map onto the destination:
   dialogue. The constructive / greenfield and outward-facing (product UX)
   halves are tracked separately in the idea ledger.
 - **The ecosystem must embody this destination in its own structure** — that is
-  the strongest test of whether the skills work. The first measurement is the
-  ecosystem self-review begun 2026-05-25 (`.claude/tasks/ecosystem-review/` in
-  the es3 sandbox); early finding: the machinery to reach this destination
-  largely exists but has never been pointed at the ecosystem itself.
+  the strongest test of whether the skills work. The 2026-07 productization pass
+  established the three-router installation, bounded 13-language support, and a
+  measured read-only batching journey. The remaining vision gaps are evaluated
+  through the idea ledger and explicit backlogs rather than an obsolete sandbox
+  status note.

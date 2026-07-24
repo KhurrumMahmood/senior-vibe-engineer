@@ -1,278 +1,304 @@
 # engineering-skills
 
-A **senior-engineer skill ecosystem** for AI coding agents: skills that find
-architectural debt, refactor systematically, author ADRs, and turn one-off
-discoveries into durable guardrails. Extracted from a real production codebase.
-**Its origin and shared runtime remain Python/Django-flavored** — the lint
-substrate and most worked examples are Django. TypeScript and Go each have
-22/22 language-level coverage; standalone-JDK Java, Kotlin/JVM, PHP, Ruby,
-Swift, Rust, Dart, C, C++, and C# also have 22/22 bounded coverage. These claims do not
-extend to the 22 deliberately stack-bound framework skills: Java support does
-not imply Spring or Android, and Kotlin support does not imply Android,
-Multiplatform, or arbitrary Gradle variants. See
-[Tech assumptions](#tech-assumptions) and the tracked
-[coverage matrix](./.claude/tasks/multilanguage-skill-matrix.json).
+`engineering-skills` is a senior-engineer skill ecosystem for AI coding agents.
+It helps agents choose the right engineering workflow, inspect architectural
+debt, refactor deliberately, record material decisions, and turn recurring
+problems into tests or guardrails.
 
-**Where it's headed:** [`VISION.md`](./VISION.md) states the end-state this
-ecosystem converges a project toward — the success criterion the skills serve.
+The public repository is named `senior-vibe-engineer`; `engineering-skills` is
+the ecosystem and command-facing product name.
 
-This README is the **human entrypoint**. AI agents (Claude Code, Codex,
-Augment, Cursor, Gemini) should start at
-[`AGENTS.md`](./AGENTS.md) → [`.claude/CLAUDE.md`](./.claude/CLAUDE.md).
+The default installation is intentionally small:
 
-**Where to start:** install the three lightweight routers, materialize the full
-guide/tool library outside agent discovery, then let the routers expose only
-the selected closure on demand. For non-trivial work, pass that bounded closure
-to a fresh non-context sub-agent. Repository contributors use `/engineer-init`
-for the development venv and hooks.
+1. `which-shape` chooses the overall workflow.
+2. `which-skill` chooses the most relevant tactical skill.
+3. `which-cleanup` reviews recent work and recommends proportionate closeout.
 
-## What's in the box
+Only those three routers enter the agent's normal skill discovery. The other 73
+skills and their tools live in a project-scoped external library and are loaded
+only when a router selects them. For non-trivial work, the router recommends a
+fresh non-context sub-agent with only the selected guide/tool closure.
 
-- **`.claude/skills/`** — 76 skills covering diagnosis, construction,
-  and five jobs in the maintenance loop:
-  - **DIAGNOSE** (`diagnose`) — turn concrete symptoms, regressions,
-    flakes, and unclear failures into a reproduction loop, root cause,
-    verification, and prevention follow-up.
-  - **CONSTRUCT** (`plan-skill` now; future constructive pattern writers) —
-    make write-time patterns explicit before drift exists, starting with
-    adversarial skill planning and dogfood gates.
-  - **PROJECT STRUCTURE** (`organize-project-structure`) — redesign repo
-    information architecture under framework/tool/human constraints, then
-    hand deterministic move batches to `move-path` when the target topology is
-    clear.
-  - **MAP** (`map-subsystem`, `map-product-workflow`) — durable inventory
-    docs for a subsystem or user-visible workflow.
-  - **SUSPECT** (`find-duplication`, `find-dormant`, `find-omnibus`,
-    `find-semantic-duplication`, `find-implicit-state`, `find-layer-violation`,
-    `find-query-mutation`, `find-transaction-overreach`, `find-comment-drift`,
-    `find-*-drift` family, `find-stale-artifacts`, `find-folder-topology-drift`,
-    `find-rule-surface-drift`, `find-test-obligation-drift`,
-    `find-standard-gaps`, …) — advisory scans that produce ranked,
-    evidence-backed candidate lists.
-  - **EXPLAIN** (`explain-code`, `teach-pattern`, `extract-cotton-primitive`,
-    `extract-enum`, `extract-state-type`, `extract-workflow-registry`,
-    `introduce-fk`, `unify-shadows`, `propose-folder-reorganization`) —
-    read-only proposals that turn a SUSPECT finding into an
-    implementation-ready brief.
-  - **REFACTOR** (`refactor-subsystem`, `fix-workflow`, `move-path`) — execute the
-    cleanup with a strict spec-first protocol and characterization tests.
-  - **GUARD** (`prevent-regression`) — turn a closed cleanup into a
-    lint / test guardrail so the problem can't come back.
-  - Plus governance skills: `decide`, `audit-decisions`,
-    `which-shape`, `check-ecosystem-consistency`, `project-interview`,
-    `adapt-project`, `scope-feature` /
-    `impact-feature` / `architecture-fit` / `plan-spec` (System-tier
-    planning chain), `organize-project-structure`, `design-it-twice`,
-    `plan-skill`, `which-skill`, `triage-debt`.
-- **`.claude/docs/`** — the doctrine the skills enforce:
-  `canonical-patterns.md`, `architectural-smells.md`, `skill-catalog.md`,
-  `quality-coordination-kernel.md`, `senior-engineer-posture.md`,
-  `development-workflow.md`, `cross-tool-agent-governance.md`,
-  `folder-organization.md`, `linting.md`, `testing.md`, `sub-agents.md`,
-  and `precedents.yml`.
-- **`scripts/`** — the runtime that backs the skills:
-  `decisions.py`, `plans.py`, `specs.py`, `ledger.py`, `precedents.py`,
-  `skill_meta.py`, `skill_effectiveness.py`, `evidence_gate.py`,
-  `project_adapt.py`, `duplication_audit.py`, `semantic_inventory.py`,
-  `subsystems.py`, `query_planner.py`, plus a `lint/` runner and the diff-scoped AST rules
-  (`silent_catch`, `no_query_mutation`, `no_stringly_typed_status`,
-  `no_fat_view`, `no_bare_delay`, `no_comment_drift`,
-  `codegen_emits_new_paths`, `run_jscpd`).
-- **`ai-docs/`** — the ADR / plan / spec workflow that pairs with the
-  skills. Nine ADRs ship as the foundation; the ones marked *(proposed)*
-  are calibrated starting points an adopting project confirms or
-  supersedes:
-  - `0001-textchoices-for-state` — string state fields → typed enums.
-  - `0002-spec-first-refactor` — refactors author a spec before code.
-  - `0003-canonical-findings-ledger` *(proposed)* — findings get an ID
-    and a row in a ledger; refactors close ledger rows.
-  - `0004-parallel-writers-shared-helper` — when two writers diverge on
-    the same shape, factor a shared helper rather than racing the format.
-  - `0005-agent-rules-design` — how this very file (`CLAUDE.md`) is
-    architected: lean root + load-on-demand docs + cross-tool mirrors.
-  - `0006-folder-organization` *(proposed)* — bidirectional
-    folder-packaging convention; ≥3 siblings earn packaging, < 3
-    collapse back.
-  - `0013-idea-tracking-system` — two-tier idea tracking: a ledger for
-    raw ideas, a curated pattern library for the ones that prove out.
-  - `0016-importance-map-shape` *(proposed)* — a declarative importance
-    map so debt scans can weight findings by where they land.
-  - `0017-staged-boundary-rearchitecting` *(proposed)* — when to extract
-    a module boundary, when to phase it, when to refuse phasing.
-- **`.augment/`, `.codex/`, `.cursor/`, `.gemini/`** — cross-tool agent
-  rules that all point back at the same canonical guide (symlinks where
-  the host filesystem supports them). See
-  `docs/cross-tool-agent-governance.md` for the editing protocol.
-- **`.github/workflows/ci.yml`** — diff-scoped lint pipeline for CI.
-- **`.pre-commit-config.yaml`** — the same lints wired up locally.
+The current copy/paste installation journey is verified for **Codex**. The
+repository also contains instruction adapters for Claude Code, Augment, Cursor,
+and Gemini, but equivalent public installer journeys for those agents are not
+yet claimed as verified.
 
-## Quick start
+## Requirements
+
+- Git
+- Node.js with `npm`/`npx`
+- Python 3.11 or newer
+- A host project under Git
+
+Selected skills may also need the host language's compiler, analyzer, package
+manager, or test runner. Router output reports those requirements and explicit
+slow/manual/unsupported paths rather than pretending that an unavailable tool
+ran.
+
+## Install in a Codex project
+
+Run these commands from the host project's root:
 
 ```bash
-# From the host project. The command installs only the three routers.
 ENGINEERING_SKILLS_SOURCE=https://github.com/KhurrumMahmood/senior-vibe-engineer # host-ref-allow: public distribution repository
+
+# Install exactly the three routers into Codex discovery.
 DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \
   "$ENGINEERING_SKILLS_SOURCE" \
   --skill which-shape --skill which-skill --skill which-cleanup \
   --agent codex --copy -y
 
-# Materialize all non-router guides/tooling outside agent discovery, then
-# create and verify its Python >=3.11 venv and pinned dependencies.
+# Materialize the other 73 skills and their tools outside agent discovery.
+# This also creates/verifies a Python >=3.11 venv with pinned dependencies.
 python3 .agents/skills/which-skill/scripts/bootstrap_library.py \
   --project-root "$PWD" --source "$ENGINEERING_SKILLS_SOURCE"
 
-# Read-only compatibility: installed router bytes, library HEAD, and host schema.
+# Confirm router bytes, library HEAD, and toolkit-owned host-state schema agree.
 python3 .agents/skills/which-skill/scripts/status.py --project-root "$PWD"
 ```
 
-Ask the agent to use `which-shape` when the operating mode is unclear,
-`which-skill` for the tactical choice, and `which-cleanup` after changes are
-made. The three routers run with system Python and do not load the other 73
-skill bodies or metadata into ambient context. The library lives in the
-project-scoped sibling cache
-`<project-parent>/.engineering-skills/<project-name>` by default, outside both
-the target repository and standard skill-discovery roots. Router results point
-to only the selected guide/tool closure and
-recommend a fresh non-context sub-agent for non-trivial work. They also expose
-the library's exact `.venv/bin/python` path so the selected lane does not rely
-on shell activation. After bootstrap,
-a pinned `skills@1.5.19` selected-skill command is emitted only when every
-closure member has passed selected-install evidence and the user explicitly
-chooses ambient installation; other closures report that path unavailable.
+The external library defaults to:
 
-For an explicit broad, read-only code-health request that resolves to exactly
-one of JavaScript or TypeScript,
-`which-skill` can return one bounded complementary family: decision drift,
-complexity hotspots, and declared-standard gaps. The router reports required
-host inputs and skips, points to concise family/member contracts, and keeps all
-three task skills in the on-demand library. Independent read-only members may
-run concurrently in fresh lanes; fixes and every other mutation remain serial.
-Narrow requests still route to one skill.
+```text
+<project-parent>/.engineering-skills/<project-name>
+```
 
-To remove only this ecosystem's three ambient routers, run this from the host
-project (never from the engineering-skills source checkout):
+It is outside both the target repository and standard skill-discovery roots.
+The routers expose the selected library paths and the library's exact
+`.venv/bin/python`; delegated work does not need shell activation.
+
+The repository currently publishes from the moving `main` branch and does not
+yet have a tagged stable release. Run `status.py` after installation or update;
+it fails visibly when the installed routers and library do not describe the
+same revision.
+
+## First use
+
+The routers are advisory. They do not initiate the proposed workflow, execute a
+selected skill, install additional ambient skills, or modify project source.
+
+Ask the agent in natural language:
+
+- "Use `which-shape` to decide how to approach this inherited TypeScript repo."
+- "Use `which-skill` to choose the right skill for repeated status literals."
+- "Use `which-cleanup` to review the changes I just made, using diff-line
+  scope where it is honest."
+
+For a non-trivial recommendation, ask the agent to follow the returned
+on-demand handoff in a fresh non-context sub-agent. Independent read-only lenses
+may run concurrently; mutations and final verification remain serial.
+
+Each router also has non-executing help:
+
+```bash
+python3 .agents/skills/which-shape/scripts/route.py --help
+python3 .agents/skills/which-skill/scripts/match.py --help
+python3 .agents/skills/which-cleanup/scripts/route.py --help
+```
+
+Direct examples:
+
+```bash
+# Overall workflow
+python3 .agents/skills/which-shape/scripts/route.py \
+  "unknown inherited Java project; where should I start?" \
+  --project-root "$PWD"
+
+# One tactical skill
+python3 .agents/skills/which-skill/scripts/match.py \
+  "find dead code in this Rust crate" \
+  --language rust --project-root "$PWD"
+
+# Closeout of the current Git changes
+python3 .agents/skills/which-cleanup/scripts/route.py \
+  --scope-mode diff-lines --project-root "$PWD"
+```
+
+Use `--json` for machine-readable router output. `which-cleanup` additionally
+accepts explicit paths, `--staged`, `--changed-from REF`, `--commit SHA`, and
+`--range A..B`. Its `--scope-mode` distinguishes changed-line findings,
+whole-changed-file analysis, explicit paths, and project-level obligations.
+
+## Update, repair, and migrate
+
+The stock skill installer owns the three router directories. Git owns the
+external library. Toolkit-owned host-state migrations are a separate explicit
+operation; there is deliberately no second package manager.
+
+Until a tagged release exists, update to current `main` from the host project:
+
+```bash
+ENGINEERING_SKILLS_SOURCE=https://github.com/KhurrumMahmood/senior-vibe-engineer # host-ref-allow: public distribution repository
+LIBRARY_ROOT="$(dirname "$PWD")/.engineering-skills/$(basename "$PWD")"
+
+# Update the external library and its pinned runtime.
+git -C "$LIBRARY_ROOT" pull --ff-only
+python3 "$LIBRARY_ROOT/.claude/skills/which-skill/scripts/setup_runtime.py" \
+  --project-root "$LIBRARY_ROOT" --no-hooks
+
+# Replace the three router copies through their owning installer.
+DO_NOT_TRACK=1 npx --yes skills@1.5.19 add \
+  "$ENGINEERING_SKILLS_SOURCE" \
+  --skill which-shape --skill which-skill --skill which-cleanup \
+  --agent codex --copy -y
+
+python3 .agents/skills/which-skill/scripts/status.py --project-root "$PWD"
+```
+
+If the library was bootstrapped with `--library-root`, set `LIBRARY_ROOT` to
+that exact path instead of the default above.
+
+If the library is missing, a normal router invocation prints an exact bootstrap
+command without executing it. If the library path exists but is incomplete,
+move or remove that specific incomplete directory only after reviewing it, then
+rerun `bootstrap_library.py`; bootstrap never overwrites an ambiguous existing
+destination.
+
+If status reports pending toolkit-owned host-state migrations, preview before
+applying:
+
+```bash
+LIBRARY_ROOT="$(dirname "$PWD")/.engineering-skills/$(basename "$PWD")"
+
+"$LIBRARY_ROOT/.venv/bin/python" "$LIBRARY_ROOT/scripts/host_migrations.py" \
+  --project-root "$PWD" status
+"$LIBRARY_ROOT/.venv/bin/python" "$LIBRARY_ROOT/scripts/host_migrations.py" \
+  --project-root "$PWD" plan
+
+# Mutating boundary: run only after reviewing the plan.
+"$LIBRARY_ROOT/.venv/bin/python" "$LIBRARY_ROOT/scripts/host_migrations.py" \
+  --project-root "$PWD" apply
+
+python3 .agents/skills/which-skill/scripts/status.py --project-root "$PWD"
+```
+
+The migration runner changes only declared toolkit-owned `.engineering/`
+paths. It does not fetch code, update routers, install dependencies, or rewrite
+project source.
+
+## Uninstall
+
+Remove only this ecosystem's three ambient routers from the host project,
+never from the engineering-skills source checkout:
 
 ```bash
 DO_NOT_TRACK=1 npx --yes skills@1.5.19 remove \
   which-shape which-skill which-cleanup -y
+
+DO_NOT_TRACK=1 npx --yes skills@1.5.19 list --json
 ```
 
-The stock CLI owns the installed skill directories and `skills-lock.json`.
-Move local edits out of an installed skill directory before replacing or
-removing it. Do not substitute `remove --all`: that option removes every skill
-the CLI discovers for every agent target, including unrelated skills. Files
-elsewhere in the host project are outside the scoped router boundary.
-The on-demand library is separate from that boundary and may be retained as a
-shared project resource or removed independently. At the pinned CLI version,
-explicit removal retains prior `skills-lock.json` entries as restoration
-metadata; `skills list --json` is the installed-state check and returns an empty
-list after the three router directories are removed.
+Do not substitute `remove --all`: it removes every skill the CLI discovers for
+every agent target, including unrelated skills. At `skills@1.5.19`, explicit
+removal may retain prior `skills-lock.json` entries as restoration metadata;
+`skills list --json` is the installed-state check and should return `[]`.
 
-Python >=3.11 is an explicit script-runtime dependency. Initial library
-bootstrap health-probes candidate interpreters (including installed pyenv
-runtimes), rebuilds a missing/stale/broken `.venv`, installs
-`requirements.txt`, and runs dependency checks. If no candidate is usable,
-install Python 3.11+ and rerun with `--python /absolute/path`. It deliberately
-does not install or replace a system-wide Python. Use `--skip-runtime` only
-when materializing a storage-only copy.
+The external library, toolkit-owned `.engineering/` state, and user project
+files are separate scopes. Uninstalling routers intentionally leaves them
+alone. Review and remove the exact external-library directory separately only
+if it is no longer needed.
 
-For repository development, clone this repo and run `/engineer-init`, or use
-the same setup implementation directly:
+## Current capability model
+
+The ecosystem contains 76 skills in four different portability classes. The
+classes matter more than a single headline count:
+
+| Class | Count | Meaning |
+|---|---:|---|
+| Validated-neutral | 19 | The skill contract does not need language-specific implementation. |
+| Language-level | 22 | Each selected language has a separately evidenced bounded implementation for these engineering jobs. |
+| Framework-bound | 22 | The skill is intentionally tied to a framework or stack; language support alone does not make it eligible. |
+| Ecosystem-runtime | 13 | The skill maintains or governs this toolkit rather than a host-language codebase. |
+
+Python/Django is the ecosystem's original host and remains visible in the lint
+substrate and examples. The 13 completed expansion columns for the 22
+language-level skills are:
+
+| Language | Current bounded claim | Important non-claims or prerequisites |
+|---|---|---|
+| TypeScript | 22/22 language-level outcomes | Project-local TypeScript configuration and tools govern semantic completeness. |
+| JavaScript | 22/22 language-level outcomes | JavaScript and TypeScript remain distinct routing contexts. |
+| Go | 22/22 language-level outcomes | Uses Go-native project, syntax, semantic, test, and move evidence. |
+| Java | 22/22 standalone-JDK outcomes | Does not imply Spring, Android, or arbitrary build-tool variants. |
+| PHP | 22/22 bounded outcomes | Composer and configured PHPStan/Psalm boundaries control project semantics. |
+| Ruby | 22/22 bounded outcomes | Dynamic loading/metaprogramming stays explicit; authored RBS is required for selected semantic claims. |
+| Swift | 22/22 bounded outcomes | One selected dependency-free SwiftPM target under Apple Swift 6.3.3; no Xcode/framework or whole-program claim. |
+| Rust | 22/22 bounded outcomes | Uses Cargo/rustc and bounded rust-analyzer facts where appropriate. |
+| Dart | 22/22 bounded outcomes | Uses the Dart SDK/analyzer boundary; Flutter is separate. |
+| C | 22/22 bounded outcomes | Semantic claims require Clang 21+ and a trustworthy current C17 `compile_commands.json`. |
+| C++ | 22/22 bounded outcomes | Semantic claims require Clang 21+, C++20, and a trustworthy current compilation database; no general ABI/ODR claim. |
+| Kotlin | 22/22 bounded Kotlin/JVM outcomes | Proven at Kotlin 2.4.10/JDK 17; no Android, Multiplatform, arbitrary Gradle variant, or JVM ABI claim. |
+| C# | 22/22 bounded outcomes | Proven with .NET SDK 10.0.302 over selected manifests; no arbitrary solution/framework/runtime-dispatch claim. |
+
+“22/22” means the bounded contract for all 22 language-level skills is complete.
+It does not mean every one of the 76 skills applies to every language or
+framework, nor that a static analysis proves runtime behavior. The generated
+[capability matrix](./.claude/tasks/multilanguage-skill-matrix.json) and
+per-language coverage files under `.claude/tasks/` are the machine-readable
+sources of truth. Router handoffs expose the relevant row and required native
+tools for the selected closure.
+
+One measured broad JavaScript/TypeScript read-only code-health family can run
+three independent lenses concurrently. Across five paired product trials, its
+parallel launcher preserved semantic parity and reduced median wall time by
+57.71%. Mutations are not batched, and there is no universal workflow
+coordinator.
+
+## What is and is not independently installable
+
+The three routers are self-contained, stdlib-only installed units. The normal
+bootstrap materializes the full repository and prepares its pinned Python
+runtime, so selected task skills can use shared helpers from the external
+library without becoming ambient skills.
+
+Some older script-backed task skills still assume repository-level paths and
+are not claimed as standalone one-skill packages. A router returning a guide
+path means that exact on-demand closure is available; it is not a blanket claim
+that copying the guide alone will work. Optional ambient-install commands are
+emitted only for closures with selected-install evidence and only when the user
+explicitly requests that mode.
+
+## Repository development
+
+Contributors should clone the repository and run the same runtime setup used by
+the public library bootstrap:
 
 ```bash
+git clone https://github.com/KhurrumMahmood/senior-vibe-engineer # host-ref-allow: public distribution repository
+cd senior-vibe-engineer
 python3 .claude/skills/which-skill/scripts/setup_runtime.py --project-root .
 ```
 
-## Runtime-backed guides
+The helper health-probes Python 3.11+ interpreters, creates or repairs `.venv`,
+installs pinned requirements, verifies dependencies, and installs Git hooks.
+Use `.venv/bin/python` explicitly and invoke pip as
+`.venv/bin/python -m pip`; venv `pip` shims can retain stale absolute paths after
+a checkout is moved.
 
-The routers and prompt-only guides are self-contained. Many older
-script-backed skills still depend on repository-level helpers and PyYAML; they
-are not yet claimed as independently installable. TypeScript support is tracked
-per skill, and further cross-language work proceeds one cohesive family at a
-time.
+Repository contributors should continue with [ONBOARDING.md](./ONBOARDING.md).
+AI agents working on this repository should start at [AGENTS.md](./AGENTS.md),
+which resolves to the canonical [`.claude/CLAUDE.md`](./.claude/CLAUDE.md).
 
-1. **The runtime is installed during normal bootstrap.** Most skills shell out to helper
-   scripts under `scripts/` (`decisions.py`, `ledger.py`, the lint
-   runner, …) that need `PyYAML` from `requirements.txt`. The normal installed
-   library bootstrap creates and verifies its venv; `/engineer-init` or the
-   repository-development command above does the same for a contributor
-   checkout. Prompt-only guides and the three routers remain stdlib-only.
+## Repository map
 
-2. **Older script-backed guides may still require runtime generalization.** Their scripts use
-   paths relative to the repo root — `scripts/decisions.py`,
-   `ai-docs/decisions/`, `reports/`. Run from a parent or staging
-   directory, those paths don't resolve and there is no codebase to act
-   on. Use the router's exact guide/tool paths under
-   the router-reported sibling cache, but treat those paths as location rather
-   than proof that the guide can already operate on an external host. Do not
-   copy the guide into an ambient skill directory merely to mask an undeclared
-   runtime dependency.
+- [`.claude/skills/`](./.claude/skills/) — 76 router, task, and ecosystem
+  skills.
+- [`.claude/docs/skill-catalog.md`](./.claude/docs/skill-catalog.md) — complete
+  skill catalogue and activation guidance.
+- [`.claude/docs/language-support-development.md`](./.claude/docs/language-support-development.md)
+  — how language support is developed and verified.
+- [`.claude/docs/installation-and-on-demand-library.md`](./.claude/docs/installation-and-on-demand-library.md)
+  — contributor contract for installation, external-library topology, and
+  host-state migrations.
+- [`ai-docs/decisions/`](./ai-docs/decisions/) — accepted and proposed
+  architectural decisions.
+- [`VISION.md`](./VISION.md) — the maintainability destination the ecosystem is
+  intended to help projects reach.
+- [`CONTEXT.md`](./CONTEXT.md) — domain glossary for contributors.
 
-## Layout
+## License
 
-```
-.claude/
-  CLAUDE.md                 # lean root guide for all agents
-  docs/                     # doctrine: canonical patterns, smells, catalogue
-  skills/                   # 76 skills, each a self-contained dir
-    _common/                # shared scout-dispatch, scripts, posture docs
-    <skill-name>/SKILL.md   # the agent-facing skill definition
-ai-docs/
-  decisions/                # ADRs (ecosystem ships a starter set; project adds more)
-  plans/                    # System-tier planning docs (scope→impact→architect→spec)
-  specs/                    # refactor specs (refactor-subsystem reads these)
-scripts/
-  _lib/                     # shared frontmatter parser
-  agent_policy/             # cross-tool agent permission hooks
-  lint/                     # AST lint runner + the diff-scoped rules
-  decisions.py plans.py specs.py ledger.py …
-reports/
-  _meta/                    # effectiveness log + dashboard (tracked)
-  …                         # per-skill scan outputs (gitignored)
-.augment/  .codex/  .cursor/  .gemini/    # cross-tool agent mirrors
-```
-
-## Tech assumptions
-
-- **A healthy Python 3.11+** for the script runtime and lint rules. Setup checks
-  required stdlib imports with a timeout instead of trusting the version string.
-- **stdlib-first** in `_common/` so skills can run before a project venv
-  exists; PyYAML is the only required external dep (for shared
-  frontmatter parsing, pinned in `requirements.txt`).
-- **The legacy lint substrate and most worked examples are Django/Python — not
-  just illustration.** Rules such as `no_query_mutation` and `no_bare_delay`
-  remain Django/Celery-specific. TypeScript coverage is separately proven and
-  tracked in `.claude/tasks/typescript-skill-coverage.json`: 22 skills are
-  TypeScript-supported, 19 are validated-neutral, 22 are deliberately
-  stack-bound, and 13 are ecosystem-runtime. Go separately earns 22/22
-  language-level outcomes. Java earns 22/22 standalone-JDK language-level
-  outcomes recorded in `.claude/tasks/java-language-coverage.json`. Kotlin/JVM
-  separately earns 22/22 bounded outcomes at Kotlin 2.4.10/JDK 17 in
-  `.claude/tasks/kotlin-language-coverage.json`; its pinned K1 compiler facts
-  do not establish stable Analysis API, Android/Multiplatform, Gradle-variant,
-  runtime-dispatch, Java/external-caller, or JVM ABI support. C# has 22 of 22
-  bounded outcomes recorded in
-  `.claude/tasks/csharp-language-coverage.json`. Its pinned .NET SDK 10.0.302,
-  Roslyn compiler/assembly, and .NET 10.0.10 reference-pack facts cover selected
-  source graphs only; structure proposals remain read-only, accepted-evidence
-  consumers and do not establish runtime behavior, ABI compatibility, or
-  mutation authority.
-  Swift separately earns 22/22 bounded outcomes under Apple Swift 6.3.3 in
-  `.claude/tasks/swift-language-coverage.json`. Its compiler-AST semantic facts
-  cover one exact dependency-free SwiftPM selected target; they do not imply
-  Xcode/framework support, dynamic or protocol runtime dispatch, generated or
-  conditional variants, external callers, behavioral equivalence, ABI safety,
-  or general mutation authority.
-
-## Where to read next
-
-- **AI agents** → [`AGENTS.md`](./AGENTS.md) (symlink to
-  [`.claude/CLAUDE.md`](./.claude/CLAUDE.md)).
-- **Skill picker** →
-  [`.claude/docs/skill-catalog.md`](./.claude/docs/skill-catalog.md).
-- **Why these skills exist (and the smells they target)** →
-  [`.claude/docs/architectural-smells.md`](./.claude/docs/architectural-smells.md)
-  and
-  [`.claude/docs/quality-coordination-kernel.md`](./.claude/docs/quality-coordination-kernel.md).
-- **Decisions** → [`ai-docs/decisions/`](./ai-docs/decisions/).
-- **Day-1 onboarding** → [`ONBOARDING.md`](./ONBOARDING.md).
+No open-source license has been selected yet. Public visibility alone does not
+grant permission to copy, modify, or redistribute this repository. A license
+will be added after the repository owner chooses its terms.

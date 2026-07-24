@@ -1,12 +1,13 @@
 # Portability roadmap for `_common/`
 
-The skill ecosystem was originally Django-flavored because that's what
-the seed host project needed. The language-level family now has validated
-coverage across multiple static and dynamic languages; the exact current truth
-lives in the generated capability matrix and per-language coverage files. The
-design still anticipates cross-language adapters and cross-framework reuse
-(Django, FastAPI, Express). This document pins the planned reorganization so
-future PRs don't accidentally cement Django assumptions into shared files.
+The skill ecosystem was originally Django-flavored because that is what the seed
+host project needed. The language-level family now has bounded coverage across
+13 expansion languages; the exact current truth lives in the generated
+capability matrix and per-language coverage files. This roadmap is about a
+possible shared core/language/framework/repository content layout, not about
+whether those language outcomes exist. Cross-framework reuse remains future
+work. The document pins the layering rule so later changes do not accidentally
+cement one host's assumptions into shared files.
 
 **Status:** roadmap, not a plan-of-record. The full reorg is reconsidered when
 a non-Django host project starts adopting these skills, or when a genuinely
@@ -24,11 +25,12 @@ content can mix "every skill follows this report layout" (project-agnostic)
 with "use `.venv/bin/python`" (Python-specific) with host-project-specific test
 commands.
 
-Current TypeScript-supported skills solve this selectively with self-contained
-packages, but a new cross-family implementation can still need to re-explain
-the same report layout. A new Django-but-different-domain project would need to
-re-explain the same Python conventions. That's friction we can avoid by
-splitting the shared content along the seams it already has.
+Completed language cohorts solve this selectively through language-local
+providers and explicit on-demand closures, but a new cross-family
+implementation can still need to re-explain the same report layout. A new
+Django-but-different-domain project would likewise need to re-explain the same
+Python conventions. A later split may remove that friction if its measured
+benefit outweighs the migration cost.
 
 ## The four-layer split
 
@@ -37,8 +39,7 @@ _lib/
 ├── core/           # Project-agnostic, language-agnostic
 ├── language/
 │   ├── python/     # Python-specific, project/framework-agnostic
-│   ├── typescript/ # shared layer future; current support is skill-local
-│   └── rust/       # (future)
+│   └── <language>/ # added only when shared content earns this layer
 ├── framework/
 │   ├── django/     # Django-specific, project-agnostic
 │   ├── fastapi/    # (future)
@@ -101,13 +102,14 @@ Even before the directory reorg, `language` and `framework` frontmatter fields
 make each skill's encoded assumptions explicit for routing:
 
 ```yaml
-language: python      # python | typescript | rust | any
+language: python      # broad encoded assumption: python | any
 framework: django     # django | none | any
 ```
 
-A skill declaring `language: any, framework: any` encodes no language or
-framework assumption for routing purposes. That declaration alone is not proof
-of host-language support; validation is recorded separately in
+A skill declaring `language: any, framework: any` encodes no broad language or
+framework assumption for routing purposes. These fields are not an exhaustive
+list of implemented language adapters. Actual host-language eligibility is
+recorded separately in
 `.claude/tasks/multilanguage-skill-matrix.json` and the named
 `<language>-language-coverage.json` files. A skill declaring `language: python,
 framework: django` is bound to the host stack and will need adapters when
