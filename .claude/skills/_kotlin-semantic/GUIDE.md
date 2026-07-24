@@ -55,6 +55,8 @@ frameworks, and JVM ABI change; neither command creates that authority.
 
 - `map-subsystem`: `python3 -I -S "$SKILL_ROOT/scripts/map_kotlin.py" --name "${MAP_NAME:?}" --target "${MAP_TARGET:?}" --project-root "$PWD" --output "$PWD/.engineering/docs/subsystems/${MAP_NAME}.md" --evidence "$PWD/reports/map/${MAP_NAME}/kotlin-map.json" --kotlinc "$KOTLINC" --java "$JAVA"`
 - `unify-shadows`: `python3 -I -S "$SKILL_ROOT/scripts/propose_kotlin.py" --project-root "$PWD" --facts reports/kotlin-semantic/facts.json --analysis reports/semantic-duplication/kotlin/analysis.json --acceptance reports/semantic-duplication/kotlin/accepted-duplication.json --output-dir reports/unify-shadows/kotlin/KSD-01`
+- `propose-boundary`: `python3 -I -S "$SKILL_ROOT/scripts/propose_kotlin.py" --project-root "$PWD" --omnibus reports/omnibus/kotlin/findings.json --map-evidence reports/map/cohort/kotlin-map.json --acceptance reports/accepted/propose-boundary/acceptance.json --output-dir reports/propose-boundary/kotlin --kotlinc "$KOTLINC" --java "$JAVA"`
+- `propose-folder-reorganization`: `python3 -I -S "$SKILL_ROOT/scripts/propose_kotlin.py" --project-root "$PWD" --topology reports/folder/findings.json --map-evidence reports/map/cohort/kotlin-map.json --acceptance reports/accepted/propose-folder-reorganization/acceptance.json --output-dir reports/propose-folder-reorganization/kotlin --kotlinc "$KOTLINC" --java "$JAVA"`
 
 The map also requires current `_kotlin` project evidence whose selected paths
 and hashes exactly match the semantic manifest. The shadow proposal requires
@@ -62,3 +64,9 @@ the exact upstream duplication artifact and a separate reviewer acceptance.
 Both retain the K1 boundary and all reflection, override/dispatch, delegation,
 generated/plugin, Gradle, Java/external-caller, JVM ABI, and runtime limits;
 neither grants source mutation authority.
+
+The two structure consumers share the copied
+`_kotlin-semantic/kotlin_structure_proposals.py` helper. They rerun no
+detection: accepted omnibus/topology and map artifacts remain authoritative,
+while current and disposable Kotlin/JVM native proof checks only the exact
+accepted manifest plan.

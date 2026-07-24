@@ -1,6 +1,6 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed Python, Go, Java 17, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
+description: Turn a confirmed Python, Go, Java 17, Kotlin/JVM, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,10 +26,28 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, go, java, typescript, javascript, php, ruby, rust, dart, c, cpp]
+scans: [python, go, java, kotlin, typescript, javascript, php, ruby, rust, dart, c, cpp]
 ---
 
 # /propose-folder-reorganization
+
+## Kotlin/JVM 2.4.10 accepted branch
+
+Trigger this branch only for one accepted three-or-more-file Kotlin topology
+cluster with a current complete Kotlin map, explicit project convention, and
+content-addressed human acceptance. Read `../_kotlin-semantic/GUIDE.md`, keep
+`_kotlin-semantic` beside the selected skill, and run
+`scripts/propose_kotlin.py` with `--topology`, `--map-evidence`, `--acceptance`,
+`--output-dir`, absolute Kotlin/JVM 2.4.10 `--kotlinc`, and absolute JDK 17
+`--java` paths; run `--help` for the exact CLI.
+
+The branch emits only `proposal.md`, `evidence.json`, and `scope.json`, then
+proves the exact same-package manifest move on the current tree and a
+disposable after-tree. Filename grouping and K1 direct facts remain
+insufficient for package ownership, override/runtime dispatch,
+reflection/callable references, delegation, generated/KAPT/KSP or plugin
+inputs, Gradle/source-set variants, Java/external callers, behavior, JVM ABI,
+mutation, or release authority.
 
 ## C++20 branch
 

@@ -1,4 +1,4 @@
-"""Honest partial-publication contract for bounded Kotlin/JVM outcomes."""
+"""Honest full-publication contract for bounded Kotlin/JVM outcomes."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ STATE_REVISION = "3d4751cef6aa620a4d9724f1d8070c6828064fa6"
 COMMENT_REVISION = "5c33e9383c969814805898590c1cb281ac88bcb5"
 MAP_REVISION = "49abe099528688996a502f0bf6479334a94b7960"
 UNIFY_REVISION = "b4c13fd1a92865a933869c356bd6565035c44928"
+STRUCTURE_REVISION = "2c35b98d9ff9f6e2ee86495e81ecae1a47effb4f"
 LEXICAL_SKILLS = {
     "adapt-project",
     "audit-decisions",
@@ -40,7 +41,8 @@ SEMANTIC_SKILLS = {
     "rename-concept",
 }
 ACCEPTED_EVIDENCE_SKILLS = {"extract-enum", "prevent-regression"}
-PENDING_SKILLS = {"propose-boundary", "propose-folder-reorganization"}
+STRUCTURE_SKILLS = {"propose-boundary", "propose-folder-reorganization"}
+PENDING_SKILLS: set[str] = set()
 ENTRYPOINTS = {
     "adapt-project": "scripts/discover_kotlin.py",
     "audit-decisions": "scripts/audit_kotlin.py",
@@ -60,6 +62,8 @@ ENTRYPOINTS = {
     "map-subsystem": "scripts/map_kotlin.py",
     "move-path": "scripts/kotlin_source_move.py",
     "prevent-regression": "scripts/stage_kotlin_state_guard.py",
+    "propose-boundary": "scripts/propose_kotlin.py",
+    "propose-folder-reorganization": "scripts/propose_kotlin.py",
     "rename-concept": "scripts/assess_kotlin_rename.py",
     "unify-shadows": "scripts/propose_kotlin.py",
 }
@@ -81,23 +85,23 @@ def _skill(skill: str) -> tuple[dict, str]:
     return yaml.safe_load(raw), body
 
 
-def test_kotlin_partial_publication_keeps_unimplemented_outcomes_pending() -> None:
+def test_kotlin_full_publication_has_all_bounded_outcomes_supported() -> None:
     payload = _payload()
     rows = payload["skills"]
     by_name = {row["skill"]: row for row in rows}
 
-    assert payload["phase"] == "p8-kotlin-partial-publication"
+    assert payload["phase"] == "p8-kotlin-full-publication"
     assert payload["minimum_kotlin_version"] == "2.4.10"
-    assert payload["minimum_jdk_version"] == "17.0.12"
+    assert payload["minimum_jdk_version"] == "17.0.0"
     assert len(rows) == len(by_name) == 22
     assert Counter(row["disposition"] for row in rows) == {
-        "kotlin-supported": 20,
-        "kotlin-pending-implementation": 2,
+        "kotlin-supported": 22,
     }
     assert set(payload["current_assertions"]["supported_skills"]) == (
         LEXICAL_SKILLS
         | SEMANTIC_SKILLS
         | ACCEPTED_EVIDENCE_SKILLS
+        | STRUCTURE_SKILLS
         | {"map-subsystem", "move-path", "unify-shadows"}
     )
     assert set(payload["current_assertions"]["pending_skills"]) == PENDING_SKILLS
@@ -142,6 +146,12 @@ def test_kotlin_partial_publication_keeps_unimplemented_outcomes_pending() -> No
     assert unify["closure_mode"] == "external-library"
     assert unify["evidence_path"].endswith("kotlin-unify-shadows.md")
     assert unify["reviewed_revision"] == UNIFY_REVISION
+    for skill in STRUCTURE_SKILLS:
+        row = by_name[skill]
+        assert row["closure_mode"] == "external-library"
+        assert row["evidence_path"].endswith("kotlin-structure-proposals.md")
+        assert row["reviewed_revision"] == STRUCTURE_REVISION
+        assert "disposable" in " ".join(row["native_check"])
 
     for row in rows:
         assert (ROOT / row["evidence_path"]).is_file(), row
@@ -231,7 +241,7 @@ def test_each_published_kotlin_skill_declares_trigger_entrypoint_and_limits() ->
             assert "../_kotlin-semantic/GUIDE.md" in body, skill
             assert entrypoint in lexical_guide.read_text(encoding="utf-8"), skill
             assert entrypoint in semantic_guide.read_text(encoding="utf-8"), skill
-        elif skill == "unify-shadows":
+        elif skill == "unify-shadows" or skill in STRUCTURE_SKILLS:
             assert "../_kotlin-semantic/GUIDE.md" in body, skill
             assert entrypoint in semantic_guide.read_text(encoding="utf-8"), skill
         else:

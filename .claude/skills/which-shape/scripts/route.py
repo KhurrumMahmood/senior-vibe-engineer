@@ -45,6 +45,7 @@ LANGUAGE_MARKERS = {
     "javascript": re.compile(r"(?i)(?:\bjavascript\b|(?:\.[cm]?js|\.jsx)\b)"),
     "rust": re.compile(r"(?i)(?:\brust\b|\.rs\b)"),
     "dart": re.compile(r"(?i)(?:\bdart\b|\.dart\b|pubspec\.yaml\b)"),
+    "kotlin": re.compile(r"(?i)(?:\bkotlin\b|\.kt\b|build\.gradle\.kts\b)"),
     "go": re.compile(
         r"(?:\bGolang\b|\bGo\b(?=\s+(?:project|repo|repository|module|service|"
         r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
@@ -707,6 +708,9 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
             elif language == "dart":
                 disposition = row["dart_disposition"]
                 eligible = disposition in {"dart-supported", "validated-neutral"}
+            elif language == "kotlin":
+                disposition = row["kotlin_disposition"]
+                eligible = disposition in {"kotlin-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
@@ -754,6 +758,7 @@ CAPABILITY_FIELDS = (
     "ruby_disposition",
     "rust_disposition",
     "dart_disposition",
+    "kotlin_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -835,20 +840,22 @@ def _validated_optional_install(
             "reason": capabilities["reason"],
             "evidence": [],
         }
-    if "dart" in languages:
+    closure_languages = sorted(set(languages) & {"dart", "kotlin"})
+    if closure_languages:
         try:
             manifest = Path(capabilities["manifest"])
             rows = json.loads(manifest.read_text(encoding="utf-8"))["skills"]
             by_name = {row["skill"]: row for row in rows}
-            closure_modes = {
-                skill_name: by_name[skill_name]["dart_closure_mode"]
-                for skill_name in handoff["skills"]
-            }
+            closure_modes = {}
+            for language in closure_languages:
+                field = f"{language}_closure_mode"
+                for skill_name in handoff["skills"]:
+                    closure_modes[(language, skill_name)] = by_name[skill_name][field]
             if any(
                 mode not in {"stock-selected-install", "external-library"}
                 for mode in closure_modes.values()
             ):
-                raise ValueError("invalid Dart closure mode")
+                raise ValueError("invalid selected-language closure mode")
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
             return {
                 **result,
@@ -857,7 +864,9 @@ def _validated_optional_install(
                 "evidence": [],
             }
         external_only = [
-            name for name, mode in closure_modes.items() if mode == "external-library"
+            skill_name
+            for (_, skill_name), mode in closure_modes.items()
+            if mode == "external-library"
         ]
         if external_only:
             return {
@@ -866,7 +875,7 @@ def _validated_optional_install(
                 "reason": "selected_language_requires_external_library",
                 "evidence": [
                     {"skill": name, "status": "external-library-only"}
-                    for name in external_only
+                    for name in sorted(set(external_only))
                 ],
             }
     evidence = [

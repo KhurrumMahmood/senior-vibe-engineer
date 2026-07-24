@@ -1,6 +1,6 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, Kotlin/JVM, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -30,10 +30,26 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
 ---
 
 # /propose-boundary
+
+## Kotlin/JVM 2.4.10 accepted branch
+
+Trigger this branch only for one explicitly scouted Kotlin omnibus domain with
+a current complete Kotlin map and content-addressed human acceptance. Read
+`../_kotlin-semantic/GUIDE.md`, keep `_kotlin-semantic` beside the selected
+skill, and run `scripts/propose_kotlin.py` with `--omnibus`, `--map-evidence`,
+`--acceptance`, `--output-dir`, absolute Kotlin/JVM 2.4.10 `--kotlinc`, and
+absolute JDK 17 `--java` paths; run `--help` for the exact CLI.
+
+The branch emits only `proposal.md`, `evidence.json`, and `scope.json`, then
+proves the accepted manifest on the current tree and an exact disposable
+after-tree. K1 direct facts remain insufficient for overload ambiguity,
+override/runtime dispatch, reflection/callable references, delegation,
+generated/KAPT/KSP or plugin inputs, Gradle variants, Java/external callers,
+behavior, JVM ABI, mutation, or release authority.
 
 ## C++20 branch
 

@@ -111,6 +111,8 @@ LANGUAGE_ALIASES = {
     "go": "go",
     "golang": "go",
     "java": "java",
+    "kt": "kotlin",
+    "kotlin": "kotlin",
     "php": "php",
     "swift": "swift",
     "js": "javascript",
@@ -138,6 +140,7 @@ LANGUAGE_MARKERS = {
         r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
     ),
     "java": re.compile(r"(?i)(?:\bjava\b|\.java\b)"),
+    "kotlin": re.compile(r"(?i)(?:\bkotlin\b|\.kt\b|build\.gradle\.kts\b)"),
     "php": re.compile(r"(?i)(?:\bphp\b|\.php\b)"),
     "swift": re.compile(r"(?i)(?:\bswift(?:pm)?\b|\.swift\b|Package\.swift\b)"),
     "typescript": re.compile(r"(?i)(?:\btypescript\b|\.tsx?\b)"),
@@ -627,6 +630,7 @@ CAPABILITY_FIELDS = (
     "ruby_disposition",
     "rust_disposition",
     "dart_disposition",
+    "kotlin_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -798,6 +802,14 @@ def capability_language_exclusion(
                 return _capability_exclusion(
                     row["dart_disposition"],
                     f"/{row['skill']} declares dart_disposition={row['dart_disposition']}",
+                )
+            if language == "kotlin" and row["kotlin_disposition"] not in {
+                "kotlin-supported",
+                "validated-neutral",
+            }:
+                return _capability_exclusion(
+                    row["kotlin_disposition"],
+                    f"/{row['skill']} declares kotlin_disposition={row['kotlin_disposition']}",
                 )
     return None
 

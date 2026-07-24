@@ -1,7 +1,7 @@
 # Language-support development
 
 Status: durable contributor guide synthesized through TypeScript, JavaScript,
-Go, Java, PHP, Ruby, Swift, Rust, Dart, C, and C++ evidence
+Go, Java, PHP, Ruby, Swift, Rust, Dart, C, C++, and Kotlin evidence
 
 Use this guide before starting another language or changing shared
 language-analysis tooling. It captures the tooling shape that repeated across
@@ -299,6 +299,34 @@ public-header and shared-library changes, external consumers, and alternate
 build variants remain explicit non-claims. A complete compile database is the
 selected static snapshot, not proof of the open C++ runtime or binary world.
 
+### 14. Kotlin/JVM completion evidence
+
+Kotlin reaches all 22 bounded language outcomes at Kotlin/JVM 2.4.10 and JDK
+17. Every supported row starts from an exact `kotlin-project.json` or
+`kotlin-semantic-project.json` source/test manifest, direct K2 CLI diagnostics,
+native test and smoke mains with exact output, tool and source hashes, and
+source preservation. `.kt` is the authored source boundary; `.kts`, generated,
+vendor, build, and tooling inputs remain visible but are not silently promoted.
+
+Ten lexical/syntax outcomes use the Kotlin-local token/declaration provider.
+Five semantic read-only outcomes and their accepted-evidence consumers use the
+deprecated K1 `BindingContext` compiler API pinned to the observed 2.4.10
+compiler jar, stdlib jar, and helper source after the K2 native gate. That
+internal API is not the stable Analysis API or a version-portable contract.
+The accepted map, enum/guard, shadow, boundary, and folder consumers retain
+human acceptance and exact artifact replacement; structure proposals prove
+the current and accepted disposable after-trees. The one mutation is a narrow
+same-package authored source-location move.
+
+Direct facts do not establish override or runtime dispatch, reflection,
+callable references, delegated-property behavior, framework registration, or
+runtime reachability. Generated/KAPT/KSP and plugin sources, Gradle variants,
+Java and external callers, expect/actual, Android, Multiplatform, JVM ABI and
+binary compatibility, arbitrary package moves, and release authority remain
+explicit non-claims. Most Kotlin closures require the external selected-skill
+library plus `_kotlin` or `_kotlin-semantic`; only the standalone move is a
+stock-selected install.
+
 ## Native foundations for queued languages
 
 | Language | Preferred foundations | Honest boundary |
@@ -309,7 +337,7 @@ selected static snapshot, not proof of the open C++ runtime or binary world.
 | Rust | `cargo metadata`, `cargo check`, Clippy; rust-analyzer for bounded reference operations | prefer stable Cargo JSON/LSP boundaries over private compiler APIs |
 | Swift | SwiftSyntax, SourceKit-LSP, and SwiftPM | indexed cross-module facts may require a recent build |
 | Dart | analyzer/Analysis Server plus `dart analyze` and native tests | pin to the SDK and treat analyzer API churn explicitly |
-| Kotlin | compiler/Gradle first; Analysis API selectively; KSP for declaration-only work | do not use KSP for expression/call semantics; standalone semantic support may remain partial |
+| Kotlin | completed with Kotlin/JVM 2.4.10, JDK 17, exact manifests, K2 native gates, and a pinned K1 internal semantic boundary | K1 `BindingContext` is not stable Analysis API; Gradle variants, generated/plugin inputs, Java/external callers, runtime dispatch, and JVM ABI remain outside the bounded claim |
 | C/C++ | Clang/LibTooling or clangd plus native build/test commands | project semantics are partial without trustworthy compile commands |
 
 Use established language and framework analyzers instead of reproducing their

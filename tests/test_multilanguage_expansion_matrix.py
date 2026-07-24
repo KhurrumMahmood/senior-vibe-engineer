@@ -30,6 +30,7 @@ CPP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "cpp-language-coverage.json"
 RUBY_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "ruby-language-coverage.json"
 RUST_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "rust-language-coverage.json"
 DART_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "dart-language-coverage.json"
+KOTLIN_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "kotlin-language-coverage.json"
 BUILDER = REPO_ROOT / "scripts" / "build_multilanguage_matrix.py"
 
 EXPECTED_COUNTS = {
@@ -101,6 +102,12 @@ EXPECTED_RUST_COUNTS = {
 }
 EXPECTED_DART_COUNTS = {
     "dart-supported": 22,
+    "validated-neutral": 19,
+    "stack-bound": 22,
+    "ecosystem-runtime": 13,
+}
+EXPECTED_KOTLIN_COUNTS = {
+    "kotlin-supported": 22,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -208,6 +215,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     assert Counter(row["ruby_disposition"] for row in rows) == EXPECTED_RUBY_COUNTS
     assert Counter(row["rust_disposition"] for row in rows) == EXPECTED_RUST_COUNTS
     assert Counter(row["dart_disposition"] for row in rows) == EXPECTED_DART_COUNTS
+    assert Counter(row["kotlin_disposition"] for row in rows) == EXPECTED_KOTLIN_COUNTS
     assert Counter(row["optional_install"]["status"] for row in rows) == {
         "passed": 41,
         "deferred-named-stack": 22,
@@ -228,6 +236,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         RUBY_COVERAGE,
         RUST_COVERAGE,
         DART_COVERAGE,
+        KOTLIN_COVERAGE,
     ):
         relative = str(source.relative_to(REPO_ROOT))
         assert source_by_path[relative] == _sha256(source)
@@ -424,6 +433,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
                 "dart-pending-implementation",
             }:
                 assert row["dart_limitation"]
+            assert row["kotlin_disposition"] == "kotlin-supported"
+            assert (REPO_ROOT / row["kotlin_evidence_path"]).is_file()
+            assert row["kotlin_native_check"]
+            assert row["kotlin_reviewed_revision"]
+            assert row["kotlin_limitation"]
         elif row["expansion_disposition"] == "framework-bound":
             framework_rows.append(row)
             assert row["fact_level"] == "framework"
@@ -439,6 +453,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["ruby_disposition"] == "stack-bound"
             assert row["rust_disposition"] == "stack-bound"
             assert row["dart_disposition"] == "stack-bound"
+            assert row["kotlin_disposition"] == "stack-bound"
         elif row["expansion_disposition"] == "validated-neutral":
             assert row["fact_level"] == "neutral"
             assert row["outcome_class"] == "not-applicable"
@@ -452,6 +467,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["ruby_disposition"] == "validated-neutral"
             assert row["rust_disposition"] == "validated-neutral"
             assert row["dart_disposition"] == "validated-neutral"
+            assert row["kotlin_disposition"] == "validated-neutral"
         else:
             assert row["fact_level"] == "ecosystem-runtime"
             assert row["outcome_class"] == "not-applicable"
@@ -465,6 +481,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["ruby_disposition"] == "ecosystem-runtime"
             assert row["rust_disposition"] == "ecosystem-runtime"
             assert row["dart_disposition"] == "ecosystem-runtime"
+            assert row["kotlin_disposition"] == "ecosystem-runtime"
 
         if row["expansion_disposition"] != "language-level":
             assert row["go_evidence_path"] is None
@@ -501,6 +518,10 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["dart_native_check"] is None
             assert row["dart_reviewed_revision"] is None
             assert row["dart_limitation"] is None
+            assert row["kotlin_evidence_path"] is None
+            assert row["kotlin_native_check"] is None
+            assert row["kotlin_reviewed_revision"] is None
+            assert row["kotlin_limitation"] is None
 
         if row["expansion_disposition"] != "language-level":
             assert row["javascript_cohort"] is None
@@ -682,6 +703,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     assert {
         row["skill"]
         for row in language_rows
+        if row["kotlin_disposition"] == "kotlin-supported"
+    } == {row["skill"] for row in language_rows}
+    assert {
+        row["skill"]
+        for row in language_rows
         if row.get("c_closure_mode") == "external-library"
     } == {
         "adapt-project",
@@ -851,6 +877,16 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "map-subsystem",
         "rename-concept",
     }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row["kotlin_closure_mode"] == "external-library"
+    } == {row["skill"] for row in language_rows} - {"move-path"}
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row["kotlin_closure_mode"] == "stock-selected-install"
+    } == {"move-path"}
     assert Counter(row["javascript_cohort"] for row in language_rows) == (
         EXPECTED_JAVASCRIPT_COHORT_COUNTS
     )

@@ -74,6 +74,7 @@ def test_bundled_catalog_matches_source_frontmatter():
         "typescript",
         "go",
         "java",
+        "kotlin",
         "php",
         "ruby",
         "rust",
@@ -290,6 +291,20 @@ def test_java_method_complexity_routes_to_complexity_hotspots():
     assert payload["routing_context"]["language"] == "java"
     assert payload["recommendation"] == "find-complexity-hotspots"
     assert payload["handoff"]["skills"][0] == "find-complexity-hotspots"
+
+
+def test_kotlin_host_onboarding_routes_to_adapt_project():
+    returncode, payload = _run_match(
+        "onboard a Kotlin/JVM repository by discovering objective stack, test, "
+        "and source-root facts",
+        "--top",
+        "10",
+    )
+
+    assert returncode == 0
+    assert payload["routing_context"]["language"] == "kotlin"
+    assert payload["recommendation"] == "adapt-project"
+    assert payload["handoff"]["skills"][0] == "adapt-project"
 
 
 def test_typescript_flat_prefix_routes_to_folder_topology():

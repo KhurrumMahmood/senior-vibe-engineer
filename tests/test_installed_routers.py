@@ -165,6 +165,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "ruby_disposition": "validated-neutral",
             "rust_disposition": "validated-neutral",
             "dart_disposition": "validated-neutral",
+            "kotlin_disposition": "validated-neutral",
             "fact_level": "neutral",
             "outcome_class": "not-applicable",
             "framework_family": None,
@@ -209,6 +210,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "ruby_disposition": "stack-bound",
         "rust_disposition": "stack-bound",
         "dart_disposition": "stack-bound",
+        "kotlin_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "architecture-planning",
@@ -245,6 +247,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "ruby_disposition": "ruby-supported",
         "rust_disposition": "rust-supported",
         "dart_disposition": "dart-supported",
+        "kotlin_disposition": "kotlin-supported",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -701,6 +704,36 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     ] == "dart-supported"
     assert dart_map_payload["optional_install"]["available"] is True
 
+    supported_kotlin = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use adapt-project on this Kotlin/JVM repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "kotlin",
+        "--json",
+        cwd=host,
+    )
+    kotlin_payload = _json_output(supported_kotlin)
+    assert kotlin_payload["routing_context"]["language"] == "kotlin"
+    assert kotlin_payload["recommendation"] == "adapt-project"
+    assert kotlin_payload["handoff"]["available"] is True
+    assert kotlin_payload["handoff"]["capabilities"]["skills"][0][
+        "kotlin_disposition"
+    ] == "kotlin-supported"
+    assert kotlin_payload["optional_install"]["available"] is False
+    assert kotlin_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+    assert (
+        library_root / ".claude/skills/_kotlin-semantic/KotlinSemanticFacts.kt"
+    ).is_file()
+    assert (
+        library_root / ".claude/skills/_kotlin-semantic/kotlin_structure_proposals.py"
+    ).is_file()
+
     for skill, task in (
         ("adapt-project", "use adapt-project on this Rust repository"),
         ("audit-decisions", "use audit-decisions on this Rust repository"),
@@ -850,6 +883,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "ruby_disposition": "ruby-supported",
         "rust_disposition": "rust-supported",
         "dart_disposition": "dart-supported",
+        "kotlin_disposition": "kotlin-supported",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -919,6 +953,28 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert dart_shape_payload["handoff"]["capabilities"]["skills"][0][
         "dart_disposition"
     ] == "dart-supported"
+
+    kotlin_shape = _run_isolated(
+        installed["which-shape"] / "scripts" / "route.py",
+        "onboard an unknown inherited Kotlin/JVM repository and figure out what loop to run",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--json",
+        "--skip-log",
+        cwd=host,
+    )
+    kotlin_shape_payload = _json_output(kotlin_shape)
+    assert kotlin_shape_payload["recommendation"]["first_next"] == "/adapt-project"
+    assert kotlin_shape_payload["handoff"]["available"] is True
+    assert kotlin_shape_payload["handoff"]["capabilities"]["skills"][0][
+        "kotlin_disposition"
+    ] == "kotlin-supported"
+    assert kotlin_shape_payload["optional_install"]["available"] is False
+    assert kotlin_shape_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
 
     c_shape = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",
@@ -1027,6 +1083,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "ruby_disposition": "stack-bound",
         "rust_disposition": "stack-bound",
         "dart_disposition": "stack-bound",
+        "kotlin_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "framework-quality",
@@ -1039,6 +1096,30 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert cleanup_install["available"] is False
     assert cleanup_install["reason"] == "selected_skill_install_not_validated"
     assert "command" not in cleanup_install
+
+    kotlin_cleanup = _run_isolated(
+        installed["which-cleanup"] / "scripts" / "route.py",
+        "src/main/kotlin/App.kt",
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+    kotlin_cleanup_payload = _json_output(kotlin_cleanup)
+    kotlin_cleanup_recommendations = {
+        item["skill"]: item for item in kotlin_cleanup_payload["recommendations"]
+    }
+    kotlin_comment = kotlin_cleanup_recommendations["find-comment-drift"]
+    assert kotlin_comment["handoff"]["capabilities"]["skills"][0][
+        "kotlin_disposition"
+    ] == "kotlin-supported"
+    assert kotlin_comment["optional_install"]["available"] is False
+    assert kotlin_comment["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+    assert kotlin_comment["optional_install"]["evidence"] == [
+        {"skill": "find-comment-drift", "status": "external-library-only"}
+    ]
 
     regression = cleanup_recommendations["prevent-regression"]
     assert regression["handoff"]["skills"] == [

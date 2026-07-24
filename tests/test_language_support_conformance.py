@@ -65,6 +65,7 @@ POST_P3_ADDITIVE_FILES = frozenset(
         "scripts/run_c.py",
         "scripts/run_cpp.py",
         "scripts/run_dart.py",
+        "scripts/run_kotlin.py",
         "scripts/run_php.py",
         "scripts/run_ruby.py",
         "scripts/run_rust.py",

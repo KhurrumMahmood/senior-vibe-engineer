@@ -95,7 +95,13 @@ def scope_band(file_count: int) -> str:
 
 def path_languages(paths: list[str]) -> set[str]:
     """Return only language signals that affect closeout install eligibility."""
-    return {"dart"} if any(Path(path).suffix.casefold() == ".dart" for path in paths) else set()
+    languages = set()
+    suffixes = {Path(path).suffix.casefold() for path in paths}
+    if ".dart" in suffixes:
+        languages.add("dart")
+    if ".kt" in suffixes:
+        languages.add("kotlin")
+    return languages
 
 
 def install_command(*, source: str, version: str, skills: list[str], agent: str) -> str:
@@ -213,6 +219,7 @@ CAPABILITY_FIELDS = (
     "ruby_disposition",
     "rust_disposition",
     "dart_disposition",
+    "kotlin_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -307,20 +314,22 @@ def optional_install_handoff(
             "reason": capabilities["reason"],
             "evidence": [],
         }
-    if "dart" in languages:
+    closure_languages = sorted(languages & {"dart", "kotlin"})
+    if closure_languages:
         try:
             manifest = Path(capabilities["manifest"])
             rows = json.loads(manifest.read_text(encoding="utf-8"))["skills"]
             by_name = {row["skill"]: row for row in rows}
-            closure_modes = {
-                skill_name: by_name[skill_name]["dart_closure_mode"]
-                for skill_name in skills
-            }
+            closure_modes = {}
+            for language in closure_languages:
+                field = f"{language}_closure_mode"
+                for skill_name in skills:
+                    closure_modes[(language, skill_name)] = by_name[skill_name][field]
             if any(
                 mode not in {"stock-selected-install", "external-library"}
                 for mode in closure_modes.values()
             ):
-                raise ValueError("invalid Dart closure mode")
+                raise ValueError("invalid selected-language closure mode")
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
             return {
                 **result,
@@ -329,7 +338,9 @@ def optional_install_handoff(
                 "evidence": [],
             }
         external_only = [
-            name for name, mode in closure_modes.items() if mode == "external-library"
+            skill_name
+            for (_, skill_name), mode in closure_modes.items()
+            if mode == "external-library"
         ]
         if external_only:
             return {
@@ -338,7 +349,7 @@ def optional_install_handoff(
                 "reason": "selected_language_requires_external_library",
                 "evidence": [
                     {"skill": name, "status": "external-library-only"}
-                    for name in external_only
+                    for name in sorted(set(external_only))
                 ],
             }
     evidence = [
