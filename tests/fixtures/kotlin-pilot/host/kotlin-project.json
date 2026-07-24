@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "jvm_target": "17",
+  "sources": [
+    "src/main/kotlin/kotlinpilot/Invoice.kt",
+    "src/main/kotlin/kotlinpilot/Main.kt"
+  ],
+  "tests": [
+    "tests/kotlinpilot/InvoiceTest.kt"
+  ],
+  "test_main": "kotlinpilot.InvoiceTestKt",
+  "smoke_output": "invoice:INV-42:pending:kotlin\n"
+}

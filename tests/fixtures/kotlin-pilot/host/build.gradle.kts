@@ -1,0 +1,1 @@
+val kotlinPilotGradleDecoy = "configuration-only"

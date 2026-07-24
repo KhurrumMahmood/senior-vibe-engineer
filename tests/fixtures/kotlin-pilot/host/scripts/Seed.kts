@@ -1,0 +1,1 @@
+val unsupportedScriptDecoy = "inventory-only"

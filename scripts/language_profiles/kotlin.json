@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "language": "kotlin",
+  "suffixes": [".kt"],
+  "project_markers": ["kotlin-project.json", "build.gradle.kts", "settings.gradle.kts"],
+  "source_roles": {
+    "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
+    "test_file_globs": ["*Test.kt", "*Tests.kt"],
+    "declaration_file_globs": [],
+    "configuration_files": []
+  },
+  "native_tools": [
+    {
+      "id": "kotlinc",
+      "project_paths": [".tools/kotlinc", "tools/kotlinc"],
+      "system_commands": ["kotlinc"],
+      "version_argv": ["{tool}", "-version"],
+      "minimum_version": "2.4.0",
+      "required": true
+    },
+    {
+      "id": "java",
+      "project_paths": [".jdk/bin/java", "jdk/bin/java"],
+      "system_commands": ["java"],
+      "version_argv": ["{tool}", "-version"],
+      "minimum_version": "17.0.0",
+      "required": true
+    }
+  ],
+  "fact_tiers": ["lexical-filesystem", "syntax"],
+  "verification_commands": [
+    {
+      "id": "compile",
+      "argv": ["{tool:kotlinc}", "-jvm-target", "17", "-Werror", "-include-runtime", "-d", "{project_root}/.native-build/kotlin-app.jar", "{source_files}"],
+      "requires": ["kotlinc"]
+    },
+    {
+      "id": "smoke",
+      "argv": ["{tool:java}", "-jar", "{project_root}/.native-build/kotlin-app.jar"],
+      "requires": ["java"]
+    }
+  ],
+  "terminal_outcomes": ["complete", "partial", "unsupported", "tool-missing", "syntax-error", "native-check-failure", "unexpected-source-mutation"],
+  "explicit_limits": [
+    "This profile owns lowercase .kt Kotlin/JVM sources compiled directly with kotlinc for JVM 17. It does not imply Kotlin/JS, Kotlin/Native, Android, Multiplatform, KAPT, KSP, compiler plugins, Gradle plugins, Maven plugins, or dependency resolution.",
+    "The profile intentionally does not claim .kts. Source inventory keeps Kotlin scripts visible as unsupported; the Kotlin provider recognizes only exact Gradle script names as configuration context and never treats scripts as compilable project sources.",
+    "A build.gradle.kts or settings.gradle.kts marker indicates possible project metadata, not a usable Gradle build. The dependency-free proof never invokes Gradle and makes no Kotlin-plugin compatibility claim.",
+    "Compiler exit status and diagnostics prove only that the exact source manifest compiles in the observed configuration. The shipped compiler internals and experimental backend dumps are not a stable semantic API, so project-wide symbol, call, override, data-flow, reflection, generated-code, and alternate-variant facts remain unavailable."
+  ]
+}
