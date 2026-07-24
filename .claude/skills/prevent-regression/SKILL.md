@@ -33,11 +33,19 @@ not_for: |
   fix in place).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /prevent-regression
+
+## C++20 branch
+
+Use `scripts/stage_cpp_state_guard.py` with a fresh accepted migration and all
+five human approvals; run it with `--help` for the exact CLI. It stages, but
+never installs, one `std::is_same_v` guard for an exact namespace-qualified
+field and proves one disposable type regression fails. It makes no broader
+ODR/ABI, specialization, overload/dispatch, external-variant, or runtime claim.
 
 ## C17 branch
 

@@ -241,7 +241,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "php_disposition": "php-supported",
         "swift_disposition": "swift-pending-implementation",
         "c_disposition": "c-supported",
-        "cpp_disposition": "cpp-pending-implementation",
+        "cpp_disposition": "cpp-supported",
         "ruby_disposition": "ruby-supported",
         "rust_disposition": "rust-supported",
         "dart_disposition": "dart-supported",
@@ -469,7 +469,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "cpp_disposition"
     ] == "cpp-supported"
 
-    pending_cpp = _run_isolated(
+    supported_cpp_adapt = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
         "use adapt-project on this C++ repository",
         "--project-root",
@@ -481,16 +481,26 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "--json",
         cwd=host,
     )
-    assert pending_cpp.returncode == 1
-    pending_cpp_payload = json.loads(pending_cpp.stdout)
-    assert pending_cpp_payload["routing_context"]["language"] == "cpp"
-    assert pending_cpp_payload["recommendation"] == "pending-implementation"
-    assert pending_cpp_payload["unavailable"]["classification"] == (
-        "pending-implementation"
+    supported_cpp_adapt_payload = _json_output(supported_cpp_adapt)
+    assert supported_cpp_adapt.returncode == 0
+    assert supported_cpp_adapt_payload["routing_context"]["language"] == "cpp"
+    assert supported_cpp_adapt_payload["recommendation"] == "adapt-project"
+    assert supported_cpp_adapt_payload["handoff"]["available"] is True
+    assert supported_cpp_adapt_payload["handoff"]["capabilities"]["skills"][0][
+        "cpp_disposition"
+    ] == "cpp-supported"
+    assert supported_cpp_adapt_payload["optional_install"]["available"] is False
+    assert supported_cpp_adapt_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
     )
-    assert pending_cpp_payload["unavailable"]["reason"] == (
-        "/adapt-project declares cpp_disposition=cpp-pending-implementation"
-    )
+    assert supported_cpp_adapt_payload["optional_install"]["evidence"] == [
+        {"skill": "adapt-project", "status": "external-library-only"}
+    ]
+    assert (
+        library_root / ".claude/skills/adapt-project/scripts/discover_cpp.py"
+    ).is_file()
+    assert (library_root / ".claude/skills/_cpp/cpp_facts.py").is_file()
+    assert (library_root / ".claude/skills/_cpp/cpp_consumers.py").is_file()
 
     ruby_routed = _run_isolated(
         installed["which-skill"] / "scripts" / "match.py",
@@ -836,7 +846,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "php_disposition": "php-supported",
         "swift_disposition": "swift-supported",
         "c_disposition": "c-supported",
-        "cpp_disposition": "cpp-pending-implementation",
+        "cpp_disposition": "cpp-supported",
         "ruby_disposition": "ruby-supported",
         "rust_disposition": "rust-supported",
         "dart_disposition": "dart-supported",
@@ -944,17 +954,13 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     )
     cpp_shape_payload = _json_output(cpp_shape)
     assert cpp_shape_payload["recommendation"]["first_next"] == "/adapt-project"
-    assert cpp_shape_payload["handoff"]["available"] is False
-    assert cpp_shape_payload["handoff"]["reason"] == (
-        "selected_skill_pending_implementation"
+    assert cpp_shape_payload["handoff"]["available"] is True
+    assert cpp_shape_payload["handoff"]["default_execution"] == (
+        "fresh_non_context_subagent"
     )
-    assert cpp_shape_payload["handoff"]["blocked"] == [
-        {
-            "skill": "adapt-project",
-            "language": "cpp",
-            "disposition": "cpp-pending-implementation",
-        }
-    ]
+    assert cpp_shape_payload["handoff"]["capabilities"]["skills"][0][
+        "cpp_disposition"
+    ] == "cpp-supported"
 
     ruby_shape = _run_isolated(
         installed["which-shape"] / "scripts" / "route.py",

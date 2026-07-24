@@ -18,11 +18,20 @@ not_for: |
   dynamic dispatch, framework behavior, and automatic consolidation.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 ---
 
 # /find-semantic-duplication
+
+## C++20 branch
+
+Use `scripts/detect_cpp_semantic.py` with `_cpp-semantic`; run the script with
+`--help` for the exact CLI. It emits static structural leads only for exact
+aggregate snippets with distinct direct caller contexts in a current complete
+C++20 compiler-owned graph. Namespace/signature/overload identity is exact;
+behavioral equivalence, ODR/ABI, specializations, dispatch, external variants,
+and consolidation safety are not claimed.
 
 ## C17 branch
 

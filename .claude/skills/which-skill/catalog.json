@@ -42,7 +42,8 @@
         "swift",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/adapt-project"
     },
@@ -79,7 +80,8 @@
         "swift",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/audit-decisions"
     },
@@ -256,7 +258,8 @@
         "swift",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/explain-code"
     },
@@ -290,7 +293,8 @@
         "ruby",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "install_with": [
         "find-implicit-state",
@@ -392,7 +396,8 @@
         "swift",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/find-complexity-hotspots"
     },
@@ -417,6 +422,7 @@
         "rust",
         "dart",
         "c",
+        "cpp",
         "markdown",
         "templates"
       ],
@@ -484,7 +490,8 @@
         "ruby",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "install_with": [
         "map-subsystem"
@@ -511,7 +518,8 @@
         "swift",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/find-duplication"
     },
@@ -535,7 +543,8 @@
         "swift",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/find-folder-topology-drift"
     },
@@ -588,7 +597,8 @@
         "ruby",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "install_with": [
         "map-subsystem"
@@ -614,7 +624,8 @@
         "ruby",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "install_with": [
         "map-subsystem"
@@ -652,7 +663,8 @@
         "rust",
         "dart",
         "swift",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/find-omnibus"
     },
@@ -733,7 +745,8 @@
         "ruby",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "install_with": [
         "map-subsystem"
@@ -810,7 +823,8 @@
         "swift",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/find-standard-gaps"
     },
@@ -999,6 +1013,7 @@
       "framework": "any",
       "scans": [
         "c",
+        "cpp",
         "dart",
         "go",
         "java",
@@ -1122,7 +1137,8 @@
         "ruby",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "install_with": [
         "find-implicit-state",
@@ -1185,7 +1201,8 @@
         "ruby",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/propose-boundary"
     },
@@ -1208,7 +1225,8 @@
         "ruby",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/propose-folder-reorganization"
     },
@@ -1254,6 +1272,7 @@
         "rust",
         "dart",
         "c",
+        "cpp",
         "markdown",
         "templates"
       ],
@@ -1365,7 +1384,8 @@
         "ruby",
         "rust",
         "dart",
-        "c"
+        "c",
+        "cpp"
       ],
       "_path": "skills/unify-shadows"
     },

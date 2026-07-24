@@ -25,7 +25,7 @@ tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
@@ -58,6 +58,15 @@ delegate_from: |
 ---
 
 # /find-incomplete-sweep
+
+## C++20 branch
+
+Use `scripts/detect_cpp_incomplete_sweep.py` with `_cpp-semantic` and a
+candidate-hash-bound human verdict; run it with `--help` for the exact CLI. It
+checks one direct designated-aggregate return shape under a current complete
+C++20 compiler-owned graph with exact namespace/signature/overload identity.
+ODR/ABI, specialization, dispatch, external variants, and automatic fixes stay
+outside the claim.
 
 ## C17 branch
 

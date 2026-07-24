@@ -20,10 +20,19 @@ not_for: |
   resolved-import contract.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /find-folder-topology-drift
+
+## C++20 branch
+
+Use `scripts/detect_cpp.py` with the sibling `_cpp` provider; run the script
+with `--help` for the exact CLI. It finds direct-sibling filename clusters only
+inside the current complete C++20 compiler-owned inventory. Compiler header
+ownership and namespace/signature/overload facts remain visible, but clusters
+prove no ownership, safe move, ODR/ABI, specialization, dispatch, or external
+variant.
 
 ## C17 branch
 

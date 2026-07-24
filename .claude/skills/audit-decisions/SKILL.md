@@ -19,10 +19,18 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
+scans: [python, markdown, html, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /audit-decisions
+
+## C++20 branch
+
+Use `scripts/audit_cpp.py` with the sibling `_cpp` provider; run the script
+with `--help` for the exact CLI. It accepts real comment tokens only after a
+current complete C++20 compile database owns each source/header. Namespace,
+signature, and overload context stay explicit; comment applicability, ODR,
+ABI, specializations, dynamic dispatch, and external variants are unresolved.
 
 ## C17 branch
 

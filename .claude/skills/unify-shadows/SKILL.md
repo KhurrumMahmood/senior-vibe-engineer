@@ -19,10 +19,19 @@ not_for: |
   Source mutation begins only after human acceptance of this artifact.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
 ---
 
 # /unify-shadows
+
+## C++20 branch
+
+Use `scripts/propose_cpp.py` with current accepted semantic facts and one exact
+structural lead; run it with `--help` for the exact CLI. It binds namespace,
+signature, overload, source, caller, and analysis identity into a read-only
+option with human-owned stop conditions. Structure is not behavior; ODR/ABI,
+specializations, dispatch, external variants, survivor choice, and mutation
+remain unresolved.
 
 ## C17 branch
 

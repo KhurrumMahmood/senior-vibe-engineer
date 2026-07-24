@@ -36,10 +36,20 @@ not_for: |
   /refactor-subsystem). Blind global find-and-replace.
 language: any
 framework: any
-scans: [c, dart, go, java, javascript, php, ruby, rust, swift, typescript]
+scans: [c, cpp, dart, go, java, javascript, php, ruby, rust, swift, typescript]
 ---
 
 # /move-path
+
+## C++20 branch
+
+Use `scripts/cpp_source_move.py`; review `--dry-run` evidence, pass its SHA-256
+to `--apply`, then run `--check`. It supports one same-filename authored
+implementation-unit move inside a closed Clang 21+/C++20/Make executable with
+a current complete compile database and compiler-owned headers. Exact source
+identity and global defined symbols are preserved; ODR/ABI, template,
+dynamic-dispatch, external-variant, public-header, and external-consumer shapes
+are refused rather than inferred.
 
 ## C17 branch
 

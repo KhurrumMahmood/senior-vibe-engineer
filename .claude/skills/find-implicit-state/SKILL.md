@@ -21,12 +21,21 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-implicit-state
+
+## C++20 branch
+
+Use `scripts/detect_cpp_state.py` with `_cpp-semantic`; run the script with
+`--help` for the exact CLI. It reports exact resolved string writes to one
+namespace-qualified field under a current complete C++20 compiler-owned graph.
+Overloads remain distinct; closed-domain, alias/callback, ODR/ABI,
+specialization, dynamic-dispatch, external-variant, and migration claims are
+refused.
 
 ## C17 branch
 

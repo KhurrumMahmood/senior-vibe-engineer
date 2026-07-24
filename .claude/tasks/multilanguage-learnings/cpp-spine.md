@@ -31,8 +31,10 @@ lowercasing it would falsely hand it to C. Modules, macros, overload sets,
 templates/instantiations, ADL, virtual dispatch, implicit operations, ODR,
 ABI/layout, target/sysroot/defines, and build variants remain semantic limits.
 
-Frozen cohort order is lexical `find-comment-drift`, semantic
+The frozen cohort order was lexical `find-comment-drift`, semantic
 `map-subsystem`, then mutation candidate `move-path` only after accepted
-lineage. Each still needs its own final artifact, failure lifecycle, copied
-closure, and native proof. This spine earns no completed skill support: all 22
-rows remain `cpp-pending-implementation`.
+lineage. At this spine's capture, no skill final artifact had run and all 22
+rows were correctly `cpp-pending-implementation`; the frozen baseline retains
+that historical truth. Current capability belongs in
+`.claude/tasks/cpp-language-coverage.json`, where all 22 later value-tested
+outcomes are now supported under their bounded contracts.

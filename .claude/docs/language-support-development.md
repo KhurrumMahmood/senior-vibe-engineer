@@ -1,7 +1,7 @@
 # Language-support development
 
 Status: durable contributor guide synthesized through TypeScript, JavaScript,
-Go, Java, PHP, Ruby, Swift, Rust, Dart, and C evidence
+Go, Java, PHP, Ruby, Swift, Rust, Dart, C, and C++ evidence
 
 Use this guide before starting another language or changing shared
 language-analysis tooling. It captures the tooling shape that repeated across
@@ -275,6 +275,29 @@ C++/Objective-C are not inferred. Review-only findings never become deletion,
 equivalence, or mutation authority; proposals preserve human acceptance, the
 guard is staged rather than installed, and the one mutation supports only an
 authored `.c` file move inside one C17/Clang/Make project.
+
+### 13. C++ completion evidence
+
+C++ reaches all 22 bounded language outcomes without borrowing C truth. Every
+semantic claim requires Clang 21+, a current complete C++20
+`compile_commands.json`, and compiler dependency ownership for headers. Native
+Make tests and exact executable smoke remain separate proof. Compiler identity
+is never flattened to spelling: namespace-qualified names, exact signatures,
+overload sets, operators, and template declarations stay explicit.
+
+Two C++-local read-only fact families serve the project/lexical/syntax and
+semantic consumers; those shared closures remain external-library-only. The
+original comment/map pilots and standalone structure-proposal and move-path
+scripts are stock-selected closures. Accepted-evidence consumers validate
+current hashes and human decisions, proposals stay read-only, and the exact
+field guard is staged rather than installed.
+
+The supported mutation is only a same-filename implementation-unit move inside
+one closed Clang/C++20/Make executable. ODR, ABI compatibility, template
+specializations, virtual/dynamic dispatch, callbacks, runtime registration,
+public-header and shared-library changes, external consumers, and alternate
+build variants remain explicit non-claims. A complete compile database is the
+selected static snapshot, not proof of the open C++ runtime or binary world.
 
 ## Native foundations for queued languages
 

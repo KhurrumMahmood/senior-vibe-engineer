@@ -72,11 +72,19 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, c, markdown, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, c, cpp, markdown, templates]
 install_with: [find-concept-divergence, map-subsystem]
 ---
 
 # /rename-concept
+
+## C++20 branch
+
+Use `scripts/assess_cpp_rename.py` with `_cpp-semantic`; run the script with
+`--help` for the exact CLI. It is assessment-only across a current complete
+C++20 compiler-owned graph and separates exact namespace/signature/overload
+identity from macro/string residue. ODR/ABI/linkage, specializations, ADL,
+dynamic dispatch, external variants, codemod safety, and mutation are refused.
 
 ## C17 branch
 

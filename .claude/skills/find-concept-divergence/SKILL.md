@@ -31,10 +31,18 @@ not_for: |
   (deferred — strict canonical-name + avoid-term grep only in v1).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, markdown, templates]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp, markdown, templates]
 ---
 
 # /find-concept-divergence
+
+## C++20 branch
+
+Use `scripts/scan_cpp.py` with the sibling `_cpp` provider; run the script with
+`--help` for the exact CLI. It reports strict glossary spelling only across a
+current complete C++20 compiler-owned source/header snapshot while retaining
+namespace, signature, and overload context. Text hits do not prove symbol
+identity, ODR/ABI, specializations, dispatch, or external variants.
 
 ## C17 branch
 

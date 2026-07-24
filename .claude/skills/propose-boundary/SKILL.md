@@ -30,10 +30,19 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
 ---
 
 # /propose-boundary
+
+## C++20 branch
+
+Use `scripts/propose_cpp.py` with accepted omnibus evidence, a current complete
+C++20 map, and hash-bound human acceptance; run it with `--help` for the exact
+CLI. It emits a read-only plan for one private compiler-owned free-function
+seam, preserving namespace-qualified signatures, the complete overload set,
+and direct caller impact. Templates/specializations, dispatch/callbacks,
+ODR/ABI, external consumers, variants, and mutation are not inferred.
 
 ## C17 branch
 

@@ -26,7 +26,7 @@ not_for: |
   baseline belongs in host lint tooling.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 ## External syntax variants
@@ -42,6 +42,15 @@ Each supports one declared direct-call enclosure condition only. The guides own
 the exact commands, standards inputs, native gates, and semantic non-claims.
 
 # /find-standard-gaps
+
+## C++20 branch
+
+Use `scripts/scan_coverage_cpp.py` with the sibling `_cpp` provider and an
+explicit ideas file; run it with `--help` for the exact CLI. It measures one
+configured direct-call/`if` syntax condition over a current complete C++20
+compiler-owned graph with exact namespace/signature/overload boundaries. It
+does not prove callee behavior, ODR/ABI, specializations, dispatch, or external
+variants.
 
 ## C17 branch
 

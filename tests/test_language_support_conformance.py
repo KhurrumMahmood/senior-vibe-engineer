@@ -62,6 +62,8 @@ P3_ALLOWED_SKILL_CHANGES = frozenset(
 POST_P3_ADDITIVE_FILES = frozenset(
     {
         "scripts/detect_swift_symbols.py",
+        "scripts/run_c.py",
+        "scripts/run_cpp.py",
         "scripts/run_dart.py",
         "scripts/run_php.py",
         "scripts/run_ruby.py",

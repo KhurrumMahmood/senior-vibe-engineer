@@ -82,8 +82,7 @@ EXPECTED_C_COUNTS = {
     "ecosystem-runtime": 13,
 }
 EXPECTED_CPP_COUNTS = {
-    "cpp-supported": 2,
-    "cpp-pending-implementation": 20,
+    "cpp-supported": 22,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -590,7 +589,30 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["cpp_disposition"] == "cpp-supported"
-    } == {"find-comment-drift", "map-subsystem"}
+    } == {
+        "adapt-project",
+        "audit-decisions",
+        "explain-code",
+        "extract-enum",
+        "find-comment-drift",
+        "find-complexity-hotspots",
+        "find-concept-divergence",
+        "find-dormant",
+        "find-duplication",
+        "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
+        "find-omnibus",
+        "find-semantic-duplication",
+        "find-standard-gaps",
+        "map-subsystem",
+        "move-path",
+        "prevent-regression",
+        "propose-boundary",
+        "propose-folder-reorganization",
+        "rename-concept",
+        "unify-shadows",
+    }
     assert {
         row["skill"]
         for row in language_rows
@@ -690,6 +712,40 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         "propose-boundary",
         "propose-folder-reorganization",
         "unify-shadows",
+    }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row.get("cpp_closure_mode") == "external-library"
+    } == {
+        "adapt-project",
+        "audit-decisions",
+        "explain-code",
+        "extract-enum",
+        "find-complexity-hotspots",
+        "find-concept-divergence",
+        "find-dormant",
+        "find-duplication",
+        "find-folder-topology-drift",
+        "find-implicit-state",
+        "find-incomplete-sweep",
+        "find-omnibus",
+        "find-semantic-duplication",
+        "find-standard-gaps",
+        "prevent-regression",
+        "rename-concept",
+        "unify-shadows",
+    }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row.get("cpp_closure_mode") == "stock-selected-install"
+    } == {
+        "find-comment-drift",
+        "map-subsystem",
+        "move-path",
+        "propose-boundary",
+        "propose-folder-reorganization",
     }
     assert {
         row["skill"]

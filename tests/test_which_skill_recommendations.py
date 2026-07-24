@@ -80,6 +80,7 @@ def test_bundled_catalog_matches_source_frontmatter():
         "dart",
         "swift",
         "c",
+        "cpp",
     ]
 
 

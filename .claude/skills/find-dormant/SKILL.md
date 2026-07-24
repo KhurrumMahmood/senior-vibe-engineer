@@ -27,12 +27,21 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-dormant
+
+## C++20 branch
+
+Use `scripts/detect_cpp_dormant.py` with `_cpp-semantic`; run the script with
+`--help` for the exact CLI. It emits review leads only for exact internal,
+non-template, non-operator functions with zero direct references in a current
+complete C++20 compiler-owned graph. Overloads stay distinct; ODR/ABI,
+specializations, callbacks/dynamic dispatch, external variants, and deletion
+authority remain unresolved.
 
 ## C17 branch
 

@@ -18,10 +18,18 @@ not_for: |
   Refactor execution (use /fix-workflow or /refactor-subsystem).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /explain-code
+
+## C++20 branch
+
+Use `scripts/explain_cpp.py` with the sibling `_cpp` provider; run the script
+with `--help` for the exact CLI. It explains compiler-owned direct declarations
+from a current complete C++20 compile database, retaining namespaces, spelled
+signatures, and overloads. It does not infer behavior, ODR/ABI safety, template
+specializations, dynamic dispatch, or external variants.
 
 ## C17 branch
 

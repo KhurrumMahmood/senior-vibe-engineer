@@ -1,6 +1,6 @@
 # C++20 `move-path` learning packet
 
-Status: isolated implementation candidate; root publication remains pending
+Status: implementation integrated and capability published
 
 ## Final value proved
 
@@ -32,8 +32,9 @@ file bytes/modes and symlink targets from the complete pre-apply snapshot.
 This is deliberately a source-location move, not a C++ identity refactor. It
 requires the same filename and rejects namespace/symbol/scope configuration,
 non-closed artifacts, or undeclared external-consumer scope. Exact pre/post
-global symbol equality is the ABI identity oracle for the moved object; owned
-`extern "C"` or visibility boundaries remain outside the cohort.
+global defined-symbol equality is a narrow identity check for the moved object,
+not an ABI compatibility oracle; owned `extern "C"` and visibility boundaries
+remain outside the cohort.
 
 The adapter stops before writes for reachable `.h`/`.inc` ambiguity, owned
 templates or explicit instantiations, conditional/macro-computed includes,

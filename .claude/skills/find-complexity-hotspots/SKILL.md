@@ -18,13 +18,21 @@ not_for: |
   scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 <!-- Native-parser compatibility subset: scans: [javascript, typescript, go, java] -->
 <!-- TypeScript compatibility subset: scans: [python, javascript, typescript] -->
 
 # /find-complexity-hotspots
+
+## C++20 branch
+
+Use `scripts/run_cpp.py` with the sibling `_cpp` provider; run the script with
+`--help` for the exact CLI. It scores direct function bodies from a current
+complete C++20 compile database, with compiler-owned headers and exact
+namespace/signature/overload identity. The score says nothing about runtime
+cost, ODR/ABI, specializations, dynamic dispatch, or external variants.
 
 ## C17 branch
 

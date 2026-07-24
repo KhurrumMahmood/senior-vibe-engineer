@@ -28,11 +28,20 @@ not_for: |
   enumerations whose convention lacks fixture evidence.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c]
+scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /extract-enum
+
+## C++20 branch
+
+Use `scripts/collect_cpp_state.py` with accepted `cpp-semantic-facts-v1` and
+`cpp-implicit-state-v1` artifacts; run it with `--help` for the exact CLI. The
+content-addressed proposal targets one exact namespace-qualified field and is
+proved only in a disposable copy under the same complete C++20 compile
+database. Closed-domain, ODR, ABI, specialization, dispatch, external-variant,
+and host-mutation authority remain human-owned.
 
 ## C17 branch
 

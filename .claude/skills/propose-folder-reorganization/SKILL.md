@@ -26,10 +26,20 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, go, java, typescript, javascript, php, ruby, rust, dart, c]
+scans: [python, go, java, typescript, javascript, php, ruby, rust, dart, c, cpp]
 ---
 
 # /propose-folder-reorganization
+
+## C++20 branch
+
+Use `scripts/propose_cpp.py` with accepted topology evidence, a current complete
+C++20 map, an explicit project convention, and hash-bound human acceptance;
+run it with `--help` for the exact CLI. It emits a read-only plan for one
+compiler-owned private prefix cluster with exact qualified signatures,
+overloads, callers, headers, Make edits, and after-tree census. Filename
+grouping proves no ODR/ABI, specialization, dispatch, external variant, or
+mutation safety.
 
 ## C17 branch
 

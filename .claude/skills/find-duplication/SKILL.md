@@ -19,10 +19,18 @@ not_for: |
   clone leads and stops short of safety or reuse conclusions.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /find-duplication
+
+## C++20 branch
+
+Use `scripts/run_cpp.py` with the sibling `_cpp` provider; run the script with
+`--help` for the exact CLI. It reports exact normalized direct-body spelling
+clones from a current complete C++20 compiler-owned graph, retaining namespace,
+signature, and overload identity. Matching text is not semantic equivalence or
+evidence about ODR/ABI, specializations, dispatch, or external variants.
 
 ## C17 branch
 

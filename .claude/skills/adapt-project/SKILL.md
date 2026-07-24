@@ -24,7 +24,7 @@ escalate_to: |
   human-approved and detectable.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c]
+scans: [python, javascript, typescript, go, java, php, ruby, swift, rust, dart, c, cpp]
 lanes: [project-adaptation]
 stage: discover
 entrypoint: true
@@ -35,6 +35,15 @@ max_overhead: "Stop after discovery and write unresolved questions; do not infer
 ---
 
 # /adapt-project
+
+## C++20 branch
+
+Use `scripts/discover_cpp.py` with `_cpp/cpp_facts.py` and
+`_cpp/cpp_consumers.py`; run the script with `--help` for the exact CLI. It
+requires a current complete C++20 compile database and admits only compiler-
+owned headers. Output preserves namespace, signature, and overload boundaries;
+it makes no ODR, ABI, specialization, dynamic-dispatch, or external-variant
+claim.
 
 ## C17 branch
 

@@ -23,10 +23,19 @@ not_for: |
   to /find-perimeter-gaps.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, swift, c]
+scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, swift, c, cpp]
 ---
 
 # /find-omnibus
+
+## C++20 branch
+
+Use `scripts/run_cpp.py` with the sibling `_cpp` provider and explicit scout
+JSON; run the script with `--help` for the exact CLI. It nominates name-cluster
+candidates from a current complete C++20 compiler-owned graph while retaining
+namespace/signature/overload identity. Human judgment owns responsibilities;
+ODR/ABI, specializations, dispatch, external variants, and safe decomposition
+are not inferred.
 
 ## C17 branch
 
