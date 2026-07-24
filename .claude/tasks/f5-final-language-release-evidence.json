@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-07-24",
+  "public_source": "README.md::ENGINEERING_SKILLS_SOURCE",
+  "candidate_revision": "1c333d264288981688b8eac2b3722c7bb34190ca",
+  "candidate_short_revision": "1c333d2",
+  "replay_root": "/private/tmp/engineering-skills-f5-1c333d2.cStnRx",
+  "candidate_correction": {
+    "provisional_revision": "f2fec0d869b06616eb381195809662e6a794a641",
+    "finding": "Six TypeScript coverage rows had correct companion-install commands but omitted their structured install_with fields.",
+    "resolution": "The six closure declarations and generated matrix source digest were corrected before the final candidate was published."
+  },
+  "release_truth": {
+    "public_main_matches_candidate": true,
+    "catalog_skill_count": 76,
+    "router_catalog_current": true,
+    "multilanguage_matrix_current": true,
+    "skill_contracts_valid": "76/76",
+    "language_level_counts": {
+      "typescript": "22/22",
+      "javascript": "22/22",
+      "go": "22/22",
+      "java": "22/22",
+      "php": "22/22",
+      "swift": "22/22",
+      "c": "22/22",
+      "cpp": "22/22",
+      "ruby": "22/22",
+      "rust": "22/22",
+      "dart": "22/22",
+      "kotlin": "22/22",
+      "csharp": "22/22"
+    }
+  },
+  "public_journey": {
+    "stock_cli": "skills@1.5.19",
+    "installed_routers": [
+      "which-cleanup",
+      "which-shape",
+      "which-skill"
+    ],
+    "isolated_router_entrypoints_passed": true,
+    "installed_router_bytes_match_library": true,
+    "external_library_revision": "1c333d264288981688b8eac2b3722c7bb34190ca",
+    "external_library_runtime": "Python 3.11.1",
+    "representative_routes": {
+      "swift": "map-subsystem",
+      "csharp": "find-incomplete-sweep + map-subsystem",
+      "kotlin": "propose-folder-reorganization",
+      "ruby": "move-path",
+      "c": "find-complexity-hotspots",
+      "cpp": "explain-code",
+      "shape": "adapt-project"
+    },
+    "final_outcome": {
+      "skill": "adapt-project",
+      "language": "swift",
+      "status": "complete",
+      "native_checks_passed": 7,
+      "artifacts": [
+        "adapter.json",
+        "adapter.yml",
+        "report.md",
+        "evidence.json"
+      ],
+      "source_preserved": true
+    },
+    "configuration_boundary": "The Swift doctor and final artifact explicitly limit the claim to dependency-free SwiftPM and exclude Xcode projects, Apple frameworks, SwiftUI/UIKit/AppKit, Objective-C bridging, and other unvalidated configurations.",
+    "cleanup_recommendations": [
+      "find-test-obligation-drift",
+      "find-comment-drift",
+      "prevent-regression"
+    ],
+    "routers_remaining_after_stock_remove": 0,
+    "sentinel_sha256": "fdad79e7c9018a8471dd628960ec1487dfccf11e77f01c1865cb215cfa76884c",
+    "sentinel_preserved": true,
+    "external_library_retained": true
+  },
+  "verification": [
+    {
+      "surface": "release truth, matrices, coverage, inventory, doctor, and lifecycle",
+      "result": "34 passed"
+    },
+    {
+      "surface": "installed routers",
+      "result": "59 passed"
+    },
+    {
+      "surface": "candidate commit hooks",
+      "result": "passed"
+    }
+  ],
+  "verification_note": "The two pytest groups were run in separate processes after a combined invocation was terminated during the heavier installed-router module; both separate runs returned exit code zero."
+}

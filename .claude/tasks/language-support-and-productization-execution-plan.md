@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7 Swift complete at 22/22; F5 final language release is ready
-Last updated: 2026-07-24 (Swift publication `da51a8d` and its committed installed-router replay completed with 59 passing tests)
+Current phase: F5 final language release complete; F6/P8 is ready
+Last updated: 2026-07-24 (corrected public candidate `1c333d2` passed the stock install/bootstrap/route/execute/cleanup/uninstall replay; evidence is frozen in `f5-final-language-release-evidence.json`)
 
 ## Objective
 
@@ -118,10 +118,10 @@ execution authorities.
 | P2 | Release truth aligned; public install/library journey replayed | `done` | `60898a7` |
 | P3 | Minimal reusable language-support kit scaffold proven | `done` | `f249d9a` |
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
-| P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `done_c0` | `f3166fd` |
+| P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `superseded_by_f4` | Pilot spine `f3166fd`; final C# completion `2dcbddb` |
 | P6 | Shared components promoted or rejected on evidence | `done` | `febc761` |
 | P7 | Every chosen language reaches complete, value-tested language-level support | `done` | Swift compiler-AST families through `f03cf8a`; publication `da51a8d` |
-| P8 | Current journey, update/repair, and help are measured | `not_started` | — |
+| P8 | Current journey, update/repair, and help are measured | `ready` | — |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
 
 ## Follow-on execution sequence — 2026-07-23
@@ -135,12 +135,12 @@ the committed integration revision.
 |---|---|---|---|---|
 | F0 | Close Dart and normalize repository state | `done` | Root integrated serially; fresh non-context agents reviewed but did not publish shared truth | D5/D7 and D8 accepted; Dart published at 22/22; installed replay passed; anomaly branches retained; only useful checkouts remain |
 | F1 | Complete P6 reuse decisions | `done` | Three fresh non-context read-only comparison lanes; root owned the decision and shared reduction | `febc761`: promotion decision, frozen packet index, 65.80% lifecycle-surface reduction, Ruby/Rust semantics normalized, committed installed replay passed |
-| F2 | Complete PHP and Ruby; retain Swift's semantic-tool gap for the final maximum-feasible pass | `done_php_ruby_swift_deferred_final` | Language-local lanes; root integrated serially | PHP and Ruby are 22/22; Ruby's committed installed route and all preserved move-path families pass; Swift's reviewed semantic-tool gap remains explicit for the final pass |
+| F2 | Complete PHP, Ruby, and the final maximum-feasible Swift pass | `done` | Language-local lanes; root integrated serially | PHP and Ruby are 22/22; Swift's former semantic-tool gap was closed by A6/A7 with compiler-AST evidence and 22/22 publication |
 | F2C | Close the decision-propagation and project-coherence gaps reproduced in engineering-skills and host-a | `done:5d0608c` | Root owned the contract/integration; one fresh non-context lane adversarially reviewed the final migration | AC1 criteria pass: one authoritative state-home decision, explicit propagation obligations, reversible schema 1→2→3 migrations, diff-honest cleanup, register-or-exempt subsystem coverage, and durable deferred-debt projection |
 | F3 | Complete C, then C++, then Kotlin | `done` | Finish one language before the next; up to three disjoint same-language lanes, with shared publication serial | C, C++, and Kotlin are complete at 22/22 under separate bounded truth; Kotlin's final structure consumers are `2c35b98`, publication is `52fc489`, and the committed installed-router replay passes `59` |
 | F4 | Complete C#/.NET last | `done:2dcbddb` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | C# is 22/22 with exact closure modes and bounded native claims; the committed cloned external-library/router replay passes 59 tests |
-| F5 | Publish final language release | `ready` | Root only | No coverage-level pending or partial rows; bounded supported contracts may still report explicit runtime partial configurations; public install/bootstrap/route/execute/cleanup/uninstall replay passes at one SHA |
-| F6 | Measure and finish the existing user journey (P8) | `pending_f5` | Up to three read-only corpus/measurement lanes; router/help/status implementation serial | Frozen router corpus, non-executing help, stock update/repair journey, and serial/batched baseline measurements pass |
+| F5 | Publish final language release | `done:1c333d2` | Root only | All 13 chosen language columns are 22/22; 76-skill public catalog, exact three-router install, same-revision bootstrap, six language routes, final Swift artifact, bounded cleanup, preservation, and stock removal pass |
+| F6 | Measure and finish the existing user journey (P8) | `ready` | Up to three read-only corpus/measurement lanes; router/help/status implementation serial | Frozen router corpus, non-executing help, stock update/repair journey, and serial/batched baseline measurements pass |
 | F7 | Adopt only measured UX/performance improvements (P9) | `pending_f6` | One experiment at a time; shared routing and mutation integration serial | Only experiments meeting predeclared correctness and efficiency thresholds ship; neutral/harmful results are recorded and rejected |
 
 ### F0 — Dart and repository closeout
@@ -825,6 +825,14 @@ representative completed language outcomes, explain unsupported framework or
 configuration boundaries, preserve user bytes, and uninstall only documented
 scope.
 
+Final evidence: `.claude/tasks/f5-final-language-release-evidence.json` records
+public candidate `1c333d2`, the provisional-candidate correction, all 13
+language-level `22/22` counts, the 76-skill catalog, exact router/library
+revision coherence, representative Swift/C#/Kotlin/Ruby/C/C++ routes, a final
+Swift `/adapt-project` artifact with seven passing native checks, explicit
+SwiftPM-versus-Xcode/framework limits, cleanup handoffs, byte preservation,
+stock removal, and the `34 + 59` focused regression results.
+
 ### F6-F7 — Measured user journey and efficiency
 
 P8 remains measure-first. Up to three read-only lanes may freeze the router
@@ -1209,6 +1217,12 @@ Evidence:
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
 | .NET readiness | `command -v dotnet`; `dotnet --info`; generated console `dotnet run` | Owner authorized installation on 2026-07-22. Microsoft `dotnet-install.sh` installed SDK 10.0.302 and runtime 10.0.10 at `~/.dotnet`; `~/.local/bin/dotnet` exposes it on `PATH`; no workloads are installed; generated console builds/runs. Download was 226,536,510 bytes and installed tree is about 637 MiB. Remove the symlink and `~/.dotnet`; run `dotnet dev-certs https --clean` if the first-run development certificate should also be removed. NuGet caches are host-owned and must not be deleted blindly. | local machine state after `c5b3d46` |
+
+Historical-status note: P5 stopped after its C0 spine, so its unchecked pilot
+economics rows remain intentionally unchecked rather than being backfilled.
+F4 later completed the actual product obligation—bounded C# support at 22/22,
+router publication, and installed-library replay—at `2dcbddb`. The phase summary
+therefore records P5 as superseded by F4, not as independently complete.
 
 ## P6 — Promote or reject shared kit components
 
