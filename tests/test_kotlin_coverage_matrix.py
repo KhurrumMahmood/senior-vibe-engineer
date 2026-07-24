@@ -18,6 +18,8 @@ SEMANTIC_REVISION = "bc08603b63e944d4dbf6e558553e2141d3d9275d"
 MOVE_REVISION = "5c4a97be223019e3b6ada967e904ed1ffacc9646"
 STATE_REVISION = "3d4751cef6aa620a4d9724f1d8070c6828064fa6"
 COMMENT_REVISION = "5c33e9383c969814805898590c1cb281ac88bcb5"
+MAP_REVISION = "49abe099528688996a502f0bf6479334a94b7960"
+UNIFY_REVISION = "b4c13fd1a92865a933869c356bd6565035c44928"
 LEXICAL_SKILLS = {
     "adapt-project",
     "audit-decisions",
@@ -38,12 +40,7 @@ SEMANTIC_SKILLS = {
     "rename-concept",
 }
 ACCEPTED_EVIDENCE_SKILLS = {"extract-enum", "prevent-regression"}
-PENDING_SKILLS = {
-    "map-subsystem",
-    "propose-boundary",
-    "propose-folder-reorganization",
-    "unify-shadows",
-}
+PENDING_SKILLS = {"propose-boundary", "propose-folder-reorganization"}
 ENTRYPOINTS = {
     "adapt-project": "scripts/discover_kotlin.py",
     "audit-decisions": "scripts/audit_kotlin.py",
@@ -60,9 +57,11 @@ ENTRYPOINTS = {
     "find-omnibus": "scripts/run_kotlin.py",
     "find-semantic-duplication": "scripts/detect_kotlin_semantic.py",
     "find-standard-gaps": "scripts/scan_coverage_kotlin.py",
+    "map-subsystem": "scripts/map_kotlin.py",
     "move-path": "scripts/kotlin_source_move.py",
     "prevent-regression": "scripts/stage_kotlin_state_guard.py",
     "rename-concept": "scripts/assess_kotlin_rename.py",
+    "unify-shadows": "scripts/propose_kotlin.py",
 }
 
 
@@ -92,11 +91,14 @@ def test_kotlin_partial_publication_keeps_unimplemented_outcomes_pending() -> No
     assert payload["minimum_jdk_version"] == "17.0.12"
     assert len(rows) == len(by_name) == 22
     assert Counter(row["disposition"] for row in rows) == {
-        "kotlin-supported": 18,
-        "kotlin-pending-implementation": 4,
+        "kotlin-supported": 20,
+        "kotlin-pending-implementation": 2,
     }
     assert set(payload["current_assertions"]["supported_skills"]) == (
-        LEXICAL_SKILLS | SEMANTIC_SKILLS | ACCEPTED_EVIDENCE_SKILLS | {"move-path"}
+        LEXICAL_SKILLS
+        | SEMANTIC_SKILLS
+        | ACCEPTED_EVIDENCE_SKILLS
+        | {"map-subsystem", "move-path", "unify-shadows"}
     )
     assert set(payload["current_assertions"]["pending_skills"]) == PENDING_SKILLS
     assert {
@@ -132,6 +134,14 @@ def test_kotlin_partial_publication_keeps_unimplemented_outcomes_pending() -> No
     assert move["closure_mode"] == "stock-selected-install"
     assert move["evidence_path"].endswith("kotlin-move-path.md")
     assert move["reviewed_revision"] == MOVE_REVISION
+    subsystem_map = by_name["map-subsystem"]
+    assert subsystem_map["closure_mode"] == "external-library"
+    assert subsystem_map["evidence_path"].endswith("kotlin-comment-map.md")
+    assert subsystem_map["reviewed_revision"] == MAP_REVISION
+    unify = by_name["unify-shadows"]
+    assert unify["closure_mode"] == "external-library"
+    assert unify["evidence_path"].endswith("kotlin-unify-shadows.md")
+    assert unify["reviewed_revision"] == UNIFY_REVISION
 
     for row in rows:
         assert (ROOT / row["evidence_path"]).is_file(), row
@@ -214,6 +224,14 @@ def test_each_published_kotlin_skill_declares_trigger_entrypoint_and_limits() ->
             assert entrypoint in semantic_guide.read_text(encoding="utf-8"), skill
             assert "K1" in body, skill
         elif skill in ACCEPTED_EVIDENCE_SKILLS:
+            assert "../_kotlin-semantic/GUIDE.md" in body, skill
+            assert entrypoint in semantic_guide.read_text(encoding="utf-8"), skill
+        elif skill == "map-subsystem":
+            assert "../_kotlin/GUIDE.md" in body, skill
+            assert "../_kotlin-semantic/GUIDE.md" in body, skill
+            assert entrypoint in lexical_guide.read_text(encoding="utf-8"), skill
+            assert entrypoint in semantic_guide.read_text(encoding="utf-8"), skill
+        elif skill == "unify-shadows":
             assert "../_kotlin-semantic/GUIDE.md" in body, skill
             assert entrypoint in semantic_guide.read_text(encoding="utf-8"), skill
         else:

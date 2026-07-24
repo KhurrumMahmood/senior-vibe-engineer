@@ -1,6 +1,6 @@
 ---
 name: map-subsystem
-description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .engineering/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
+description: Produce or refresh a durable inventory doc for a Python, TypeScript/TSX, checked-JavaScript, Go, bounded Java, Kotlin/JVM, Composer PSR-4 PHP, dependency-free SwiftPM, compile-database-backed C/C++, plain locked Ruby gem, Cargo-backed Rust, or bounded plain-Dart subsystem at .engineering/docs/subsystems/<name>.md. Python covers file list, public surface, responsibility table, dependency graph, and convention-compliance score; language branches use family-local native attribution for their bounded facts. No refactor intent — MAP skill in the maintenance nervous system.
 argument-hint: "<subsystem-name-or-path> [--refresh]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -17,10 +17,37 @@ not_for: |
   execution (use /refactor-subsystem with a spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, swift, c, cpp, ruby, rust, dart]
+scans: [python, typescript, javascript, go, java, kotlin, php, swift, c, cpp, ruby, rust, dart]
 ---
 
 # /map-subsystem
+
+## Kotlin/JVM 2.4.10 bounded branch
+
+Trigger this branch only for a manifest-selected dependency-free Kotlin/JVM
+subsystem with current lexical and semantic manifests whose selected source
+paths and hashes agree. Read `../_kotlin/GUIDE.md` and
+`../_kotlin-semantic/GUIDE.md`, keep both provider directories beside the
+selected skill, and run:
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/map-subsystem"
+python3 -I -S "${SKILL_ROOT}/scripts/map_kotlin.py" \
+  --name "${MAP_NAME:?Set the subsystem name}" \
+  --target "${MAP_TARGET:?Set the manifest-owned Kotlin target}" \
+  --project-root "$PWD" \
+  --output "$PWD/.engineering/docs/subsystems/${MAP_NAME}.md" \
+  --evidence "$PWD/reports/map/${MAP_NAME}/kotlin-map.json" \
+  --kotlinc "${KOTLINC:?Set the absolute Kotlin/JVM 2.4.10 compiler}" \
+  --java "${JAVA:?Set the absolute JDK 17 java executable}"
+```
+
+The result maps selected declarations, Kotlin visibility, and direct
+compiler-resolved calls/references only. Runtime dispatch, overrides,
+reflection, callable references, delegates, generated/KAPT/KSP inputs,
+Gradle variants, Java/external callers, Android/Multiplatform, frameworks,
+JVM ABI, and runtime reachability remain unresolved; the skill never edits
+host source.
 
 ## Dart v1
 

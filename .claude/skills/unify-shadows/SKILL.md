@@ -1,6 +1,6 @@
 ---
 name: unify-shadows
-description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, PHP, Ruby, bounded Rust, and Dart consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
+description: Turn one confirmed semantic-duplication finding into an evidence-cited, read-only proposal. Python retains the profile-scout workflow; TypeScript/TSX, checked-JavaScript, Go, Java, Kotlin/JVM, PHP, Ruby, bounded Rust, and Dart consume accepted structured evidence and emit proposal.md, evidence.json, and scope.json with source/caller impact, native tests, stop conditions, human approval, and an honest template for all four consolidation shapes.
 argument-hint: "<semantic:SC-N | semantic:TS-SD-NNNN | semantic:JAVA-SD-NNNN | explicit target spec>"
 allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Agent
 user-invocable: true
@@ -19,10 +19,35 @@ not_for: |
   Source mutation begins only after human acceptance of this artifact.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
 ---
 
 # /unify-shadows
+
+## Kotlin/JVM 2.4.10 accepted proposal
+
+Trigger this branch only after `/find-semantic-duplication` produced a current
+pinned Kotlin semantic fact pack and one exact content-addressed reviewer
+acceptance. Read `../_kotlin-semantic/GUIDE.md`, keep `_kotlin-semantic`
+beside the selected skill, and run:
+
+```bash
+SKILL_ROOT=".agents/skills/on-demand/unify-shadows"
+python3 -I -S "${SKILL_ROOT}/scripts/propose_kotlin.py" \
+  --project-root "$PWD" \
+  --facts "$PWD/reports/kotlin-semantic/facts.json" \
+  --analysis "$PWD/reports/semantic-duplication/kotlin/analysis.json" \
+  --acceptance "$PWD/reports/semantic-duplication/kotlin/accepted-duplication.json" \
+  --output-dir "$PWD/reports/unify-shadows/kotlin/KSD-01"
+```
+
+The proposal revalidates exactly two source definitions and their pinned
+direct callers. Static structure remains insufficient for behavioral or
+runtime equivalence. Overload ambiguity, reflection/callable references,
+delegates, generated/KAPT/KSP and plugin inputs, Gradle variants, Java and
+external callers, dynamic dispatch, JVM ABI, survivor choice, mutation, and
+release authority remain human-owned. `keep_separate_document_why` is a
+complete outcome.
 
 ## C++20 branch
 

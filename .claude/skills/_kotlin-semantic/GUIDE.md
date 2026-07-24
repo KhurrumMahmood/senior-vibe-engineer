@@ -50,3 +50,15 @@ The proposal is read-only. The guard is staged and native-verified but never
 installed. Human acceptance owns domain closure, serialization, Java/external
 callers, reflection, delegation, generated/plugin sources, Gradle variants,
 frameworks, and JVM ABI change; neither command creates that authority.
+
+## Accepted map and shadow-proposal consumers
+
+- `map-subsystem`: `python3 -I -S "$SKILL_ROOT/scripts/map_kotlin.py" --name "${MAP_NAME:?}" --target "${MAP_TARGET:?}" --project-root "$PWD" --output "$PWD/.engineering/docs/subsystems/${MAP_NAME}.md" --evidence "$PWD/reports/map/${MAP_NAME}/kotlin-map.json" --kotlinc "$KOTLINC" --java "$JAVA"`
+- `unify-shadows`: `python3 -I -S "$SKILL_ROOT/scripts/propose_kotlin.py" --project-root "$PWD" --facts reports/kotlin-semantic/facts.json --analysis reports/semantic-duplication/kotlin/analysis.json --acceptance reports/semantic-duplication/kotlin/accepted-duplication.json --output-dir reports/unify-shadows/kotlin/KSD-01`
+
+The map also requires current `_kotlin` project evidence whose selected paths
+and hashes exactly match the semantic manifest. The shadow proposal requires
+the exact upstream duplication artifact and a separate reviewer acceptance.
+Both retain the K1 boundary and all reflection, override/dispatch, delegation,
+generated/plugin, Gradle, Java/external-caller, JVM ABI, and runtime limits;
+neither grants source mutation authority.

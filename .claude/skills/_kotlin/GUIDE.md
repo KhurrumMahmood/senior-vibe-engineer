@@ -19,6 +19,7 @@ Set `SKILL_ROOT=.agents/skills/on-demand/<skill>` and run one entrypoint:
 - `find-folder-topology-drift`: `python3 -I -S "$SKILL_ROOT/scripts/detect_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --kotlin-root src/main/kotlin --min-cluster-size 3 --output "$PWD/reports/folder-topology/kotlin/detections.jsonl"`
 - `find-omnibus`: `python3 -I -S "$SKILL_ROOT/scripts/run_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --target src --output-dir "$PWD/reports/omnibus/kotlin" --scout-dir "$PWD/reports/omnibus/kotlin/scout"`
 - `find-standard-gaps`: `python3 -I -S "$SKILL_ROOT/scripts/scan_coverage_kotlin.py" --project-root "$PWD" --kotlinc "$KOTLINC" --java "$JAVA" --target src --ideas "${KOTLIN_STANDARDS:?Set the host-owned Kotlin standards JSON}" --output-dir "$PWD/reports/standard-gaps/kotlin"`
+- `map-subsystem`: `python3 -I -S "$SKILL_ROOT/scripts/map_kotlin.py" --name "${MAP_NAME:?}" --target "${MAP_TARGET:?}" --project-root "$PWD" --output "$PWD/.engineering/docs/subsystems/${MAP_NAME}.md" --evidence "$PWD/reports/map/${MAP_NAME}/kotlin-map.json" --kotlinc "$KOTLINC" --java "$JAVA"`
 
 These branches consume authored lowercase `.kt` source syntax only. Tests,
 generated, vendor, build, tooling, symlink, and `.kts` roles remain visible but
@@ -26,3 +27,7 @@ excluded. Tokens, comments, declarations, body fingerprints, branch keywords,
 and direct call spellings do not resolve symbols, calls, overrides, delegation,
 reflection, generated members, Java interop, Gradle variants, framework
 registration, runtime behavior, equivalence, or refactor safety.
+
+`map-subsystem` additionally requires `_kotlin-semantic`, an exact semantic
+manifest over the same selected paths and hashes, and the limits in that
+provider's guide.
