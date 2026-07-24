@@ -111,6 +111,29 @@ def test_working_tree_resolves_multiple_hunks_and_untracked_files(tmp_path: Path
     assert [(item.start, item.end) for item in untracked.line_ranges] == [(1, 2)]
 
 
+def test_resolved_request_is_eager_and_serializes_without_more_git(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scan_request = _load_module()
+    host = tmp_path / "repo"
+    _init_repo(host)
+    _write(host / "app.py", "before\n")
+    _git(host, "add", ".")
+    _git(host, "commit", "-m", "base", "--quiet")
+    _write(host / "app.py", "after\n")
+
+    request = scan_request.build_scan_request(
+        host, requested_mode="diff-lines", selector_kind="working-tree"
+    )
+
+    def unexpected_git(*_args, **_kwargs):
+        raise AssertionError("resolved request performed a lazy Git query")
+
+    monkeypatch.setattr(scan_request.subprocess, "run", unexpected_git)
+    assert request.resolved_paths == ("app.py",)
+    assert json.loads(request.to_json())["resolved_paths"] == ["app.py"]
+
+
 def test_working_tree_without_head_treats_current_files_as_added(tmp_path: Path) -> None:
     scan_request = _load_module()
     host = tmp_path / "repo"

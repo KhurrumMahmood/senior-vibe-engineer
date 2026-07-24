@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7/F2C AC1-S2 shared scan request and Git diff facts; AC1-S0 passed at `0bc7df4` and AC1-S1 passed at `1340c10`; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
-Last updated: 2026-07-23 (AC1-S1 scope-contract inventory completed; AC1-S2 started)
+Current phase: P7/F2C AC1-S3 cleanup handoff and scope-mode pilot; AC1-S0 through AC1-S2 passed; Ruby A5 is paused until the bounded AC1 coherence gate closes; PHP is 22/22; Swift A3 needs a different semantic foundation; C#/.NET remains last
+Last updated: 2026-07-23 (AC1-S2 shared scan request completed; AC1-S3 started)
 
 ## Objective
 
@@ -276,7 +276,7 @@ before changing status to `done`.
 | A3 — PHP/Ruby/Swift semantic read-only | `done_php_ruby_swift_tool_gap` | `4e3aa41`; PHP/Ruby branches retained; Swift research remains on `codex/f2-swift-semantic` | PHP `42f6236`; Ruby `b8f82cf` + ignored-fixture repair `10015fb`; publication `c7cee0b`; installed expectation `c00df4e`; Swift candidate `3e13061` removed from main by `20851c2` | PHP A3 `3 passed` plus preserved `112 passed`; Ruby A3 `14 passed` plus preserved `63 passed`; shared projection/router `94 passed`; committed installed routers `58 passed`; Swift root replay exceeded 360 seconds and its first semantic request remained unanswered after explicit indexing/workspace/readiness probes | PHP/Ruby accepted with explicit semantic boundaries; Swift's five rows remain pending under ML-026 and do not block independent PHP/Ruby downstream work |
 | A4 — PHP/Ruby/Swift proposal/guard | `done_php_ruby_swift_tool_gap` | `a3855b0`; PHP/Ruby branches retained; Swift deferred with ML-026 | PHP `0b38efa`; Ruby `98c80aa`; publication `2e7cc75` | PHP root `9 passed`; Ruby root `18 passed`; shared release/router `163 passed`; conformance `6 passed`; metadata `76/76`; artifact drift and commit hooks passed; committed installed routers `58 passed` | PHP/Ruby accepted without redetection; Swift opens only after a working A3 foundation |
 | A5 — Ruby mutation and Cohort A publication | `paused_for_ac1` | start from `2e7cc75`; serial | — | — | Preserve PHP's accepted move outcome; Ruby proves preview, authority, rollback, exact after-tree, and native checks; Swift remains separately tracked under ML-026 |
-| AC1 — Decision propagation and project coherence | `scan_request_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10` | Migration vertical slice plus scope/review plan and 30-producer current/target scope inventory pass; `38` focused scope/contract tests and the pre-commit contract gate pass | AC1-S2 through M2 pass before A5 resumes; P8 still owns the complete prior-release stock-update replay |
+| AC1 — Decision propagation and project coherence | `scope_pilot_in_progress` | owner-authorized trial started from `6344816`; root/exclusive coherence work is active before A5 resumes | `3bea2ae`, `0bc7df4`, `1340c10`, `c2c5b01` | Migration vertical slice, reviewed plan, 30-producer scope contract, and reusable Git/path request pass; `58` focused tests plus style/contract gates pass | AC1-S3 through M2 pass before A5 resumes; P8 still owns the complete prior-release stock-update replay |
 | B0 — Kotlin spine and C/C++ reuse decision | `pending_ac1` | TBD; root/exclusive | — | — | Kotlin project/build boundary frozen; C and C++ remain separate even if a shared lifecycle helper is accepted |
 | B1 — C/C++/Kotlin lexical-filesystem | `pending_b0` | TBD; three worktrees | — | — | Independent copied final outcomes under trustworthy language modes |
 | B2 — C/C++/Kotlin syntax | `pending_b1` | TBD; three worktrees | — | — | Native syntax facts and complete degraded-tool boundaries |
@@ -369,8 +369,8 @@ weaken them.
 |---|---|---|---|---|
 | AC1-S0 | Scope/review-memory plan frozen and adversarially reviewed | `done:0bc7df4` | migration slice `3bea2ae` | Prevent non-goal hardening and ambiguous completion |
 | AC1-S1 | Every finding-producing skill has an explicit scan-scope contract | `done:1340c10` | AC1-S0 | Language-neutral execution truth |
-| AC1-S2 | One shared request resolves paths plus new-side changed-line ranges | `in_progress` | AC1-S1 | Efficient, diff-honest analysis |
-| AC1-S3 | Both cleanup routers and one real scanner prove selectable scope modes | `pending` | AC1-S2 | Usable closeout journey without false attribution |
+| AC1-S2 | One shared request resolves paths plus new-side changed-line ranges | `done:c2c5b01` | AC1-S1 | Efficient, diff-honest analysis |
+| AC1-S3 | Both cleanup routers and one real scanner prove selectable scope modes | `in_progress` | AC1-S2 | Usable closeout journey without false attribution |
 | AC1-S4 | Every producer's declared modes work or fail honestly through the shared contract | `pending` | AC1-S3 | Ecosystem-wide scope choice rather than one pilot |
 | AC1-D1 | Reviewed findings are remembered and safely re-surfaced on evidence change | `pending` | AC1-S3 | Avoid repeated compute and repeated human decisions |
 | AC1-C1 | Decision propagation, registry completeness, and deferred debt are auditable | `pending` | AC1-S4 and AC1-D1 | Project coherence in this kit and adopters |
@@ -449,37 +449,33 @@ Evidence:
 
 Acceptance:
 
-- [ ] One stdlib-only shared interface represents project root, requested mode,
+- [x] One stdlib-only shared interface represents project root, requested mode,
   exact selector, resolved current paths, and coalesced new-side changed-line
   ranges. It is serializable for a bounded on-demand handoff and hides Git
   parsing from individual skills.
-- [ ] The resolver supports working tree (unstaged, staged, and untracked),
+- [x] The resolver supports working tree (unstaged, staged, and untracked),
   staged, changed-from, one commit including a root commit, and a commit range.
   Explicit paths and project mode do not pretend to have changed-line ranges.
-- [ ] The request records the content basis for its new-side ranges. Staged,
+- [x] The request records the content basis for its new-side ranges. Staged,
   commit, and range selectors detect when the current working-tree bytes differ
   from that basis; `diff-lines` then refuses or degrades explicitly rather than
   applying snapshot line numbers to different content.
-- [ ] Frozen fixtures cover ordinary edits, multiple hunks, added files,
+- [x] Frozen fixtures cover ordinary edits, multiple hunks, added files,
   untracked files, deletion-only changes, renames, paths containing spaces,
   binary changes, invalid refs, and a non-Git explicit-path project. Unsafe
   paths outside the project are rejected.
-- [ ] Deletion-only/binary changes retain file-level verification obligations
+- [x] Deletion-only/binary changes retain file-level verification obligations
   even when no current line can intersect a finding. Rename behavior is stated
   explicitly; it is never silently treated as an unchanged path.
-- [ ] Request construction is eager: after `build_scan_request` returns, reading
+- [x] Request construction is eager: after `build_scan_request` returns, reading
   or serializing it performs no more Git queries. Router-level reuse across
   recommendations is proven in AC1-S3.
-- [ ] `diff-lines` is an attribution/output mode, not a promise that parsers read
-  only hunk bytes. A scanner may parse the complete changed file for syntactic
-  correctness, but it does not perform a second detection run to support
-  filtering or `--show-reviewed`.
-
 Evidence:
 
 | Check | Command/artifact | Result | Revision |
 |---|---|---|---|
-| Pending | Shared request/resolver tests and serialized fixture | — | — |
+| Selector, Git-shape, content-basis, serialization, and failure fixtures | `.venv/bin/python -m pytest -q tests/test_scan_request.py tests/test_scan_scope_contracts.py tests/test_scope.py tests/scripts/test_which_cleanup_roots.py` | `58 passed` | `c2c5b01` + closeout commit |
+| Style and contract checks | `.venv/bin/ruff check .claude/skills/_common/scan_request.py tests/test_scan_request.py`; `.venv/bin/python scripts/check_scan_scope_contracts.py`; `git diff --check` | Passed; `OK (30 find-* skills)`; passed | `c2c5b01` |
 
 #### AC1-S3 — Cleanup handoff and scope-mode pilot
 
@@ -498,6 +494,10 @@ Acceptance:
 - [ ] Existing direct scanner invocations continue to work. `auto` preserves a
   documented backward-compatible default while explicit scope modes remain
   available.
+- [ ] `diff-lines` is an attribution/output mode, not a promise that parsers read
+  only hunk bytes. A scanner may parse the complete changed file for syntactic
+  correctness, but it does not perform a second detection run to support
+  filtering or `--show-reviewed`.
 - [ ] The user-facing interface offers `auto`, `diff-lines`, `changed-files`,
   `paths`, and `project` where meaningful. `--help` distinguishes “scan changed
   files completely” from “report changed-line findings only”; asking for help
