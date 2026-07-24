@@ -1,0 +1,7 @@
+{
+  "candidate_id": "candidate-001",
+  "bucket": "confirmed_omnibus",
+  "domains_confirmed": ["invoice", "receipt", "customer", "ledger"],
+  "facets_collapsed": [],
+  "decomposition_depth_note": "The four independently changing billing domains justify a decomposition review."
+}

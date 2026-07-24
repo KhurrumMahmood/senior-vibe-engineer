@@ -1,0 +1,6 @@
+#ifndef COHORT_INTERNAL_H
+#define COHORT_INTERNAL_H
+
+#define COHORT_MINIMUM_TOTAL 0
+
+#endif

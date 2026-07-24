@@ -1,0 +1,11 @@
+{
+  "concepts": [
+    {
+      "name": "invoice cancellation",
+      "preferred": "cancelled_invoice",
+      "avoid": ["cancelled_order"],
+      "source_files": []
+    }
+  ],
+  "flagged_ambiguities": []
+}

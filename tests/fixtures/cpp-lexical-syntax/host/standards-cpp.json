@@ -1,0 +1,16 @@
+{
+  "ideas": [
+    {
+      "id": "cpp-parse-if",
+      "label": "Guard parse results",
+      "contract": {
+        "detector": {
+          "kind": "ast",
+          "paths": ["src/*.cpp", "src/*.cc", "src/*.cxx"],
+          "call_matches": "parse_invoice",
+          "enclosed_by": "if"
+        }
+      }
+    }
+  ]
+}
