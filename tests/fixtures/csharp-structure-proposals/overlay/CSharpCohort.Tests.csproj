@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <AssemblyName>CSharpCohort.Tests</AssemblyName>
+    <RootNamespace>CSharpCohortTests</RootNamespace>
+    <StartupObject>CSharpCohortTests.Program</StartupObject>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <UseAppHost>false</UseAppHost>
+    <Deterministic>true</Deterministic>
+    <NuGetAudit>false</NuGetAudit>
+    <BaseIntermediateOutputPath>.native-build/obj/tests/</BaseIntermediateOutputPath>
+    <OutputPath>.native-build/bin/tests/</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="src/CSharpCohort/BillingModel.cs" />
+    <Compile Include="src/CSharpCohort/BillingParser.cs" />
+    <Compile Include="src/CSharpCohort/BillingTypes.cs" />
+    <Compile Include="src/CSharpCohort/BillingValidator.cs" />
+    <Compile Include="src/CSharpCohort/Omnibus.cs" />
+    <Compile Include="src/CSharpCohort/Syntax.cs" />
+    <Compile Include="src/CSharpCohort/Program.cs" />
+    <Compile Include="tests/CSharpCohortTests.cs" />
+  </ItemGroup>
+</Project>

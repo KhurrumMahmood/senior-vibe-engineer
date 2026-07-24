@@ -1,6 +1,6 @@
 ---
 name: propose-boundary
-description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, Kotlin/JVM, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
+description: Turn a confirmed or suspected missing-boundary into a read-only boundary-extraction proposal. Family-local evidence supports Python, TypeScript/checked-JavaScript, Go, Java 17, Kotlin/JVM, C#, PHP, Ruby, bounded Rust, and bounded Dart. It emits reports/propose-boundary/<target-slug>/proposal.md with candidate seams, public API, compatibility plan, caller impact, and characterization/native-verification plan. Read-only — no edits. Hands off to /refactor-subsystem (decomposition mode).
 argument-hint: "<target-path-or-name> [--candidates N]"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -30,10 +30,29 @@ not_for: |
   fit → /plan-spec).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
 ---
 
 # /propose-boundary
+
+## C# 14 / .NET 10 accepted branch
+
+Use `scripts/propose_csharp.py` only for one exact accepted confirmed-omnibus
+domain, a current complete integrated C# subsystem map and Roslyn fact pack,
+and a content-addressed `csharp-structure-acceptance-v1` candidate/proposal
+verdict. Keep copied `_csharp`, `_csharp-semantic`, and `map-subsystem`
+libraries beside the selected skill; run the script with `--help` for its exact
+artifact paths and pinned `--dotnet` argument. Never rerun omnibus detection or
+mapping inside this consumer.
+
+The branch emits only `proposal.md`, `evidence.json`, and `scope.json`. It
+preserves the accepted namespace and assembly identities, retains public
+compatibility shims, records exact resolved caller impact, and proves both the
+current tree and an independently applied disposable after-tree with native
+build/test/smoke. Reflection/runtime names, delegates, dispatch, generated or
+vendor inputs, external callers, conditional variants, framework registration,
+behavioral equivalence, ABI/release compatibility, and mutation authority stay
+outside the claim.
 
 ## Kotlin/JVM 2.4.10 accepted branch
 

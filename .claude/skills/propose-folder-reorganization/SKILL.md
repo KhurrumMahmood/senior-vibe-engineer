@@ -1,6 +1,6 @@
 ---
 name: propose-folder-reorganization
-description: Turn a confirmed Python, Go, Java 17, Kotlin/JVM, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
+description: Turn a confirmed Python, Go, Java 17, Kotlin/JVM, C#, TypeScript, checked-JavaScript, PHP, Ruby, bounded Rust, or bounded Dart folder-topology cluster into a per-cluster reorganization proposal. Typed-source v1 resolves import impact, records compatibility and convention constraints, and emits a read-only move/test plan. No file moves or edits; hand off only after human review.
 argument-hint: "<folder-topology:ID or parent::prefix>"
 allowed-tools: Bash, Read, Grep, Glob, Write
 user-invocable: true
@@ -26,10 +26,30 @@ not_for: |
   recommends `defer_scratch_code` instead of a refactor.
 language: any
 framework: any
-scans: [python, go, java, kotlin, typescript, javascript, php, ruby, rust, dart, c, cpp]
+scans: [python, go, java, kotlin, csharp, typescript, javascript, php, ruby, rust, dart, c, cpp]
 ---
 
 # /propose-folder-reorganization
+
+## C# 14 / .NET 10 accepted branch
+
+Use `scripts/propose_csharp.py` only for one exact accepted three-or-more-file
+direct-sibling C# prefix cluster, an explicit project convention, a current
+complete integrated C# subsystem map and Roslyn fact pack, and a
+content-addressed `csharp-structure-acceptance-v1` candidate/proposal verdict.
+Keep copied `_csharp`, `_csharp-semantic`, and `map-subsystem` libraries beside
+the selected skill; run the script with `--help` for exact paths and the pinned
+`--dotnet` argument. It consumes the final topology/map artifacts and never
+redetects the cluster.
+
+The branch emits only `proposal.md`, `evidence.json`, and `scope.json`, with
+exact file moves, unchanged namespace/type/assembly identity, resolved caller
+and reference impact, and exact manifest/project compile-item after-states. It
+proves the current tree and an independently applied disposable after-tree with
+native build/test/smoke. Filename grouping does not prove ownership,
+reflection/resource paths, framework registration, generated/vendor or
+external consumers, conditional variants, behavioral equivalence, ABI/release
+compatibility, or mutation safety.
 
 ## Kotlin/JVM 2.4.10 accepted branch
 

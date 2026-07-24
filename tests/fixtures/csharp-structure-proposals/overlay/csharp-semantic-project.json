@@ -1,0 +1,31 @@
+{
+  "assembly_name": "CSharpCohortFixture",
+  "excluded": [
+    {
+      "path": "generated/Generated.cs",
+      "role": "generated"
+    },
+    {
+      "path": "vendor/Vendor.cs",
+      "role": "vendor"
+    }
+  ],
+  "schema_version": 1,
+  "smoke_main": "CSharpCohort.Program",
+  "smoke_output": "csharp-lexical:12:queued\n",
+  "sources": [
+    "src/CSharpCohort/BillingModel.cs",
+    "src/CSharpCohort/BillingParser.cs",
+    "src/CSharpCohort/BillingTypes.cs",
+    "src/CSharpCohort/BillingValidator.cs",
+    "src/CSharpCohort/Omnibus.cs",
+    "src/CSharpCohort/Syntax.cs",
+    "src/CSharpCohort/Program.cs"
+  ],
+  "target_framework": "net10.0",
+  "test_main": "CSharpCohortTests.Program",
+  "test_output": "csharp-lexical-tests:ok\n",
+  "tests": [
+    "tests/CSharpCohortTests.cs"
+  ]
+}
