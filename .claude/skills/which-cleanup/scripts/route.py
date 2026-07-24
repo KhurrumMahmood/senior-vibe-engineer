@@ -17,6 +17,25 @@ from scope_modes import load_scope_contracts, recommendation_scan
 
 DEFAULT_SOURCE = "https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
 DEFAULT_CLI_VERSION = "1.5.19"
+HELP_EPILOG = """\
+Role:
+  Inspect recent work and recommend the bounded checks needed to bring it up to
+  standard. Use which-shape for an overall workflow and which-skill for one
+  tactical skill choice.
+
+Operation:
+  --help only prints this text; it never scans, installs, or edits anything.
+  Normal routing resolves explicit paths or a Git scope, then returns eligible
+  on-demand guide/tool closures.
+  Non-router skills stay in the external project-scoped library by default.
+  A missing library yields an exact bootstrap command.
+
+Requirements and limits:
+  The router needs Python 3.11+ and Git for Git-derived scopes. Selected checks
+  may require language-native tools or manual review; capability output reports
+  unsupported paths instead of pretending they ran. Use --scope-mode to choose
+  changed-line, whole-changed-file, explicit-path, or project attribution.
+"""
 
 
 class ResolutionFailure(Exception):
@@ -580,7 +599,11 @@ def render(result: dict) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog=HELP_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("paths", nargs="*")
     parser.add_argument("--staged", action="store_true")
     parser.add_argument("--changed-from")

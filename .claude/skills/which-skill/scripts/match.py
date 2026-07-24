@@ -32,6 +32,24 @@ SKILL_DIR = SCRIPT_PATH.parents[1]
 DEFAULT_CATALOG = SKILL_DIR / "catalog.json"
 DEFAULT_SOURCE = "https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
 DEFAULT_CLI_VERSION = "1.5.19"
+HELP_EPILOG = """\
+Role:
+  Choose the most relevant tactical skill for the task in front of you.
+  Use which-shape instead when you need an overall workflow; use which-cleanup
+  after recent changes need a standards-oriented closeout.
+
+Operation:
+  --help only prints this text; it never routes, installs, or edits anything.
+  Normal routing is read-only and returns an on-demand guide/tool closure.
+  Non-router skills stay in the external project-scoped library by default.
+  If that library is missing, the result prints an exact bootstrap command.
+
+Requirements and limits:
+  The router needs Python 3.11+. Selected skills may require language-native
+  tools or manual review; capability output reports unavailable or slow paths
+  instead of pretending they ran. Ambient installation is optional and occurs
+  only when the user explicitly requests it.
+"""
 CODE_HEALTH_FAMILY = "code-health-readonly"
 CODE_HEALTH_MEMBERS = (
     "audit-decisions",
@@ -448,7 +466,7 @@ def resolve_routing_context(
             for language, pattern in LANGUAGE_MARKERS.items()
             if pattern.search(task)
         ]
-        if len(marker_hits) == 1:
+        if marker_hits:
             languages = marker_hits
             language_source = "task_marker"
     else:
@@ -852,7 +870,37 @@ def capability_language_exclusion(
     return None
 
 
-def library_handoff(library_root: Path, skills: list[str]) -> dict:
+def bootstrap_command(*, project_root: Path, source: str) -> str:
+    """Return the exact command that repairs a missing on-demand library."""
+    script = (
+        project_root
+        / ".agents"
+        / "skills"
+        / "which-skill"
+        / "scripts"
+        / "bootstrap_library.py"
+    )
+    return shlex.join(
+        [
+            "python3",
+            "-I",
+            "-S",
+            str(script),
+            "--project-root",
+            str(project_root),
+            "--source",
+            source,
+        ]
+    )
+
+
+def library_handoff(
+    library_root: Path,
+    skills: list[str],
+    *,
+    project_root: Path,
+    source: str,
+) -> dict:
     guides = []
     for skill in skills:
         guide = library_root / ".claude" / "skills" / skill / "SKILL.md"
@@ -871,14 +919,15 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
     shared_guidance = library_root / ".claude" / "docs"
     runtime_python = library_root / ".venv" / "bin" / "python"
     capabilities = capability_handoff(library_root, skills)
+    guides_available = all(Path(item["guide"]).is_file() for item in guides)
+    available = guides_available and capabilities["available"]
     return {
         "mode": "on_demand_library",
-        "available": all(Path(item["guide"]).is_file() for item in guides)
-        and capabilities["available"],
+        "available": available,
         "default_execution": "fresh_non_context_subagent",
         "library_root": str(library_root),
         "skills": skills,
-        "guides": guides,
+        "guides": guides if guides_available else [],
         "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
         "source_inventory_tool": str(source_inventory) if source_inventory.is_file() else None,
         "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
@@ -888,6 +937,17 @@ def library_handoff(library_root: Path, skills: list[str]) -> dict:
             "python": str(runtime_python),
         },
         "capabilities": capabilities,
+        "repair": (
+            None
+            if available
+            else {
+                "action": "bootstrap_library",
+                "command": bootstrap_command(
+                    project_root=project_root,
+                    source=source,
+                ),
+            }
+        ),
         "instruction": (
             "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
             "task packet, selected skill roots, library runtime Python, and shared guidance/tool "
@@ -901,6 +961,7 @@ def code_health_family_handoff(
     *,
     library_root: Path,
     project_root: Path,
+    source: str,
     standards: Path | None,
     routing_context: dict,
 ) -> dict:
@@ -944,7 +1005,12 @@ def code_health_family_handoff(
             "full_skill_guide": str(skill_root / "SKILL.md"),
             "bundled_tooling": str(skill_root / "scripts"),
             "dependency": dependency_by_skill[skill],
-            "on_demand_closure": library_handoff(library_root, [skill]),
+            "on_demand_closure": library_handoff(
+                library_root,
+                [skill],
+                project_root=project_root,
+                source=source,
+            ),
         }
         members.append(member)
         dependency = dependency_by_skill[skill]
@@ -1332,7 +1398,12 @@ def cmd_match(args, catalog_path: Path) -> int:
     out["task_packet"] = _build_task_packet(winner)
     install_skills = [out["recommendation"], *winner.get("install_with", [])]
     library_root = resolve_library_root(args.project_root.resolve(), args.library_root)
-    out["handoff"] = library_handoff(library_root, install_skills)
+    out["handoff"] = library_handoff(
+        library_root,
+        install_skills,
+        project_root=args.project_root.resolve(),
+        source=args.source,
+    )
     capability_reason = capability_language_exclusion(
         out["handoff"]["capabilities"], routing_context
     )
@@ -1372,6 +1443,7 @@ def cmd_match(args, catalog_path: Path) -> int:
         out["coverage_family"] = code_health_family_handoff(
             library_root=library_root,
             project_root=project_root,
+            source=args.source,
             standards=args.standards,
             routing_context=routing_context,
         )
@@ -1399,12 +1471,14 @@ def cmd_match(args, catalog_path: Path) -> int:
                 print(f"    {field}: {value}")
         print()
         print(f"Use /{out['recommendation']} on demand:")
-        print(f"  Guide: {out['handoff']['guides'][0]['guide']}")
-        print(f"  Default: {out['handoff']['default_execution']}")
-        if out["handoff"]["runtime"]["available"]:
-            print(f"  Runtime Python: {out['handoff']['runtime']['python']}")
-        if not out["handoff"]["available"]:
-            print("  Library unavailable: run the which-skill library bootstrap first.")
+        if out["handoff"]["available"]:
+            print(f"  Guide: {out['handoff']['guides'][0]['guide']}")
+            print(f"  Default: {out['handoff']['default_execution']}")
+            if out["handoff"]["runtime"]["available"]:
+                print(f"  Runtime Python: {out['handoff']['runtime']['python']}")
+        else:
+            print("  Library unavailable. Bootstrap it without running the task:")
+            print(f"    {out['handoff']['repair']['command']}")
         if out["optional_install"]["available"]:
             print("  Optional ambient install (only when explicitly requested):")
             print(f"    {out['optional_install']['command']}")
@@ -1444,7 +1518,9 @@ def cmd_match(args, catalog_path: Path) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
-        description="Rank skills against a free-text task description."
+        description="Rank skills against a free-text task description.",
+        epilog=HELP_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument(
         "task",

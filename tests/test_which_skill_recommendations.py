@@ -390,16 +390,17 @@ def test_explicit_language_is_authoritative_and_repeatable(tmp_path):
     }
 
 
-def test_mixed_exact_markers_do_not_guess_a_language():
+def test_mixed_exact_markers_preserve_every_identified_language():
     returncode, payload = _run_match(
         "compare Python app.py behavior with TypeScript app.ts behavior"
     )
 
     assert returncode in {0, 1}
-    assert payload["routing_context"]["languages"] == []
-    assert payload["routing_context"]["language_source"] is None
+    assert payload["routing_context"]["language"] is None
+    assert payload["routing_context"]["languages"] == ["typescript", "python"]
+    assert payload["routing_context"]["language_source"] == "task_marker"
     assert payload["routing_context"]["task_language_markers"] == ["typescript", "python"]
-    assert payload["routing_context"]["filtering_applied"] is False
+    assert payload["routing_context"]["filtering_applied"] is True
 
 
 @pytest.mark.parametrize("suffix", ["mjs", "cjs"])
@@ -447,14 +448,7 @@ def test_recommendation_prefers_on_demand_handoff_and_keeps_install_optional(tmp
         "default_execution": "fresh_non_context_subagent",
         "library_root": str(library_root),
         "skills": ["diagnose"],
-        "guides": [
-            {
-                "skill": "diagnose",
-                "skill_root": str(library_root / ".claude" / "skills" / "diagnose"),
-                "guide": str(library_root / ".claude" / "skills" / "diagnose" / "SKILL.md"),
-                "bundled_tooling": None,
-            }
-        ],
+        "guides": [],
         "shared_tooling": None,
         "source_inventory_tool": None,
         "common_guidance": None,
@@ -473,6 +467,15 @@ def test_recommendation_prefers_on_demand_handoff_and_keeps_install_optional(tmp
             ),
             "skills": [],
             "reason": "manifest_missing",
+        },
+        "repair": {
+            "action": "bootstrap_library",
+            "command": (
+                "python3 -I -S "
+                f"{tmp_path}/.agents/skills/which-skill/scripts/bootstrap_library.py "
+                f"--project-root {tmp_path} "
+                "--source https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
+            ),
         },
         "instruction": (
             "For non-trivial work, give a fresh non-context sub-agent the task, project root, "

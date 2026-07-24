@@ -4,7 +4,7 @@
   "frozen_revision": "b1461c8d803016e49cc33e5bd4905dd1444d9195",
   "source": {
     "path": "tests/fixtures/router-decision-quality/cases.json",
-    "sha256": "9e59b3913146cf741b2148f9947bbdc554e6cdf626e03ad292636f1f6cf01286"
+    "sha256": "f0c3f7dff98f14399cc7a37de76d573941b581b98d7c29e9c0a9229076274128"
   },
   "commands": {
     "which-shape": ".venv/bin/python -I -S .claude/skills/which-shape/scripts/route.py <prompt> --project-root <host> --library-root <library> --skip-log --json",
@@ -33,7 +33,7 @@
     ],
     "cleanup-route": [
       "selector resolves the frozen path set and scope band",
-      "recommendation count and scan-scope contract match",
+      "eligible recommendation roster and scan-scope contract match",
       "every selected closure guide path exists",
       "representative closeout preserves source and emits bounded findings or an explicit no-op"
     ]
@@ -49,7 +49,8 @@
       "S7": "negated-misleading",
       "S8": "clear",
       "S9": "ambiguous",
-      "S10": "unsupported-language-or-stack"
+      "S10": "unsupported-language-or-stack",
+      "S11": "clear"
     },
     "which_skill": {
       "K1": "clear",
@@ -73,7 +74,8 @@
       "C5": "different-scope",
       "C6": "different-scope",
       "C7": "different-scope",
-      "C8": "different-scope"
+      "C8": "different-scope",
+      "C9": "unsupported-language-or-stack"
     }
   }
 }

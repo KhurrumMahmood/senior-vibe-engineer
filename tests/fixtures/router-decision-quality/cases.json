@@ -5,7 +5,8 @@
       "id": "S1",
       "prompt": "Onboard this unknown inherited repository and tell me what operating loop to start with.",
       "expected": ["project-intake"],
-      "handoff": "available"
+      "handoff": "available",
+      "closure": ["adapt-project"]
     },
     {
       "id": "S2",
@@ -17,37 +18,43 @@
       "id": "S3",
       "prompt": "This inherited mixed JavaScript/TypeScript project has several concerns under src/boundary. Propose a maintainable module boundary for that target, including public API, caller impact, compatibility plan, and verification plan. Do not modify source.",
       "expected": ["boundary-proposal"],
-      "handoff": "available"
+      "handoff": "available",
+      "closure": ["propose-boundary"]
     },
     {
       "id": "S4",
       "prompt": "Move src/old.js to lib/new.js, update every safe affected JavaScript import and the checked-project configuration, and verify the project still works. Keep unrelated TypeScript source unchanged.",
       "expected": ["path-move"],
-      "handoff": "available"
+      "handoff": "available",
+      "closure": ["move-path"]
     },
     {
       "id": "S5",
       "prompt": "Propose a database migration plan for the users table.",
       "expected_confidence": "low",
-      "handoff": "none"
+      "handoff": "none",
+      "question": true
     },
     {
       "id": "S6",
       "prompt": "Write a compatibility plan for upgrading the API.",
       "expected_confidence": "low",
-      "handoff": "none"
+      "handoff": "none",
+      "question": true
     },
     {
       "id": "S7",
       "prompt": "This is not a typo; the whole subsystem terminology is wrong and the glossary-backed domain concept must be renamed everywhere.",
       "expected": ["concept-rename"],
-      "handoff": "available"
+      "handoff": "available",
+      "closure": ["rename-concept", "find-concept-divergence", "map-subsystem"]
     },
     {
       "id": "S8",
       "prompt": "The parser bug keeps coming back after each fix; prevent this regression from returning again.",
       "expected": ["regression-prevention"],
-      "handoff": "available"
+      "handoff": "available",
+      "closure": ["prevent-regression", "find-implicit-state", "map-subsystem"]
     },
     {
       "id": "S9",
@@ -59,7 +66,15 @@
       "id": "S10",
       "prompt": "Plan a new Rust CLI capability that spans configuration, persistence, and two user workflows.",
       "expected": ["feature-shaping"],
-      "handoff": "blocked"
+      "handoff": "blocked",
+      "closure": ["plan-feature"]
+    },
+    {
+      "id": "S11",
+      "prompt": "Onboard this unknown inherited Python repository and choose the right operating loop.",
+      "expected": ["project-intake"],
+      "handoff": "available",
+      "closure": ["adapt-project"]
     }
   ],
   "which_skill": [
@@ -67,7 +82,8 @@
       "id": "K1",
       "prompt": "Diagnose the failing export job regression; we do not yet have a reliable reproduction.",
       "expected": ["diagnose"],
-      "exit": 0
+      "exit": 0,
+      "closure": ["diagnose"]
     },
     {
       "id": "K2",
@@ -79,13 +95,17 @@
       "id": "K3",
       "prompt": "Move src/old.js to lib/new.js, update every safe affected JavaScript import and the checked-project configuration, and verify the project still works. Keep unrelated TypeScript source unchanged.",
       "expected": ["move-path"],
-      "exit": 0
+      "exit": 0,
+      "closure": ["move-path"],
+      "languages": ["typescript", "javascript"]
     },
     {
       "id": "K4",
       "prompt": "This inherited mixed JavaScript/TypeScript project has several concerns under src/boundary. Propose a maintainable module boundary for that target, including public API, caller impact, compatibility plan, and verification plan. Do not modify source.",
       "expected": ["propose-boundary"],
-      "exit": 0
+      "exit": 0,
+      "closure": ["propose-boundary"],
+      "languages": ["typescript", "javascript"]
     },
     {
       "id": "K5",
@@ -103,13 +123,17 @@
       "id": "K7",
       "prompt": "Find repeated bare status literals in a TypeScript source file.",
       "expected": ["find-implicit-state"],
-      "exit": 0
+      "exit": 0,
+      "closure": ["find-implicit-state", "map-subsystem"],
+      "languages": ["typescript"]
     },
     {
       "id": "K8",
       "prompt": "Find an omnibus Rust module with too many unrelated responsibilities.",
       "expected": ["find-omnibus"],
-      "exit": 0
+      "exit": 0,
+      "closure": ["find-omnibus"],
+      "languages": ["rust"]
     },
     {
       "id": "K9",
@@ -121,24 +145,27 @@
       "id": "K10",
       "prompt": "Map this inherited subsystem, find duplication, then refactor the approved clusters and add a regression guard.",
       "expected": ["which-shape"],
-      "exit": 0
+      "exit": 0,
+      "closure": ["which-shape"]
     },
     {
       "id": "K11",
       "prompt": "Run impact-feature for a TypeScript service.",
       "expected": ["native-alternative-required"],
-      "exit": 1
+      "exit": 1,
+      "languages": ["typescript"]
     }
   ],
   "which_cleanup": [
-    {"id": "C0", "count": 0, "band": "trivial", "recommendation_count": 0},
-    {"id": "C1", "count": 1, "band": "trivial", "recommendation_count": 3},
-    {"id": "C2", "count": 2, "band": "small", "recommendation_count": 3},
-    {"id": "C3", "count": 5, "band": "small", "recommendation_count": 3},
-    {"id": "C4", "count": 6, "band": "medium", "recommendation_count": 5},
-    {"id": "C5", "count": 20, "band": "medium", "recommendation_count": 5},
-    {"id": "C6", "count": 21, "band": "large", "recommendation_count": 6},
-    {"id": "C7", "paths": ["src/app.py", "./src/app.py"], "resolved_count": 1, "band": "trivial", "recommendation_count": 3},
-    {"id": "C8", "scope": "known_git_range", "resolved_count": 2, "band": "small", "recommendation_count": 3}
+    {"id": "C0", "count": 0, "band": "trivial", "recommendations": []},
+    {"id": "C1", "count": 1, "band": "trivial", "recommendations": ["find-comment-drift", "prevent-regression"], "excluded": ["find-test-obligation-drift"]},
+    {"id": "C2", "count": 2, "band": "small", "recommendations": ["find-comment-drift", "prevent-regression"], "excluded": ["find-test-obligation-drift"]},
+    {"id": "C3", "count": 5, "band": "small", "recommendations": ["find-comment-drift", "prevent-regression"], "excluded": ["find-test-obligation-drift"]},
+    {"id": "C4", "count": 6, "band": "medium", "recommendations": ["find-comment-drift", "prevent-regression", "find-duplication", "find-omnibus"], "excluded": ["find-test-obligation-drift"]},
+    {"id": "C5", "count": 20, "band": "medium", "recommendations": ["find-comment-drift", "prevent-regression", "find-duplication", "find-omnibus"], "excluded": ["find-test-obligation-drift"]},
+    {"id": "C6", "count": 21, "band": "large", "recommendations": ["find-comment-drift", "prevent-regression", "find-duplication", "find-omnibus", "find-incomplete-sweep"], "excluded": ["find-test-obligation-drift"]},
+    {"id": "C7", "paths": ["src/app.py", "./src/app.py"], "resolved_count": 1, "band": "trivial", "recommendations": ["find-comment-drift", "prevent-regression"], "excluded": ["find-test-obligation-drift"]},
+    {"id": "C8", "scope": "known_git_range", "resolved_count": 2, "band": "small", "recommendations": ["find-comment-drift", "prevent-regression"], "excluded": ["find-test-obligation-drift"]},
+    {"id": "C9", "paths": ["src/app.tsx"], "resolved_count": 1, "band": "trivial", "recommendations": ["find-comment-drift", "prevent-regression"], "excluded": ["find-test-obligation-drift"]}
   ]
 }

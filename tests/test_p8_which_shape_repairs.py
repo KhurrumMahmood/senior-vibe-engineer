@@ -103,3 +103,13 @@ def test_generic_database_migration_plan_asks_before_routing(prompt, tmp_path):
         "Discriminating question: Is the schema or rollout choice still open"
         in route.render_markdown(result)
     )
+
+
+def test_generic_api_compatibility_plan_asks_before_routing(tmp_path):
+    result = route.route("Write a compatibility plan for upgrading the API.", tmp_path)
+
+    assert result["recommendation"]["confidence"] == "low"
+    assert result["discriminating_question"] == (
+        "Is the API compatibility policy still being chosen, or are you planning "
+        "implementation of an already-approved policy?"
+    )

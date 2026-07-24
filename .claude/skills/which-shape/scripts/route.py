@@ -22,6 +22,23 @@ SKILLS_DIR = SKILL_DIR.parent
 DEFAULT_SHAPES = SKILL_DIR / "shapes.json"
 DEFAULT_SOURCE = "https://github.com/KhurrumMahmood/senior-vibe-engineer"  # host-ref-allow: public distribution repository
 DEFAULT_CLI_VERSION = "1.5.19"
+HELP_EPILOG = """\
+Role:
+  Choose the overall workflow and complementary skill sequence for a situation.
+  Use which-skill for one tactical choice; use which-cleanup after recent work.
+
+Operation:
+  --help only prints this text; it never routes, installs, or edits anything.
+  Normal routing is read-only and returns an on-demand guide/tool closure.
+  Non-router skills stay in the external project-scoped library by default.
+  If that library is missing, the result prints an exact bootstrap command.
+
+Requirements and limits:
+  The router needs Python 3.11+. Selected skills may require language-native
+  tools or manual review; capability output reports unavailable or slow paths
+  instead of pretending they ran. A low-confidence result may ask one
+  discriminating question and does not initiate the proposed workflow.
+"""
 
 # A `/skill-name` reference inside a shape's first_next / sequence text.
 SKILL_TOKEN_RE = re.compile(r"/([a-z][a-z0-9]+(?:-[a-z0-9]+)*)")
@@ -454,15 +471,22 @@ def _score_shape(
 
 
 def _discriminating_question(task_tokens: set[str], confidence: str) -> str | None:
-    """Ask before routing a generic database migration plan."""
-    if confidence != "low" or not {"database", "migration"} <= task_tokens:
+    """Ask before routing a generic plan whose governing choice is unclear."""
+    if confidence != "low":
         return None
     if not task_tokens & {"draft", "plan", "planning", "proposal", "propose"}:
         return None
-    return (
-        "Is the schema or rollout choice still open, or are you planning an "
-        "already-approved database change?"
-    )
+    if {"database", "migration"} <= task_tokens:
+        return (
+            "Is the schema or rollout choice still open, or are you planning an "
+            "already-approved database change?"
+        )
+    if {"api", "compatibility"} <= task_tokens:
+        return (
+            "Is the API compatibility policy still being chosen, or are you planning "
+            "implementation of an already-approved policy?"
+        )
+    return None
 
 
 def _inactive_steps(
@@ -640,7 +664,37 @@ def _skill_handoff(result: dict[str, Any], *, source: str, version: str, agent: 
     }
 
 
-def _library_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]:
+def _bootstrap_command(*, project_root: Path, source: str) -> str:
+    """Return the exact command that repairs a missing on-demand library."""
+    script = (
+        project_root
+        / ".agents"
+        / "skills"
+        / "which-skill"
+        / "scripts"
+        / "bootstrap_library.py"
+    )
+    return shlex.join(
+        [
+            "python3",
+            "-I",
+            "-S",
+            str(script),
+            "--project-root",
+            str(project_root),
+            "--source",
+            source,
+        ]
+    )
+
+
+def _library_handoff(
+    library_root: Path,
+    skills: list[str],
+    *,
+    project_root: Path,
+    source: str,
+) -> dict[str, Any]:
     guides = []
     for skill in skills:
         guide = library_root / ".claude" / "skills" / skill / "SKILL.md"
@@ -658,13 +712,16 @@ def _library_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]:
     common_guidance = library_root / ".claude" / "skills" / "_common"
     shared_guidance = library_root / ".claude" / "docs"
     runtime_python = library_root / ".venv" / "bin" / "python"
+    guides_available = all(Path(item["guide"]).is_file() for item in guides)
+    capabilities = _capability_handoff(library_root, skills)
+    available = guides_available and capabilities["available"]
     return {
         "mode": "on_demand_library",
-        "available": all(Path(item["guide"]).is_file() for item in guides),
+        "available": available,
         "default_execution": "fresh_non_context_subagent",
         "library_root": str(library_root),
         "skills": skills,
-        "guides": guides,
+        "guides": guides if guides_available else [],
         "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
         "source_inventory_tool": str(source_inventory) if source_inventory.is_file() else None,
         "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
@@ -673,7 +730,18 @@ def _library_handoff(library_root: Path, skills: list[str]) -> dict[str, Any]:
             "available": runtime_python.is_file(),
             "python": str(runtime_python),
         },
-        "capabilities": _capability_handoff(library_root, skills),
+        "capabilities": capabilities,
+        "repair": (
+            None
+            if available
+            else {
+                "action": "bootstrap_library",
+                "command": _bootstrap_command(
+                    project_root=project_root,
+                    source=source,
+                ),
+            }
+        ),
         "instruction": (
             "For non-trivial work, give a fresh non-context sub-agent the task, project root, "
             "selected skill roots, library runtime Python, and shared guidance/tool paths. For "
@@ -942,19 +1010,22 @@ def render_markdown(result: dict[str, Any]) -> str:
         )
     if result.get("handoff"):
         lines.extend(["", "Use this closure on demand:"])
-        for item in result["handoff"]["guides"]:
-            lines.append(f"  Guide /{item['skill']}: {item['guide']}")
-            lines.append(f"  Skill root /{item['skill']}: {item['skill_root']}")
-            if item["bundled_tooling"]:
-                lines.append(f"  Bundled tooling /{item['skill']}: {item['bundled_tooling']}")
-        lines.append(f"  Default: {result['handoff']['default_execution']}")
-        if result["handoff"]["runtime"]["available"]:
-            lines.append(f"  Runtime Python: {result['handoff']['runtime']['python']}")
-        if result["handoff"]["common_guidance"]:
-            lines.append(f"  Shared skill guidance: {result['handoff']['common_guidance']}")
-        if result["handoff"]["shared_tooling"]:
-            lines.append(f"  Shared tooling: {result['handoff']['shared_tooling']}")
-        if not result["handoff"]["available"]:
+        if result["handoff"]["available"]:
+            for item in result["handoff"]["guides"]:
+                lines.append(f"  Guide /{item['skill']}: {item['guide']}")
+                lines.append(f"  Skill root /{item['skill']}: {item['skill_root']}")
+                if item["bundled_tooling"]:
+                    lines.append(
+                        f"  Bundled tooling /{item['skill']}: {item['bundled_tooling']}"
+                    )
+            lines.append(f"  Default: {result['handoff']['default_execution']}")
+            if result["handoff"]["runtime"]["available"]:
+                lines.append(f"  Runtime Python: {result['handoff']['runtime']['python']}")
+            if result["handoff"]["common_guidance"]:
+                lines.append(f"  Shared skill guidance: {result['handoff']['common_guidance']}")
+            if result["handoff"]["shared_tooling"]:
+                lines.append(f"  Shared tooling: {result['handoff']['shared_tooling']}")
+        else:
             if result["handoff"].get("reason") in {
                 "selected_skill_stack_bound_for_language",
                 "selected_skill_pending_implementation",
@@ -966,7 +1037,8 @@ def render_markdown(result: dict[str, Any]) -> str:
                 )
                 lines.append(f"  Handoff blocked by declared capability: {blocked}.")
             else:
-                lines.append("  Library unavailable: run the which-skill library bootstrap first.")
+                lines.append("  Library unavailable. Bootstrap it without running the task:")
+                lines.append(f"    {result['handoff']['repair']['command']}")
         if result["optional_install"]["available"]:
             lines.extend(
                 [
@@ -1021,7 +1093,11 @@ def log_recommendation(
 
 def main(argv: list[str] | None = None) -> int:
     start = time.monotonic()
-    parser = argparse.ArgumentParser(description="Recommend the right problem-solving shape.")
+    parser = argparse.ArgumentParser(
+        description="Recommend the right problem-solving shape.",
+        epilog=HELP_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("task", nargs="*", help="Free-text situation or task description.")
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     parser.add_argument("--shapes", type=Path, default=DEFAULT_SHAPES)
@@ -1071,7 +1147,12 @@ def main(argv: list[str] | None = None) -> int:
             )
             if not library_root.is_absolute():
                 library_root = project_root / library_root
-            result["handoff"] = _library_handoff(library_root.resolve(), handoff["skills"])
+            result["handoff"] = _library_handoff(
+                library_root.resolve(),
+                handoff["skills"],
+                project_root=project_root,
+                source=args.source,
+            )
             capability_task = result.get("routing_scope", {}).get("text", task)
             _apply_task_capability_gate(result["handoff"], capability_task)
             result["optional_install"] = _validated_optional_install(

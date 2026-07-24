@@ -48,6 +48,8 @@ def test_which_shape_decision_corpus(case, tmp_path):
         assert recommendation["shape"] in case["expected"]
     if "expected_confidence" in case:
         assert recommendation["confidence"] == case["expected_confidence"]
+    if case.get("question"):
+        assert payload["discriminating_question"].endswith("?")
     if case["handoff"] == "none":
         assert "handoff" not in payload
     elif case["handoff"] == "available":
@@ -56,6 +58,14 @@ def test_which_shape_decision_corpus(case, tmp_path):
     else:
         assert payload["handoff"]["available"] is False
         assert payload["handoff"]["reason"] == "selected_skill_stack_bound_for_language"
+    if "closure" in case:
+        assert payload["handoff"]["skills"] == case["closure"]
+        assert payload["handoff"]["capabilities"]["skills"][0][
+            "closure_skills"
+        ] == case["closure"]
+        assert all(
+            Path(row["guide"]).is_file() for row in payload["handoff"]["guides"]
+        )
 
 
 @pytest.mark.parametrize("case", _corpus()["which_skill"], ids=lambda case: case["id"])
@@ -72,6 +82,8 @@ def test_which_skill_decision_corpus(case, tmp_path):
     expected_exits = case["exit"] if isinstance(case["exit"], list) else [case["exit"]]
     assert code in expected_exits
     assert payload["recommendation"] in case["expected"]
+    if "languages" in case:
+        assert payload["routing_context"]["languages"] == case["languages"]
     if payload["recommendation"] in {
         "native-alternative-required",
         "pending-implementation",
@@ -82,6 +94,13 @@ def test_which_skill_decision_corpus(case, tmp_path):
     else:
         assert payload["handoff"]["available"] is True
         assert payload["handoff"]["mode"] == "on_demand_library"
+        assert payload["handoff"]["skills"] == case["closure"]
+        assert payload["handoff"]["capabilities"]["skills"][0][
+            "closure_skills"
+        ] == case["closure"]
+        assert all(
+            Path(row["guide"]).is_file() for row in payload["handoff"]["guides"]
+        )
 
 
 def _git(root: Path, *args: str) -> str:
@@ -122,4 +141,15 @@ def test_which_cleanup_decision_corpus(case, tmp_path):
     expected_count = case.get("resolved_count", case.get("count"))
     assert len(payload["resolved_paths"]) == expected_count
     assert payload["scope_band"] == case["band"]
-    assert len(payload["recommendations"]) == case["recommendation_count"]
+    assert [row["skill"] for row in payload["recommendations"]] == case[
+        "recommendations"
+    ]
+    assert [row["skill"] for row in payload["excluded_ineligible"]] == case.get(
+        "excluded", []
+    )
+    assert all(
+        row["handoff"]["available"]
+        and row["handoff"]["capabilities"]["available"]
+        and all(Path(guide["guide"]).is_file() for guide in row["handoff"]["guides"])
+        for row in payload["recommendations"]
+    )

@@ -146,15 +146,20 @@ three task skills in the on-demand library. Independent read-only members may
 run concurrently in fresh lanes; fixes and every other mutation remain serial.
 Narrow requests still route to one skill.
 
-To remove all skills installed for the project:
+To remove only this ecosystem's three ambient routers, run this from the host
+project (never from the engineering-skills source checkout):
 
 ```bash
-DO_NOT_TRACK=1 npx --yes skills@1.5.19 remove --all
+DO_NOT_TRACK=1 npx --yes skills@1.5.19 remove \
+  which-shape which-skill which-cleanup \
+  --agent codex -y
 ```
 
 The stock CLI owns the installed skill directories and `skills-lock.json`.
 Move local edits out of an installed skill directory before replacing or
-removing it. Files elsewhere in the host project are outside that boundary.
+removing it. Do not substitute `remove --all`: that option removes every skill
+the CLI discovers for every agent target, including unrelated skills. Files
+elsewhere in the host project are outside the scoped router boundary.
 The on-demand library is separate from that boundary and may be retained as a
 shared project resource or removed independently.
 
