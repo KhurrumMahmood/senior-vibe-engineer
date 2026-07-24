@@ -1,8 +1,8 @@
 # Language support and productization execution plan
 
 Status: active
-Current phase: P7/F4 C# 22/22 publication candidate; C3 remains open until the committed external-library router replay passes
-Last updated: 2026-07-24 (C# structure evidence integrated and all 22 rows projected; committed installed replay pending)
+Current phase: P7/F4 C# complete at 22/22; F5 final language release is ready
+Last updated: 2026-07-24 (C# publication `2dcbddb` and its committed installed-router replay completed with 59 passing tests)
 
 ## Objective
 
@@ -120,7 +120,7 @@ execution authorities.
 | P4 | PHP pilot proves real outcomes and kit economics | `done` | `268c3ac` |
 | P5 | .NET toolchain and C# Roslyn pilot prove typed semantics | `done_c0` | `f3166fd` |
 | P6 | Shared components promoted or rejected on evidence | `done` | `febc761` |
-| P7 | Every chosen language reaches complete, value-tested language-level support | `csharp_candidate_replay_pending` | — |
+| P7 | Every chosen language reaches complete, value-tested language-level support | `done` | `2dcbddb` |
 | P8 | Current journey, update/repair, and help are measured | `not_started` | — |
 | P9 | Only measured user-journey improvements are adopted | `not_started` | — |
 
@@ -138,8 +138,8 @@ the committed integration revision.
 | F2 | Complete PHP and Ruby; retain Swift's semantic-tool gap for the final maximum-feasible pass | `done_php_ruby_swift_deferred_final` | Language-local lanes; root integrated serially | PHP and Ruby are 22/22; Ruby's committed installed route and all preserved move-path families pass; Swift's reviewed semantic-tool gap remains explicit for the final pass |
 | F2C | Close the decision-propagation and project-coherence gaps reproduced in engineering-skills and host-a | `done:5d0608c` | Root owned the contract/integration; one fresh non-context lane adversarially reviewed the final migration | AC1 criteria pass: one authoritative state-home decision, explicit propagation obligations, reversible schema 1→2→3 migrations, diff-honest cleanup, register-or-exempt subsystem coverage, and durable deferred-debt projection |
 | F3 | Complete C, then C++, then Kotlin | `done` | Finish one language before the next; up to three disjoint same-language lanes, with shared publication serial | C, C++, and Kotlin are complete at 22/22 under separate bounded truth; Kotlin's final structure consumers are `2c35b98`, publication is `52fc489`, and the committed installed-router replay passes `59` |
-| F4 | Complete C#/.NET last | `candidate_22_replay_pending` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | Twenty-two bounded outcomes are integrated and projected; final completion waits for the committed installed-router replay |
-| F5 | Publish final language release | `pending_f4` | Root only | No coverage-level pending or partial rows; bounded supported contracts may still report explicit runtime partial configurations; public install/bootstrap/route/execute/cleanup/uninstall replay passes at one SHA |
+| F4 | Complete C#/.NET last | `done:2dcbddb` | One spine, then disjoint read-only family lanes only where ownership is proven; mutation serial | C# is 22/22 with exact closure modes and bounded native claims; the committed cloned external-library/router replay passes 59 tests |
+| F5 | Publish final language release | `ready` | Root only | No coverage-level pending or partial rows; bounded supported contracts may still report explicit runtime partial configurations; public install/bootstrap/route/execute/cleanup/uninstall replay passes at one SHA |
 | F6 | Measure and finish the existing user journey (P8) | `pending_f5` | Up to three read-only corpus/measurement lanes; router/help/status implementation serial | Frozen router corpus, non-executing help, stock update/repair journey, and serial/batched baseline measurements pass |
 | F7 | Adopt only measured UX/performance improvements (P9) | `pending_f6` | One experiment at a time; shared routing and mutation integration serial | Only experiments meeting predeclared correctness and efficiency thresholds ship; neutral/harmful results are recorded and rejected |
 
@@ -289,7 +289,7 @@ before changing status to `done`.
 | C0 — C# spine/P5 | `done` | serial spine | `f3166fd` | SDK 10.0.302/runtime 10.0.10, exact project manifests, offline restore/build/test/smoke, source roles, and dependency/cache boundaries pass | .NET/Roslyn project, restore/cache, source-role, and native command boundaries frozen |
 | C1 — C# lexical/syntax/semantic families | `done` | disjoint C#-local lanes integrated serially | lexical/syntax `dc65da6`; comment `e184263`; semantic `7d5669c`; map `915f605` | Nine lexical/syntax, comment drift, five semantic read-only outcomes, and the accepted map reach native/copied final artifacts | One syntax provider and one project-semantic fact boundary retain distinct contracts and explicit runtime/project-graph non-claims |
 | C2 — C# downstream accepted-evidence consumers | `done` | accepted-evidence lanes integrated serially | enum/guard/unification `e050407`; structure `9d44eea` | Five content-addressed consumers preserve exact artifacts, human verdicts, current/disposable native proof, and no-mutation authority | Structure proposals retain separate producer/map/fact/acceptance inputs and explicit runtime/ABI/mutation non-claims |
-| C3 — C# mutation and publication | `candidate_replay_pending` | serial | move `d02bb80`; publication candidate pending commit | The accepted source-location move and all 22 capability rows pass direct projection; completion waits for the committed external-library route/closure replay | Do not mark C# complete or start F5 until the committed clone selects both exact C# structure closures and the full installed-router suite passes |
+| C3 — C# mutation and publication | `done` | serial | move `d02bb80`; publication `2dcbddb` | All 22 capability rows, catalog/matrix truth, public docs, exact closure modes, and router expectations are committed; the cloned installed-library suite selects both singleton C# structure handoffs and passes `59` | C# closes at 22 supported/0 pending/0 partial/0 unsupported under its selected-project and explicit runtime/ABI/mutation non-claims |
 
 AC1 is a product-coherence gate, not a new knowledge-graph or workflow
 platform. It dogfoods the existing `propagate-convention-change` ledger idea on
@@ -1569,6 +1569,7 @@ Evidence:
 
 | Date | Phase | Event | Evidence/next action |
 |---|---|---|---|
+| 2026-07-24 | P7/F4 C3 | C# completed and published at 22/22 | Publication `2dcbddb` promotes only the two structure rows, records 21 external-library closures plus the stock-selected move, and preserves selected-project, runtime-dispatch, framework, ABI, and mutation limits. Direct structure/coverage/matrix/router/conformance gates, metadata `76/76`, scope `30/30`, Ruff, and commit hooks pass. Its committed cloned-library replay passes `59` tests in 21.31 seconds and selects exact singleton handoffs for both C# structure skills. C3 and F4 are complete; F5 may begin. |
 | 2026-07-24 | P7/F4 C2-C3 | C# structure outcomes integrated; 22/22 publication candidate opened | Structure commit `9d44eea` adds two hash-bound accepted-evidence consumers with exact selected-skill/helper/provider/project authority, closed boundary verdicts, current and independently applied disposable after-tree build/test/smoke, copied external-library closures, refusal/recovery, and source preservation. Coverage, catalog, matrix, routers, and public truth may project 22 supported rows, but C3 remains open until that projection is committed and the cloned installed-router suite selects both exact singleton structure handoffs. |
 | 2026-07-24 | P7/F4 C0-C2 | C# shared truth opened at exactly 20 supported/2 pending | Spine `f3166fd`, lexical/syntax `dc65da6`, comment drift `e184263`, semantic family `7d5669c`, enum/guard/unification `e050407`, map `915f605`, and move `d02bb80` supply bounded native/copied evidence for 20 outcomes. The authoritative coverage and router sentinels keep `propose-boundary` and `propose-folder-reorganization` pending with no closure mode or skill metadata claim. C3 and final publication remain incomplete until the separate structure lane integrates and the committed installed-library replay passes. |
 | 2026-07-24 | P7/F3 B7-B8 | Kotlin completed at 22/22 and publication truth closed | Spine `7095347`, profile `a1dad90`, lexical/syntax `28a49e8`, compiler-semantic facts `bc08603`, transactional move `5c4a97b`, and downstream integrations through structure `2c35b98` prove 22 bounded outcomes with 17 external-library and five stock-selected closures. Kotlin 2.4.10/JDK 17.0.12 are the observed native authority; JDK 17 is the declared minimum. Gradle, Analysis API, frameworks, reflection, dynamic dispatch, alternate compiler/JDK variants, and whole-language completeness remain non-claims. Publication `52fc489` passes the `192`-test router/publication suite, coverage `4`, structure closure `1`, catalog/matrix freshness, metadata `76/76`, scope `30/30`, Ruff, and every commit hook; its committed cloned external-library replay passes `59`. Begin C0 from this closeout. |
