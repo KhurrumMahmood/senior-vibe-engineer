@@ -51,7 +51,9 @@ LANGUAGE_MARKERS = {
         r"package|code|source|file|CLI|application|app)\b)|\.go\b)"
     ),
     "java": re.compile(r"(?i)(?:\bjava\b|\.java\b)"),
-    "csharp": re.compile(r"(?i)(?:\bc#\b|\bcsharp\b|\.cs\b)"),
+    "csharp": re.compile(
+        r"(?i)(?:\bC#(?=\d|\s|$)|\bcsharp\b|\.cs\b|\.csproj\b|\.slnx?\b)"
+    ),
     "ruby": re.compile(r"(?i)(?:\bruby\b|\.rb\b)"),
     "php": re.compile(r"(?i)(?:\bphp\b|\.php\b)"),
     "swift": re.compile(r"(?i)(?:\bswift(?:pm)?\b|\.swift\b|Package\.swift\b)"),
@@ -711,6 +713,9 @@ def _apply_task_capability_gate(handoff: dict[str, Any], task: str) -> None:
             elif language == "kotlin":
                 disposition = row["kotlin_disposition"]
                 eligible = disposition in {"kotlin-supported", "validated-neutral"}
+            elif language == "csharp":
+                disposition = row["csharp_disposition"]
+                eligible = disposition in {"csharp-supported", "validated-neutral"}
             elif language == "python":
                 continue
             else:
@@ -759,6 +764,7 @@ CAPABILITY_FIELDS = (
     "rust_disposition",
     "dart_disposition",
     "kotlin_disposition",
+    "csharp_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -840,7 +846,7 @@ def _validated_optional_install(
             "reason": capabilities["reason"],
             "evidence": [],
         }
-    closure_languages = sorted(set(languages) & {"dart", "kotlin"})
+    closure_languages = sorted(set(languages) & {"csharp", "dart", "kotlin"})
     if closure_languages:
         try:
             manifest = Path(capabilities["manifest"])

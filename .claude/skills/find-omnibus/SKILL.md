@@ -23,7 +23,7 @@ not_for: |
   to /find-perimeter-gaps.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, php, ruby, rust, dart, swift, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, rust, dart, swift, c, cpp]
 ---
 
 # /find-omnibus

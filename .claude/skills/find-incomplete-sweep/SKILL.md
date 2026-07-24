@@ -26,7 +26,7 @@ tier: maintenance
 job: suspect
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 best_for: |
   Reviewing a human- or AI-authored multi-file change where a sweep across
@@ -59,6 +59,15 @@ delegate_from: |
 ---
 
 # /find-incomplete-sweep
+
+## C# semantic branch
+
+Run the sibling `_csharp-semantic` provider from its guide, then enter through
+`scripts/detect_csharp_incomplete_sweep.py`; `knowledge/csharp-v1.md` gives
+the exact consumer command. A lead is one bounded optional-constructor-
+parameter omission shape among selected direct calls. It does not establish
+change chronology, developer intent, project-wide completeness, or edit
+authority.
 
 ## Kotlin/JVM 2.4.10 branch
 

@@ -6,12 +6,14 @@ discoveries into durable guardrails. Extracted from a real production codebase.
 **Its origin and shared runtime remain Python/Django-flavored** — the lint
 substrate and most worked examples are Django. TypeScript and Go each have
 22/22 language-level coverage; standalone-JDK Java, Kotlin/JVM, PHP, Ruby,
-Rust, Dart, C, and C++ also have 22/22 bounded coverage. These claims do not
+Rust, Dart, C, and C++ also have 22/22 bounded coverage. C# currently has
+20/22 bounded outcomes; `propose-boundary` and
+`propose-folder-reorganization` remain pending implementation. These claims do not
 extend to the 22 deliberately stack-bound framework skills: Java support does
 not imply Spring or Android, and Kotlin support does not imply Android,
 Multiplatform, or arbitrary Gradle variants. See
 [Tech assumptions](#tech-assumptions) and the tracked
-[coverage matrix](./.claude/tasks/multilanguage-skill-matrix.json)).
+[coverage matrix](./.claude/tasks/multilanguage-skill-matrix.json).
 
 **Where it's headed:** [`VISION.md`](./VISION.md) states the end-state this
 ecosystem converges a project toward — the success criterion the skills serve.
@@ -240,7 +242,12 @@ reports/
   separately earns 22/22 bounded outcomes at Kotlin 2.4.10/JDK 17 in
   `.claude/tasks/kotlin-language-coverage.json`; its pinned K1 compiler facts
   do not establish stable Analysis API, Android/Multiplatform, Gradle-variant,
-  runtime-dispatch, Java/external-caller, or JVM ABI support.
+  runtime-dispatch, Java/external-caller, or JVM ABI support. C# has 20 of 22
+  bounded outcomes recorded in
+  `.claude/tasks/csharp-language-coverage.json`. Its pinned .NET SDK 10.0.302,
+  Roslyn compiler/assembly, and .NET 10.0.10 reference-pack facts cover selected
+  source graphs only; the two structure-proposal outcomes remain pending, so
+  this checkpoint is not C# 22/22 completion.
 
 ## Where to read next
 

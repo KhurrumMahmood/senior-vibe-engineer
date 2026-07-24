@@ -20,7 +20,7 @@ not_for: |
   resolved-import contract.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /find-folder-topology-drift

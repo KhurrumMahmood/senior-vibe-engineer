@@ -18,7 +18,7 @@ not_for: |
   Refactor execution (use /fix-workflow or /refactor-subsystem).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /explain-code

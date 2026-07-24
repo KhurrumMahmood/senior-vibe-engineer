@@ -30,6 +30,7 @@ DEFAULT_RUBY_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "ruby-language-coverag
 DEFAULT_RUST_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "rust-language-coverage.json"
 DEFAULT_DART_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "dart-language-coverage.json"
 DEFAULT_KOTLIN_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "kotlin-language-coverage.json"
+DEFAULT_CSHARP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "csharp-language-coverage.json"
 DEFAULT_OUTPUT = REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
 
 DISPOSITION_MAP = {
@@ -709,6 +710,37 @@ def _kotlin_coverage(payload: dict) -> dict[str, dict]:
     return coverage
 
 
+def _csharp_coverage(payload: dict) -> dict[str, dict]:
+    if payload.get("source_suffixes") != [".cs"]:
+        raise ValueError("C# coverage source suffixes are incomplete")
+    coverage = _simple_language_coverage(
+        {**payload, "suffixes": [".cs"]},
+        language="C#",
+        suffixes=[".cs"],
+        supported_disposition="csharp-supported",
+    )
+    for skill, row in coverage.items():
+        if row["disposition"] == "csharp-supported" and row.get(
+            "closure_mode"
+        ) not in {"stock-selected-install", "external-library"}:
+            raise ValueError(
+                f"accepted C# row lacks an explicit closure mode: {skill}"
+            )
+        if row["disposition"] in {
+            "csharp-pending-implementation",
+            "csharp-partial",
+            "csharp-unsupported",
+        } and not row.get("limitation"):
+            raise ValueError(f"bounded C# row lacks a limitation: {skill}")
+    if payload.get("decision") not in {"expand", "stop-after-pilot"}:
+        raise ValueError("C# coverage must record an expand or stop-after-pilot decision")
+    if not isinstance(payload.get("decision_reason"), str) or not payload[
+        "decision_reason"
+    ]:
+        raise ValueError("C# coverage decision needs a reason")
+    return coverage
+
+
 def build_matrix(
     catalog_path: Path,
     coverage_path: Path,
@@ -723,6 +755,7 @@ def build_matrix(
     rust_coverage_path: Path,
     dart_coverage_path: Path,
     kotlin_coverage_path: Path,
+    csharp_coverage_path: Path,
 ) -> dict:
     catalog_payload = _read_json(catalog_path)
     coverage_payload = _read_json(coverage_path)
@@ -737,6 +770,7 @@ def build_matrix(
     rust_payload = _read_json(rust_coverage_path)
     dart_payload = _read_json(dart_coverage_path)
     kotlin_payload = _read_json(kotlin_coverage_path)
+    csharp_payload = _read_json(csharp_coverage_path)
     catalog = {row["name"]: row for row in catalog_payload.get("skills", [])}
     coverage = {row["skill"]: row for row in coverage_payload.get("skills", [])}
     javascript_coverage = _javascript_coverage(javascript_payload)
@@ -750,6 +784,7 @@ def build_matrix(
     rust_coverage = _rust_coverage(rust_payload)
     dart_coverage = _dart_coverage(dart_payload)
     kotlin_coverage = _kotlin_coverage(kotlin_payload)
+    csharp_coverage = _csharp_coverage(csharp_payload)
     if not catalog or set(catalog) != set(coverage):
         raise ValueError("catalog and TypeScript coverage must contain the same skills")
 
@@ -1005,6 +1040,24 @@ def build_matrix(
             kotlin_reviewed_revision = None
             kotlin_limitation = None
 
+        if expansion == "language-level":
+            csharp = csharp_coverage[skill]
+            csharp_disposition = csharp["disposition"]
+            csharp_evidence_path = csharp.get("evidence_path")
+            csharp_native_check = csharp.get("native_check")
+            csharp_reviewed_revision = csharp.get("reviewed_revision")
+            csharp_limitation = csharp.get("limitation")
+        else:
+            csharp_disposition = {
+                "validated-neutral": "validated-neutral",
+                "framework-bound": "stack-bound",
+                "ecosystem-runtime": "ecosystem-runtime",
+            }[expansion]
+            csharp_evidence_path = None
+            csharp_native_check = None
+            csharp_reviewed_revision = None
+            csharp_limitation = None
+
         closure_modes = {}
         if expansion == "language-level":
             language_coverages = {
@@ -1018,6 +1071,7 @@ def build_matrix(
                 "rust": rust_coverage,
                 "dart": dart_coverage,
                 "kotlin": kotlin_coverage,
+                "csharp": csharp_coverage,
             }
             closure_modes = {
                 f"{language_name}_closure_mode": coverage[skill]["closure_mode"]
@@ -1086,6 +1140,11 @@ def build_matrix(
                 "kotlin_native_check": kotlin_native_check,
                 "kotlin_reviewed_revision": kotlin_reviewed_revision,
                 "kotlin_limitation": kotlin_limitation,
+                "csharp_disposition": csharp_disposition,
+                "csharp_evidence_path": csharp_evidence_path,
+                "csharp_native_check": csharp_native_check,
+                "csharp_reviewed_revision": csharp_reviewed_revision,
+                "csharp_limitation": csharp_limitation,
                 "fact_level": fact_level,
                 "outcome_class": outcome_class,
                 "framework_family": framework_family,
@@ -1154,6 +1213,10 @@ def build_matrix(
                 "path": _relative(kotlin_coverage_path),
                 "sha256": _sha256(kotlin_coverage_path),
             },
+            {
+                "path": _relative(csharp_coverage_path),
+                "sha256": _sha256(csharp_coverage_path),
+            },
         ],
         "counts": {
             "validated-neutral": counts["validated-neutral"],
@@ -1209,6 +1272,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rust-coverage", type=Path, default=DEFAULT_RUST_COVERAGE)
     parser.add_argument("--dart-coverage", type=Path, default=DEFAULT_DART_COVERAGE)
     parser.add_argument("--kotlin-coverage", type=Path, default=DEFAULT_KOTLIN_COVERAGE)
+    parser.add_argument("--csharp-coverage", type=Path, default=DEFAULT_CSHARP_COVERAGE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -1234,6 +1298,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.rust_coverage,
                 args.dart_coverage,
                 args.kotlin_coverage,
+                args.csharp_coverage,
             )
         )
     except ValueError as exc:

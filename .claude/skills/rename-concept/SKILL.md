@@ -72,11 +72,20 @@ delegate_from: |
   here.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, php, ruby, rust, dart, c, cpp, markdown, templates]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp, markdown, templates]
 install_with: [find-concept-divergence, map-subsystem]
 ---
 
 # /rename-concept
+
+## C# semantic branch
+
+Run the sibling `_csharp-semantic` provider from its guide, then enter through
+`scripts/assess_csharp_rename.py`; `knowledge/csharp-v1.md` gives the exact
+consumer command. This is selected-source, Roslyn-resolved assessment only.
+Reflection/runtime names, dynamic and virtual dispatch, generated/vendor
+inputs, external consumers, serialization, frameworks, binary compatibility,
+codemod safety, and mutation remain outside the claim.
 
 ## Kotlin/JVM 2.4.10 branch
 

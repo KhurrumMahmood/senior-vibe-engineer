@@ -2,7 +2,7 @@
   "schema_version": 1,
   "language": "csharp",
   "suffixes": [".cs"],
-  "project_markers": ["*.csproj"],
+  "project_markers": ["*.csproj", "csharp-project.json", "csharp-semantic-project.json", "global.json", "NuGet.Config"],
   "source_roles": {
     "supported": ["source", "test", "generated", "vendor", "build", "declaration", "configuration", "tooling", "migration", "symlink"],
     "test_file_globs": ["*Test.cs", "*Tests.cs", "*.Tests.cs"],
@@ -15,11 +15,11 @@
       "project_paths": [".dotnet/dotnet", "dotnet/dotnet"],
       "system_commands": ["dotnet"],
       "version_argv": ["{tool}", "--version"],
-      "minimum_version": "10.0.0",
+      "minimum_version": "10.0.302",
       "required": true
     }
   ],
-  "fact_tiers": ["lexical-filesystem"],
+  "fact_tiers": ["lexical-filesystem", "syntax", "semantic-project"],
   "verification_commands": [
     {
       "id": "restore",
@@ -46,7 +46,8 @@
   "explicit_limits": [
     "Shared inventory recognizes the case-normalized .cs suffix; the complete provider gate accepts only exact lowercase .cs compile items in one root SDK-style .csproj pinned by global.json to an installed .NET 10 SDK. It does not claim solutions, multiple projects, project references, packages, workloads, analyzers, source generators, alternate target frameworks, conditional item groups, implicit compile items, wildcard compile items, ASP.NET, desktop, mobile, Unity, or legacy project formats.",
     "NuGet.Config must clear all package sources. The provider restores only an ephemeral project copy and then uses dotnet build and dotnet run with --no-restore; no network access, dependency acquisition, host obj/bin mutation, or workload installation is permitted.",
-    "The SDK-bundled Roslyn compiler is authoritative only for the observed project compilation result. This foundation does not consume Roslyn APIs and exposes no declarations, symbols, references, calls, types, control flow, data flow, generated-source facts, or rewrite safety.",
-    "A *.csproj doctor match proves only that project metadata exists. Complete project evidence additionally requires one exact root project, an exact compile-item closure, a matching global.json SDK version, an offline NuGet configuration, native self-test success, and executable smoke success."
+    "The profile exposes syntax and semantic-project capability only through the published C# family providers. Complete lexical/syntax evidence requires exact csharp-project.json source/test ownership and direct C# 14 compiler, native test, and smoke gates. Complete semantic evidence additionally requires exact csharp-semantic-project.json ownership and the pinned SDK-bundled Roslyn compiler, assemblies, reference pack, and helper hashes.",
+    "Roslyn static declarations, documentation-comment symbol IDs, references, direct calls, constructor arguments, assignments, and override metadata do not prove runtime reachability or behavior. Interface/virtual/dynamic dispatch, delegates, reflection/runtime names, generated/source-generator inputs, analyzers, solution/project graphs, packages, external callers, conditional variants, framework registration, serialization, trimming/AOT, interop, and ABI compatibility remain explicit limits.",
+    "A *.csproj or manifest marker proves only that project metadata exists. Complete foundation project evidence additionally requires one exact root project, an exact compile-item closure, a matching global.json SDK version, an offline NuGet configuration, native self-test success, and executable smoke success; manifest-selected direct-csc providers use their narrower documented dependency-free contract instead of implying MSBuild equivalence."
   ]
 }

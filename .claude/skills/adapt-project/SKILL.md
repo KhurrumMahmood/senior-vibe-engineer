@@ -24,7 +24,7 @@ escalate_to: |
   human-approved and detectable.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, swift, rust, dart, c, cpp]
 lanes: [project-adaptation]
 stage: discover
 entrypoint: true

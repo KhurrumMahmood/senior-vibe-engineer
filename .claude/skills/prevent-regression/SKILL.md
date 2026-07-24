@@ -33,11 +33,21 @@ not_for: |
   fix in place).
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /prevent-regression
+
+## C# staged exact-property-type guard
+
+Use `scripts/stage_csharp_state_guard.py` only after a fresh accepted C# enum
+migration and current sibling `_csharp-semantic` facts. Read
+`knowledge/csharp-v1.md` for the exact command. The skill stages but never
+installs one exact property-type compile guard and proves a disposable string
+reversion fails. Wire values, runtime behavior, other properties, generated
+code, frameworks, external callers, and binary compatibility remain outside
+the claim.
 
 ## Kotlin/JVM 2.4.10 exact-type guard
 

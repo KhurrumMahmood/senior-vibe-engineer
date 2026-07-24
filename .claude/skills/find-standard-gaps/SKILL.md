@@ -26,7 +26,7 @@ not_for: |
   baseline belongs in host lint tooling.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 ## External syntax variants

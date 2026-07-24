@@ -19,10 +19,20 @@ not_for: |
   Source mutation begins only after human acceptance of this artifact.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
 ---
 
 # /unify-shadows
+
+## C# accepted proposal
+
+Use `scripts/propose_csharp.py` only for one fresh, content-addressed reviewer
+acceptance produced from sibling `_csharp-semantic` facts and the C# semantic-
+duplication analysis. Read `knowledge/csharp-v1.md` for the exact command and
+boundary verdicts. The output is a read-only disposition proposal; it does not
+prove equivalence or authorize consolidation. Dynamic dispatch, generated
+inputs, external callers, frameworks, runtime behavior, and binary
+compatibility remain human-owned.
 
 ## Kotlin/JVM 2.4.10 accepted proposal
 

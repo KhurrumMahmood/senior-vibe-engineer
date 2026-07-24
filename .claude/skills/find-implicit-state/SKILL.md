@@ -1,7 +1,7 @@
 ---
 name: find-implicit-state
 description: Detect Django stringly-typed state and tuple-inferred identity patterns, plus narrow TypeScript, checked-JavaScript, Go, Java 17, Kotlin/JVM, PHP, Ruby, Rust, and Dart state branches. Semantic branches distinguish first-party bare state operations from typed authorities and excluded or unresolved evidence. Detection-only — never edits production code.
-argument-hint: "--target <directory> [--language typescript|javascript|go|java|kotlin|php|ruby|rust|dart]"
+argument-hint: "--target <directory> [--language typescript|javascript|go|java|kotlin|csharp|php|ruby|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -21,12 +21,20 @@ not_for: |
   generic TypeScript lint generator.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-implicit-state
+
+## C# semantic branch
+
+Run the sibling `_csharp-semantic` provider from its guide, then enter through
+`scripts/detect_csharp_state.py`; `knowledge/csharp-v1.md` gives the exact
+consumer command. A candidate is compiler-resolved selected-source evidence,
+not proof of a closed domain. Serialization, reflection, generated inputs,
+external callers, frameworks, and binary compatibility remain unresolved.
 
 ## Kotlin/JVM 2.4.10 branch
 

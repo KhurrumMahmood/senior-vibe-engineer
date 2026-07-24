@@ -105,6 +105,9 @@ WORD_RE = re.compile(r"[a-z][a-z0-9_-]+")
 
 LANGUAGE_ALIASES = {
     "c": "c",
+    "c#": "csharp",
+    "cs": "csharp",
+    "csharp": "csharp",
     "c++": "cpp",
     "cpp": "cpp",
     "dart": "dart",
@@ -128,6 +131,9 @@ LANGUAGE_ALIASES = {
 }
 LEXICAL_LANGUAGE_TOKENS = frozenset(LANGUAGE_ALIASES)
 LANGUAGE_MARKERS = {
+    "csharp": re.compile(
+        r"(?i)(?:\bC#(?=\d|\s|$)|\bcsharp\b|\.cs\b|\.csproj\b|\.slnx?\b)"
+    ),
     "cpp": re.compile(
         r"(?i)(?:\bC\+\+(?=\d|\s|$)|\bcpp\b|\.(?:cc|cpp|cxx|c\+\+|hpp|hh|hxx|h\+\+|ipp|inl|tpp)\b)"
     ),
@@ -631,6 +637,7 @@ CAPABILITY_FIELDS = (
     "rust_disposition",
     "dart_disposition",
     "kotlin_disposition",
+    "csharp_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -810,6 +817,14 @@ def capability_language_exclusion(
                 return _capability_exclusion(
                     row["kotlin_disposition"],
                     f"/{row['skill']} declares kotlin_disposition={row['kotlin_disposition']}",
+                )
+            if language == "csharp" and row["csharp_disposition"] not in {
+                "csharp-supported",
+                "validated-neutral",
+            }:
+                return _capability_exclusion(
+                    row["csharp_disposition"],
+                    f"/{row['skill']} declares csharp_disposition={row['csharp_disposition']}",
                 )
     return None
 

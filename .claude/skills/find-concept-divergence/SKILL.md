@@ -31,7 +31,7 @@ not_for: |
   (deferred — strict canonical-name + avoid-term grep only in v1).
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp, markdown, templates]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, swift, rust, dart, c, cpp, markdown, templates]
 ---
 
 # /find-concept-divergence

@@ -1,7 +1,7 @@
 ---
 name: find-dormant
 description: Detect dead and quasi-dead code without changing source. Python retains vulture, AST, URL, silent-catch, and scout verification stages; TypeScript/TSX, checked JavaScript, Go, Java, bounded Kotlin/JVM, PHP, Ruby, Rust, and Dart have narrow static review branches for human review. Never infers safe deletion from static evidence.
-argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java|kotlin|php|ruby|rust|dart]"
+argument-hint: "--target <directory-or-file> [--language python|typescript|javascript|go|java|kotlin|csharp|php|ruby|rust|dart]"
 allowed-tools: Bash, Read, Grep, Glob, Write, Agent
 user-invocable: true
 tier: maintenance
@@ -27,12 +27,21 @@ not_for: |
   or safe-deletion decisions are outside the static v1 contract.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
 install_with: [map-subsystem]
 scout_model: cheap
 ---
 
 # /find-dormant
+
+## C# semantic branch
+
+Run the sibling `_csharp-semantic` provider from its guide, then enter through
+`scripts/detect_csharp_dormant.py`; `knowledge/csharp-v1.md` gives the exact
+consumer command. The output is a review-required private-method lead, never
+safe-deletion authority. Delegates, reflection, dynamic/override/interface
+dispatch, generated inputs, external callers, and runtime registration remain
+outside the selected-project fact graph.
 
 ## Kotlin/JVM 2.4.10 branch
 

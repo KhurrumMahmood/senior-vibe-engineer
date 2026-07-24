@@ -31,6 +31,7 @@ RUBY_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "ruby-language-coverage.json"
 RUST_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "rust-language-coverage.json"
 DART_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "dart-language-coverage.json"
 KOTLIN_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "kotlin-language-coverage.json"
+CSHARP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "csharp-language-coverage.json"
 BUILDER = REPO_ROOT / "scripts" / "build_multilanguage_matrix.py"
 
 EXPECTED_COUNTS = {
@@ -108,6 +109,13 @@ EXPECTED_DART_COUNTS = {
 }
 EXPECTED_KOTLIN_COUNTS = {
     "kotlin-supported": 22,
+    "validated-neutral": 19,
+    "stack-bound": 22,
+    "ecosystem-runtime": 13,
+}
+EXPECTED_CSHARP_COUNTS = {
+    "csharp-supported": 20,
+    "csharp-pending-implementation": 2,
     "validated-neutral": 19,
     "stack-bound": 22,
     "ecosystem-runtime": 13,
@@ -216,6 +224,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     assert Counter(row["rust_disposition"] for row in rows) == EXPECTED_RUST_COUNTS
     assert Counter(row["dart_disposition"] for row in rows) == EXPECTED_DART_COUNTS
     assert Counter(row["kotlin_disposition"] for row in rows) == EXPECTED_KOTLIN_COUNTS
+    assert Counter(row["csharp_disposition"] for row in rows) == EXPECTED_CSHARP_COUNTS
     assert Counter(row["optional_install"]["status"] for row in rows) == {
         "passed": 41,
         "deferred-named-stack": 22,
@@ -237,6 +246,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         RUST_COVERAGE,
         DART_COVERAGE,
         KOTLIN_COVERAGE,
+        CSHARP_COVERAGE,
     ):
         relative = str(source.relative_to(REPO_ROOT))
         assert source_by_path[relative] == _sha256(source)
@@ -438,6 +448,22 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["kotlin_native_check"]
             assert row["kotlin_reviewed_revision"]
             assert row["kotlin_limitation"]
+            if row["csharp_disposition"] == "csharp-pending-implementation":
+                assert row["skill"] in {
+                    "propose-boundary",
+                    "propose-folder-reorganization",
+                }
+                assert row.get("csharp_closure_mode") is None
+            else:
+                assert row["csharp_disposition"] == "csharp-supported"
+                assert row["csharp_closure_mode"] in {
+                    "external-library",
+                    "stock-selected-install",
+                }
+            assert (REPO_ROOT / row["csharp_evidence_path"]).is_file()
+            assert row["csharp_native_check"]
+            assert row["csharp_reviewed_revision"]
+            assert row["csharp_limitation"]
         elif row["expansion_disposition"] == "framework-bound":
             framework_rows.append(row)
             assert row["fact_level"] == "framework"
@@ -454,6 +480,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["rust_disposition"] == "stack-bound"
             assert row["dart_disposition"] == "stack-bound"
             assert row["kotlin_disposition"] == "stack-bound"
+            assert row["csharp_disposition"] == "stack-bound"
         elif row["expansion_disposition"] == "validated-neutral":
             assert row["fact_level"] == "neutral"
             assert row["outcome_class"] == "not-applicable"
@@ -468,6 +495,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["rust_disposition"] == "validated-neutral"
             assert row["dart_disposition"] == "validated-neutral"
             assert row["kotlin_disposition"] == "validated-neutral"
+            assert row["csharp_disposition"] == "validated-neutral"
         else:
             assert row["fact_level"] == "ecosystem-runtime"
             assert row["outcome_class"] == "not-applicable"
@@ -482,6 +510,7 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["rust_disposition"] == "ecosystem-runtime"
             assert row["dart_disposition"] == "ecosystem-runtime"
             assert row["kotlin_disposition"] == "ecosystem-runtime"
+            assert row["csharp_disposition"] == "ecosystem-runtime"
 
         if row["expansion_disposition"] != "language-level":
             assert row["go_evidence_path"] is None
@@ -522,6 +551,11 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
             assert row["kotlin_native_check"] is None
             assert row["kotlin_reviewed_revision"] is None
             assert row["kotlin_limitation"] is None
+            assert row["csharp_evidence_path"] is None
+            assert row["csharp_native_check"] is None
+            assert row["csharp_reviewed_revision"] is None
+            assert row["csharp_limitation"] is None
+            assert row.get("csharp_closure_mode") is None
 
         if row["expansion_disposition"] != "language-level":
             assert row["javascript_cohort"] is None
@@ -708,6 +742,14 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
     assert {
         row["skill"]
         for row in language_rows
+        if row["csharp_disposition"] == "csharp-supported"
+    } == {row["skill"] for row in language_rows} - {
+        "propose-boundary",
+        "propose-folder-reorganization",
+    }
+    assert {
+        row["skill"]
+        for row in language_rows
         if row.get("c_closure_mode") == "external-library"
     } == {
         "adapt-project",
@@ -886,6 +928,20 @@ def test_multilanguage_matrix_is_current_complete_and_traceable() -> None:
         row["skill"]
         for row in language_rows
         if row["kotlin_closure_mode"] == "stock-selected-install"
+    } == {"move-path"}
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row.get("csharp_closure_mode") == "external-library"
+    } == {row["skill"] for row in language_rows} - {
+        "move-path",
+        "propose-boundary",
+        "propose-folder-reorganization",
+    }
+    assert {
+        row["skill"]
+        for row in language_rows
+        if row.get("csharp_closure_mode") == "stock-selected-install"
     } == {"move-path"}
     assert Counter(row["javascript_cohort"] for row in language_rows) == (
         EXPECTED_JAVASCRIPT_COHORT_COUNTS

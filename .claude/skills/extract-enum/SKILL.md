@@ -28,11 +28,21 @@ not_for: |
   enumerations whose convention lacks fixture evidence.
 language: any
 framework: any
-scans: [python, typescript, javascript, go, java, kotlin, php, ruby, rust, dart, c, cpp]
+scans: [python, typescript, javascript, go, java, kotlin, csharp, php, ruby, rust, dart, c, cpp]
 install_with: [find-implicit-state, map-subsystem]
 ---
 
 # /extract-enum
+
+## C# accepted enum proposal
+
+Use `scripts/collect_csharp_state.py` only for one fresh, content-addressed
+reviewer acceptance produced from the sibling `_csharp-semantic` provider and
+`find-implicit-state` C# finding. Read `knowledge/csharp-v1.md` for the exact
+command and boundary verdicts. The result is a read-only enum proposal; it
+does not prove a closed domain or authorize source mutation. Serialization,
+reflection, generated code, frameworks, external callers, and binary
+compatibility remain human-owned.
 
 ## Kotlin/JVM 2.4.10 proposal
 

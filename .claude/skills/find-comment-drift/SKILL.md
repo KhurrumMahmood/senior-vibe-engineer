@@ -26,7 +26,7 @@ not_for: |
   existing lints for behavior and correctness.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp, templates]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, swift, rust, dart, c, cpp, templates]
 ---
 
 # /find-comment-drift

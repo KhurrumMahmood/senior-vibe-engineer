@@ -19,7 +19,7 @@ delegate_from: |
   and orphaned inline decision references.
 language: any
 framework: any
-scans: [python, markdown, html, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, markdown, html, javascript, typescript, go, java, kotlin, csharp, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 # /audit-decisions

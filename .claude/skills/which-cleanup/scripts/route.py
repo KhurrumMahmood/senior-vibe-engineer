@@ -101,6 +101,8 @@ def path_languages(paths: list[str]) -> set[str]:
         languages.add("dart")
     if ".kt" in suffixes:
         languages.add("kotlin")
+    if ".cs" in suffixes:
+        languages.add("csharp")
     return languages
 
 
@@ -220,6 +222,7 @@ CAPABILITY_FIELDS = (
     "rust_disposition",
     "dart_disposition",
     "kotlin_disposition",
+    "csharp_disposition",
     "fact_level",
     "outcome_class",
     "framework_family",
@@ -314,7 +317,7 @@ def optional_install_handoff(
             "reason": capabilities["reason"],
             "evidence": [],
         }
-    closure_languages = sorted(languages & {"dart", "kotlin"})
+    closure_languages = sorted(languages & {"csharp", "dart", "kotlin"})
     if closure_languages:
         try:
             manifest = Path(capabilities["manifest"])

@@ -1,7 +1,7 @@
 # Language-support development
 
 Status: durable contributor guide synthesized through TypeScript, JavaScript,
-Go, Java, PHP, Ruby, Swift, Rust, Dart, C, C++, and Kotlin evidence
+Go, Java, PHP, Ruby, Swift, Rust, Dart, C, C++, Kotlin, and bounded C# evidence
 
 Use this guide before starting another language or changing shared
 language-analysis tooling. It captures the tooling shape that repeated across
@@ -327,13 +327,40 @@ explicit non-claims. Most Kotlin closures require the external selected-skill
 library plus `_kotlin` or `_kotlin-semantic`; only the standalone move is a
 stock-selected install.
 
-## Native foundations for queued languages
+### 15. C# 20/22 publication checkpoint
+
+C# currently supports 20 of the 22 language-level outcomes. The authoritative
+coverage file is `.claude/tasks/csharp-language-coverage.json`; it deliberately
+leaves `propose-boundary` and `propose-folder-reorganization` as
+`csharp-pending-implementation`. No catalog, matrix, router, or README surface
+may turn this checkpoint into a 22/22 claim until those two final artifacts,
+their copied closures, and native verification exist.
+
+The project and syntax tiers use exact selected manifests plus the
+family-local `_csharp` Roslyn helper. The semantic tier uses
+`_csharp-semantic` with .NET SDK 10.0.302, runtime/reference pack 10.0.10,
+content-addressed `csc.dll` and Roslyn assemblies, and all 167 pinned reference
+assemblies. Consumer runs compile directly without restore or network access.
+The supported state, guard, and shadow proposal paths require fresh
+content-addressed human acceptance; `move-path` is the only stock-selected C#
+closure, while the other 19 supported outcomes require the external library.
+
+These facts cover selected static declarations, references, calls,
+constructor arguments, assignments, overrides, and partial metadata. They do
+not establish runtime reachability or behavior, interface/virtual/dynamic
+dispatch, delegates, reflection/runtime names, generated inputs, source
+generators, analyzers, external callers, project/solution graphs, conditional
+variants, frameworks, serialization, trimming/AOT, interop, binary
+compatibility, deletion, equivalence, structure proposals, or mutation beyond
+the one accepted source-location move.
+
+## Native foundations and queued languages
 
 | Language | Preferred foundations | Honest boundary |
 |---|---|---|
 | PHP | native `php -l`; PHP Parser or the bounded tree-sitter pack for syntax; project-local PHPStan/Psalm for semantics | Composer/project configuration controls semantic completeness |
 | Ruby | Prism and `ruby -c`; project-local Sorbet or Steep when already configured | dynamic reference/type claims otherwise remain partial |
-| C# | Roslyn plus `dotnet build --no-restore` | strong syntax, semantic, and rewrite support requires a pinned .NET SDK/project graph |
+| C# | 20/22 checkpoint with SDK-bundled Roslyn, direct `csc`, and native `dotnet ... --no-restore` gates | selected manifests are authoritative; structure proposals, inferred project/solution graphs, runtime dispatch, frameworks, and binary compatibility remain open |
 | Rust | `cargo metadata`, `cargo check`, Clippy; rust-analyzer for bounded reference operations | prefer stable Cargo JSON/LSP boundaries over private compiler APIs |
 | Swift | SwiftSyntax, SourceKit-LSP, and SwiftPM | indexed cross-module facts may require a recent build |
 | Dart | analyzer/Analysis Server plus `dart analyze` and native tests | pin to the SDK and treat analyzer API churn explicitly |
@@ -351,8 +378,8 @@ contracts rather than reimplementing them.
 The accepted P6 decision is recorded in
 `.claude/tasks/shared-kit-promotion-decision.md`. PHP, Rust, and Dart supplied
 the materially different evidence that the initial TypeScript/Java comparison
-lacked. C# remains a required final language, not a prerequisite for retaining
-the already-proven narrow foundation.
+lacked. C# remains open at 20/22 until its two structure outcomes pass; that
+does not invalidate the already-proven narrow shared foundation.
 
 Promote a shared component only when:
 

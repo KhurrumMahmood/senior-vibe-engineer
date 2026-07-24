@@ -18,7 +18,7 @@ not_for: |
   scope. Broad module-level responsibility sprawl belongs to /find-omnibus.
 language: any
 framework: any
-scans: [python, javascript, typescript, go, java, kotlin, php, ruby, swift, rust, dart, c, cpp]
+scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, swift, rust, dart, c, cpp]
 ---
 
 <!-- Native-parser compatibility subset: scans: [javascript, typescript, go, java] -->

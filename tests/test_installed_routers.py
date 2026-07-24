@@ -166,6 +166,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
             "rust_disposition": "validated-neutral",
             "dart_disposition": "validated-neutral",
             "kotlin_disposition": "validated-neutral",
+            "csharp_disposition": "validated-neutral",
             "fact_level": "neutral",
             "outcome_class": "not-applicable",
             "framework_family": None,
@@ -211,6 +212,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "rust_disposition": "stack-bound",
         "dart_disposition": "stack-bound",
         "kotlin_disposition": "stack-bound",
+        "csharp_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "architecture-planning",
@@ -248,6 +250,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "rust_disposition": "rust-supported",
         "dart_disposition": "dart-supported",
         "kotlin_disposition": "kotlin-supported",
+        "csharp_disposition": "csharp-supported",
         "fact_level": "semantic-project",
         "outcome_class": "read-only-report",
         "framework_family": None,
@@ -734,6 +737,72 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         library_root / ".claude/skills/_kotlin-semantic/kotlin_structure_proposals.py"
     ).is_file()
 
+    supported_csharp = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use adapt-project on this C# repository",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "csharp",
+        "--json",
+        cwd=host,
+    )
+    csharp_payload = _json_output(supported_csharp)
+    assert csharp_payload["routing_context"]["language"] == "csharp"
+    assert csharp_payload["recommendation"] == "adapt-project"
+    assert csharp_payload["handoff"]["skills"] == ["adapt-project"]
+    assert [guide["skill"] for guide in csharp_payload["handoff"]["guides"]] == [
+        "adapt-project"
+    ]
+    assert csharp_payload["handoff"]["capabilities"]["skills"][0][
+        "csharp_disposition"
+    ] == "csharp-supported"
+    assert csharp_payload["optional_install"]["available"] is False
+    assert csharp_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+    assert (
+        library_root / ".claude/skills/_csharp-semantic/CSharpSemanticFacts.cs"
+    ).is_file()
+
+    pending_csharp = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use propose-boundary for this C# namespace boundary",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "csharp",
+        "--json",
+        cwd=host,
+    )
+    assert pending_csharp.returncode == 1, pending_csharp.stderr
+    pending_csharp_payload = json.loads(pending_csharp.stdout)
+    assert pending_csharp_payload["recommendation"] == "pending-implementation"
+    assert pending_csharp_payload["unavailable"]["name"] == "propose-boundary"
+    assert pending_csharp_payload["unavailable"]["classification"] == (
+        "pending-implementation"
+    )
+
+    csharp_move = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "use move-path to move a C# source file",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "csharp",
+        "--json",
+        cwd=host,
+    )
+    csharp_move_payload = _json_output(csharp_move)
+    assert csharp_move_payload["handoff"]["skills"] == ["move-path"]
+    assert csharp_move_payload["optional_install"]["available"] is True
+
     for skill, task in (
         ("adapt-project", "use adapt-project on this Rust repository"),
         ("audit-decisions", "use audit-decisions on this Rust repository"),
@@ -884,6 +953,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "rust_disposition": "rust-supported",
         "dart_disposition": "dart-supported",
         "kotlin_disposition": "kotlin-supported",
+        "csharp_disposition": "csharp-supported",
         "fact_level": "lexical-filesystem",
         "outcome_class": "configuration-output",
         "framework_family": None,
@@ -973,6 +1043,28 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     ] == "kotlin-supported"
     assert kotlin_shape_payload["optional_install"]["available"] is False
     assert kotlin_shape_payload["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
+
+    csharp_shape = _run_isolated(
+        installed["which-shape"] / "scripts" / "route.py",
+        "onboard an unknown inherited C# repository and figure out what loop to run",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--json",
+        "--skip-log",
+        cwd=host,
+    )
+    csharp_shape_payload = _json_output(csharp_shape)
+    assert csharp_shape_payload["recommendation"]["first_next"] == "/adapt-project"
+    assert csharp_shape_payload["handoff"]["skills"] == ["adapt-project"]
+    assert csharp_shape_payload["handoff"]["capabilities"]["skills"][0][
+        "csharp_disposition"
+    ] == "csharp-supported"
+    assert csharp_shape_payload["optional_install"]["available"] is False
+    assert csharp_shape_payload["optional_install"]["reason"] == (
         "selected_language_requires_external_library"
     )
 
@@ -1084,6 +1176,7 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         "rust_disposition": "stack-bound",
         "dart_disposition": "stack-bound",
         "kotlin_disposition": "stack-bound",
+        "csharp_disposition": "stack-bound",
         "fact_level": "framework",
         "outcome_class": "framework-specific",
         "framework_family": "framework-quality",
@@ -1120,6 +1213,28 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert kotlin_comment["optional_install"]["evidence"] == [
         {"skill": "find-comment-drift", "status": "external-library-only"}
     ]
+
+    csharp_cleanup = _run_isolated(
+        installed["which-cleanup"] / "scripts" / "route.py",
+        "src/App.cs",
+        "--project-root",
+        str(host),
+        "--json",
+        cwd=host,
+    )
+    csharp_cleanup_payload = _json_output(csharp_cleanup)
+    csharp_cleanup_recommendations = {
+        item["skill"]: item for item in csharp_cleanup_payload["recommendations"]
+    }
+    csharp_comment = csharp_cleanup_recommendations["find-comment-drift"]
+    assert csharp_comment["handoff"]["capabilities"]["skills"][0][
+        "csharp_disposition"
+    ] == "csharp-supported"
+    assert csharp_comment["handoff"]["skills"] == ["find-comment-drift"]
+    assert csharp_comment["optional_install"]["available"] is False
+    assert csharp_comment["optional_install"]["reason"] == (
+        "selected_language_requires_external_library"
+    )
 
     regression = cleanup_recommendations["prevent-regression"]
     assert regression["handoff"]["skills"] == [
