@@ -453,10 +453,6 @@ Acceptance:
   exact selector, resolved current paths, and coalesced new-side changed-line
   ranges. It is serializable for a bounded on-demand handoff and hides Git
   parsing from individual skills.
-- [ ] The finding-side contract supports an optional line start/end rather than
-  assuming every finding is one line. Findings without current-line locations
-  follow their declared file/symbol/multi-site/project semantics and are never
-  silently discarded by `diff-lines`.
 - [ ] The resolver supports working tree (unstaged, staged, and untracked),
   staged, changed-from, one commit including a root commit, and a commit range.
   Explicit paths and project mode do not pretend to have changed-line ranges.
@@ -471,12 +467,9 @@ Acceptance:
 - [ ] Deletion-only/binary changes retain file-level verification obligations
   even when no current line can intersect a finding. Rename behavior is stated
   explicitly; it is never silently treated as an unchanged path.
-- [ ] Scope resolution occurs once per cleanup invocation and the resulting
-  request is reused across recommendations. Tests assert the coordinator does
-  not re-run the same Git query once per scanner.
-- [ ] Existing direct scanner invocations continue to work. `auto` preserves a
-  documented backward-compatible default while explicit scope modes remain
-  available.
+- [ ] Request construction is eager: after `build_scan_request` returns, reading
+  or serializing it performs no more Git queries. Router-level reuse across
+  recommendations is proven in AC1-S3.
 - [ ] `diff-lines` is an attribution/output mode, not a promise that parsers read
   only hunk bytes. A scanner may parse the complete changed file for syntactic
   correctness, but it does not perform a second detection run to support
@@ -495,6 +488,16 @@ Acceptance:
 - [ ] Repository `which-cleanup` and independently installed portable
   `which-cleanup` preserve the original selector and include one normalized scan
   request plus each recommendation's effective mode and diff semantics.
+- [ ] Scope resolution occurs once per cleanup invocation and the resulting
+  request is reused across recommendations. Tests assert the coordinator does
+  not re-run the same Git query once per scanner.
+- [ ] The finding-side adapter supports optional line start/end rather than
+  assuming every finding is one line. Findings without current-line locations
+  follow their declared file/symbol/multi-site/project semantics and are never
+  silently discarded by `diff-lines`.
+- [ ] Existing direct scanner invocations continue to work. `auto` preserves a
+  documented backward-compatible default while explicit scope modes remain
+  available.
 - [ ] The user-facing interface offers `auto`, `diff-lines`, `changed-files`,
   `paths`, and `project` where meaningful. `--help` distinguishes “scan changed
   files completely” from “report changed-line findings only”; asking for help
