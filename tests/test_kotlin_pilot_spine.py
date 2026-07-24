@@ -425,7 +425,7 @@ def test_kotlin_feasibility_packet_and_all_22_initial_dispositions() -> None:
     assert "JDK 17.0.12" in packet
     assert "Gradle 7.5.1" in packet
     assert "no standalone Analysis API" in packet
-    assert "semantic-project facts remain unproven" in packet
+    assert "semantic-project facts remain unproven" in " ".join(packet.split())
 
     coverage = json.loads(COVERAGE.read_text(encoding="utf-8"))
     rows = coverage["skills"]

@@ -90,6 +90,7 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
         "go",
         "java",
         "javascript",
+        "kotlin",
         "php",
         "python",
         "ruby",
