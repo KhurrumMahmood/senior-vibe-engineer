@@ -35,6 +35,14 @@ advisory only: they prove no package, ownership, source-set, dependency,
 generated/Java/Gradle/Android/Multiplatform topology, runtime behavior, layout
 health, or safe move.
 
+## C# 14 / .NET 10 branch
+
+Use `scripts/detect_csharp.py` with the sibling `_csharp` provider and an
+explicit `--csharp-root`; run it with `--help` for the exact CLI. It groups
+eligible direct-sibling `.cs` filenames by leading CamelCase token inside the
+current compiled manifest inventory. A cluster proves no namespace ownership,
+MSBuild impact, layout health, or move safety.
+
 ## C++20 branch
 
 Use `scripts/detect_cpp.py` with the sibling `_cpp` provider; run the script

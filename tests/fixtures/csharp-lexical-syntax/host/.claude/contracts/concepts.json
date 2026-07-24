@@ -1,0 +1,9 @@
+{
+  "concepts": [
+    {
+      "name": "invoice-state",
+      "avoid": ["cancelledInvoice"],
+      "source_files": ["src/CSharpCohort/BillingModel.cs"]
+    }
+  ]
+}

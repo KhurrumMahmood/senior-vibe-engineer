@@ -33,6 +33,14 @@ clones with package/signature/overload syntax. Matching tokens do not establish
 resolved calls, DSL or inline semantics, delegation, side effects, reflection,
 generated/Java/Gradle/runtime behavior, equivalence, or consolidation safety.
 
+## C# 14 / .NET 10 branch
+
+Use `scripts/run_csharp.py` with the sibling `_csharp` provider; run it with
+`--help` for the exact CLI. It reports exact normalized direct method-body
+Roslyn token clones of at least five source lines from the current compiled
+manifest closure. Matching tokens are an advisory clone lead, not semantic or
+behavioral equivalence or evidence that consolidation is safe.
+
 ## C++20 branch
 
 Use `scripts/run_cpp.py` with the sibling `_cpp` provider; run the script with

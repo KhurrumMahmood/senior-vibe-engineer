@@ -1,0 +1,7 @@
+{
+  "candidate_id": "candidate-001",
+  "bucket": "confirmed_omnibus",
+  "domains_confirmed": ["payments", "customers", "exports", "notifications"],
+  "facets_collapsed": [],
+  "decomposition_depth_note": "Four repeated method-name clusters represent separate fixture domains."
+}

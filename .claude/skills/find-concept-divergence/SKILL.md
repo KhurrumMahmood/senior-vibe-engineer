@@ -46,6 +46,14 @@ review evidence only; aliases, extensions, operators, delegated members,
 strings/comments, symbol identity, generated sources, Java, Gradle variants,
 reflection, runtime behavior, and rename completeness remain unresolved.
 
+## C# 14 / .NET 10 branch
+
+Use `scripts/scan_csharp.py` with the sibling `_csharp` provider and an
+explicit glossary; run it with `--help` for the exact CLI. It matches strict
+glossary terms against authored Roslyn identifier tokens from the current
+compiled manifest closure. A hit is spelling evidence, not resolved symbol
+identity or rename completeness.
+
 ## C++20 branch
 
 Use `scripts/scan_cpp.py` with the sibling `_cpp` provider; run the script with

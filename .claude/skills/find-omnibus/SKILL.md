@@ -38,6 +38,14 @@ the scout owns domain judgment. Resolved calls, overrides, delegation,
 reflection, generated members, Java, Gradle variants, runtime topology, and
 safe decomposition remain unresolved.
 
+## C# 14 / .NET 10 branch
+
+Use `scripts/run_csharp.py` with the sibling `_csharp` provider and explicit
+scout JSON; run it with `--help` for the exact CLI. Direct method-name clusters
+from the current compiled manifest closure nominate candidates only. An
+explicit scout must distinguish domains from facets; syntax never proves
+responsibility boundaries or safe decomposition.
+
 ## C++20 branch
 
 Use `scripts/run_cpp.py` with the sibling `_cpp` provider and explicit scout

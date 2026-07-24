@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "target_framework": "net10.0",
+  "language_version": "14.0",
+  "sources": [
+    "src/CSharpCohort/BillingModel.cs",
+    "src/CSharpCohort/BillingParser.cs",
+    "src/CSharpCohort/BillingTypes.cs",
+    "src/CSharpCohort/BillingValidator.cs",
+    "src/CSharpCohort/Omnibus.cs",
+    "src/CSharpCohort/Syntax.cs",
+    "src/CSharpCohort/Program.cs"
+  ],
+  "tests": [
+    "tests/CSharpCohortTests.cs"
+  ],
+  "smoke_main": "CSharpCohort.Program",
+  "smoke_output": "csharp-lexical:12:queued\n",
+  "test_main": "CSharpCohortTests.Program",
+  "test_output": "csharp-lexical-tests:ok\n"
+}

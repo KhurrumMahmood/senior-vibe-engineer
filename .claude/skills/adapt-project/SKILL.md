@@ -47,6 +47,15 @@ adapter only; `.kts`, Gradle/dependencies, Java, generated inputs, Android,
 Multiplatform, plugins, frameworks, variants, and layout endorsement remain
 outside the claim.
 
+## C# 14 / .NET 10 branch
+
+Use `scripts/discover_csharp.py` with the sibling `_csharp` provider; run the
+script with `--help` for the exact CLI. The branch accepts only the exact
+authored `.cs` source/test closure declared by `csharp-project.json`, compiles
+and replays it with SDK 10.0.302, and reports direct Roslyn syntax facts. It
+does not evaluate MSBuild, source generators, multi-targeting, resolved
+symbols, runtime behavior, or layout health.
+
 ## C++20 branch
 
 Use `scripts/discover_cpp.py` with `_cpp/cpp_facts.py` and

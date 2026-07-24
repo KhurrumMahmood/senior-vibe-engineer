@@ -1,0 +1,16 @@
+{
+  "ideas": [
+    {
+      "id": "guard-parse",
+      "label": "Guard ParseBilling spellings with an if",
+      "contract": {
+        "detector": {
+          "kind": "syntax",
+          "paths": ["src/CSharpCohort/Syntax.cs"],
+          "call_matches": "ParseBilling",
+          "enclosed_by": "if"
+        }
+      }
+    }
+  ]
+}

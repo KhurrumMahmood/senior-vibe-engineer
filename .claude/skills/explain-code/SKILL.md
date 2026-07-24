@@ -33,6 +33,15 @@ declaration, signature, overload, data/sealed, and extension-receiver syntax.
 It does not resolve behavior, calls, overrides, delegation, reflection,
 generated members, Java, Gradle variants, frameworks, or runtime contracts.
 
+## C# 14 / .NET 10 branch
+
+Use `scripts/explain_csharp.py` with the sibling `_csharp` provider; run it
+with `--help` for the exact CLI. It explains direct Roslyn declaration
+spelling from the exact compiled manifest closure, preserving namespaces,
+signatures, overloads, records, and extension-receiver spelling. Resolved
+identity, overload selection, dispatch, callers, and behavior remain
+unexplained.
+
 ## C++20 branch
 
 Use `scripts/explain_cpp.py` with the sibling `_cpp` provider; run the script

@@ -35,6 +35,14 @@ advisory syntax evidence only; lambdas/local or inline functions, contracts,
 resolved control flow, generated members, Java, Gradle variants, frameworks,
 runtime cost, and refactor safety remain unresolved.
 
+## C# 14 / .NET 10 branch
+
+Use `scripts/run_csharp.py` with the sibling `_csharp` provider; run it with
+`--help` for the exact CLI. It reports named methods whose direct Roslyn body
+has a syntactic branch score of at least eight in the current compiled
+manifest closure. The score is advisory source syntax, not runtime cost,
+cognitive complexity, resolved control flow, or refactor safety.
+
 ## C++20 branch
 
 Use `scripts/run_cpp.py` with the sibling `_cpp` provider; run the script with

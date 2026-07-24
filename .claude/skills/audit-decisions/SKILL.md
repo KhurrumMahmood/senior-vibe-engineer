@@ -34,6 +34,14 @@ Applicability, symbol meaning, annotations, generated/plugin sources, Gradle
 variants, Java interop, reflection, frameworks, and runtime behavior remain
 unresolved.
 
+## C# 14 / .NET 10 branch
+
+Use `scripts/audit_csharp.py` with the sibling `_csharp` provider; run it with
+`--help` for the exact CLI. It resolves lowercase `decision:NNNN` spellings
+only when Roslyn classifies them as real authored C# comments in the current
+compiled manifest closure. Comment applicability, preprocessor reachability,
+resolved symbols, and runtime behavior remain unresolved.
+
 ## C++20 branch
 
 Use `scripts/audit_cpp.py` with the sibling `_cpp` provider; run the script

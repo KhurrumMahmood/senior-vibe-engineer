@@ -53,6 +53,14 @@ lexical `if`-enclosure condition. Callee identity, aliases/extensions,
 overload selection, reflection, generated/Java/Gradle/runtime behavior,
 general policy, detekt/ktlint, plugins, and frameworks remain unresolved.
 
+## C# 14 / .NET 10 branch
+
+Use `scripts/scan_coverage_csharp.py` with the sibling `_csharp` provider and
+an explicit ideas file; run it with `--help` for the exact CLI. It measures one
+configured direct call-spelling plus `enclosed_by: "if"` Roslyn syntax
+condition over the current compiled manifest closure. Callee identity,
+aliases, runtime control flow, and general policy compliance remain unresolved.
+
 ## C++20 branch
 
 Use `scripts/scan_coverage_cpp.py` with the sibling `_cpp` provider and an
