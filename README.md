@@ -212,32 +212,35 @@ classes matter more than a single headline count:
 | Ecosystem-runtime | 13 | The skill maintains or governs this toolkit rather than a host-language codebase. |
 
 Python/Django is the ecosystem's original host and remains visible in the lint
-substrate and examples. The 13 completed expansion columns for the 22
-language-level skills are:
+substrate and examples. Implementation coverage and real-project validation
+are separate claims:
 
-| Language | Current bounded claim | Important non-claims or prerequisites |
-|---|---|---|
-| TypeScript | 22/22 language-level outcomes | Project-local TypeScript configuration and tools govern semantic completeness. |
-| JavaScript | 22/22 language-level outcomes | JavaScript and TypeScript remain distinct routing contexts. |
-| Go | 22/22 language-level outcomes | Uses Go-native project, syntax, semantic, test, and move evidence. |
-| Java | 22/22 standalone-JDK outcomes | Does not imply Spring, Android, or arbitrary build-tool variants. |
-| PHP | 22/22 bounded outcomes | Composer and configured PHPStan/Psalm boundaries control project semantics. |
-| Ruby | 22/22 bounded outcomes | Dynamic loading/metaprogramming stays explicit; authored RBS is required for selected semantic claims. |
-| Swift | 22/22 bounded outcomes | One selected dependency-free SwiftPM target under Apple Swift 6.3.3; no Xcode/framework or whole-program claim. |
-| Rust | 22/22 bounded outcomes | Uses Cargo/rustc and bounded rust-analyzer facts where appropriate. |
-| Dart | 22/22 bounded outcomes | Uses the Dart SDK/analyzer boundary; Flutter is separate. |
-| C | 22/22 bounded outcomes | Semantic claims require Clang 21+ and a trustworthy current C17 `compile_commands.json`. |
-| C++ | 22/22 bounded outcomes | Semantic claims require Clang 21+, C++20, and a trustworthy current compilation database; no general ABI/ODR claim. |
-| Kotlin | 22/22 bounded Kotlin/JVM outcomes | Proven at Kotlin 2.4.10/JDK 17; no Android, Multiplatform, arbitrary Gradle variant, or JVM ABI claim. |
-| C# | 22/22 bounded outcomes | Proven with .NET SDK 10.0.302 over selected manifests; no arbitrary solution/framework/runtime-dispatch claim. |
+| Language | Implementation coverage | Real-project validation | Important non-claims or prerequisites |
+|---|---|---|---|
+| Python | Original host contract | journey-validated | The pinned journey uses Requests rather than claiming every Python framework. |
+| TypeScript | 22/22 language-level outcomes | journey-validated | Project-local TypeScript configuration and tools govern semantic completeness. |
+| JavaScript | 22/22 language-level outcomes | journey-validated | JavaScript and TypeScript remain distinct routing contexts. |
+| Go | 22/22 language-level outcomes | journey-validated | Uses Go-native project, syntax, semantic, test, and move evidence. |
+| Java | 22/22 standalone-JDK outcomes | journey-validated | Does not imply Spring, Android, or arbitrary build-tool variants. |
+| PHP | 22/22 bounded outcomes | journey-validated | Composer and configured PHPStan/Psalm boundaries control project semantics. |
+| Ruby | 22/22 bounded outcomes | journey-validated | Dynamic loading/metaprogramming stays explicit; authored RBS is required for selected semantic claims. |
+| Swift | 22/22 bounded outcomes | journey-validated | Real SwiftPM packages may yield useful partial syntax evidence; no Xcode/framework or whole-program claim. |
+| Rust | 22/22 bounded outcomes | journey-validated | Uses Cargo/rustc and bounded rust-analyzer facts where appropriate. |
+| Dart | 22/22 bounded outcomes | journey-validated | Uses the Dart SDK/analyzer boundary; Flutter is separate. |
+| C | 22/22 bounded outcomes | journey-validated | Semantic claims require Clang 21+ and a trustworthy current C17 `compile_commands.json`. |
+| C++ | 22/22 bounded outcomes | journey-validated | Semantic claims require Clang 21+, C++20, and a trustworthy current compilation database; no general ABI/ODR claim. |
+| Kotlin | 22/22 bounded Kotlin/JVM outcomes | journey-validated | Proven at Kotlin 2.4.10/JDK 17; no Android, Multiplatform, arbitrary Gradle variant, or JVM ABI claim. |
+| C# | 22/22 bounded outcomes | journey-validated | Ordinary repositories can yield useful source-only partials; stronger native claims require the selected .NET manifest contract. |
 
 “22/22” means the bounded contract for all 22 language-level skills is complete.
 It does not mean every one of the 76 skills applies to every language or
 framework, nor that a static analysis proves runtime behavior. The generated
 [capability matrix](./.claude/tasks/multilanguage-skill-matrix.json) and
 per-language coverage files under `.claude/tasks/` are the machine-readable
-sources of truth. Router handoffs expose the relevant row and required native
-tools for the selected closure.
+sources of implementation truth. The matrix's separate `language_validation`
+projection records each pinned real-repository journey, exact revision, and
+evidence file. Router handoffs expose the relevant implementation row and
+required native tools for the selected closure.
 
 One measured broad JavaScript/TypeScript read-only code-health family can run
 three independent lenses concurrently. Across five paired product trials, its

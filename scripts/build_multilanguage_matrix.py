@@ -31,6 +31,9 @@ DEFAULT_RUST_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "rust-language-coverag
 DEFAULT_DART_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "dart-language-coverage.json"
 DEFAULT_KOTLIN_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "kotlin-language-coverage.json"
 DEFAULT_CSHARP_COVERAGE = REPO_ROOT / ".claude" / "tasks" / "csharp-language-coverage.json"
+DEFAULT_REAL_REPO_VALIDATION = (
+    REPO_ROOT / ".claude" / "tasks" / "real-repository-validation-status.json"
+)
 DEFAULT_OUTPUT = REPO_ROOT / ".claude" / "tasks" / "multilanguage-skill-matrix.json"
 
 DISPOSITION_MAP = {
@@ -782,6 +785,50 @@ def _csharp_coverage(payload: dict) -> dict[str, dict]:
     return coverage
 
 
+def _language_validation(payload: dict) -> list[dict[str, str]]:
+    if payload.get("schema_version") != 1:
+        raise ValueError("real-repository validation schema must be 1")
+    rows = payload.get("languages")
+    if not isinstance(rows, list):
+        raise ValueError("real-repository validation languages must be a list")
+    expected = {
+        "python", "typescript", "javascript", "go", "java", "php", "ruby",
+        "swift", "rust", "dart", "c", "cpp", "kotlin", "csharp",
+    }
+    required = {
+        "language", "implementation_coverage", "validation_level", "repository",
+        "revision", "evidence_path",
+    }
+    by_language: dict[str, dict[str, str]] = {}
+    for raw in rows:
+        if not isinstance(raw, dict) or set(raw) != required:
+            raise ValueError("real-repository validation rows have an unexpected shape")
+        if any(not isinstance(raw[field], str) or not raw[field] for field in required):
+            raise ValueError("real-repository validation values must be non-empty strings")
+        language = raw["language"]
+        if language in by_language:
+            raise ValueError(f"duplicate real-repository validation language: {language}")
+        if raw["validation_level"] != "journey-validated":
+            raise ValueError(f"advertised language lacks a journey validation: {language}")
+        expected_coverage = "original-host-contract" if language == "python" else "22/22"
+        if raw["implementation_coverage"] != expected_coverage:
+            raise ValueError(f"implementation coverage mismatch for {language}")
+        revision = raw["revision"]
+        if len(revision) != 40 or any(char not in "0123456789abcdef" for char in revision):
+            raise ValueError(f"invalid real-repository revision for {language}")
+        evidence = Path(raw["evidence_path"])
+        if evidence.is_absolute() or ".." in evidence.parts or not (REPO_ROOT / evidence).is_file():
+            raise ValueError(f"missing or unsafe real-repository evidence for {language}")
+        by_language[language] = raw
+    if set(by_language) != expected:
+        raise ValueError(
+            "real-repository validation language mismatch; "
+            f"missing={sorted(expected - set(by_language))}, "
+            f"extra={sorted(set(by_language) - expected)}"
+        )
+    return [by_language[language] for language in sorted(by_language)]
+
+
 def build_matrix(
     catalog_path: Path,
     coverage_path: Path,
@@ -797,6 +844,7 @@ def build_matrix(
     dart_coverage_path: Path,
     kotlin_coverage_path: Path,
     csharp_coverage_path: Path,
+    real_repo_validation_path: Path,
 ) -> dict:
     catalog_payload = _read_json(catalog_path)
     coverage_payload = _read_json(coverage_path)
@@ -812,6 +860,7 @@ def build_matrix(
     dart_payload = _read_json(dart_coverage_path)
     kotlin_payload = _read_json(kotlin_coverage_path)
     csharp_payload = _read_json(csharp_coverage_path)
+    real_repo_validation_payload = _read_json(real_repo_validation_path)
     catalog = {row["name"]: row for row in catalog_payload.get("skills", [])}
     coverage = {row["skill"]: row for row in coverage_payload.get("skills", [])}
     javascript_coverage = _javascript_coverage(javascript_payload)
@@ -826,6 +875,7 @@ def build_matrix(
     dart_coverage = _dart_coverage(dart_payload)
     kotlin_coverage = _kotlin_coverage(kotlin_payload)
     csharp_coverage = _csharp_coverage(csharp_payload)
+    language_validation = _language_validation(real_repo_validation_payload)
     if not catalog or set(catalog) != set(coverage):
         raise ValueError("catalog and TypeScript coverage must contain the same skills")
 
@@ -1258,6 +1308,10 @@ def build_matrix(
                 "path": _relative(csharp_coverage_path),
                 "sha256": _sha256(csharp_coverage_path),
             },
+            {
+                "path": _relative(real_repo_validation_path),
+                "sha256": _sha256(real_repo_validation_path),
+            },
         ],
         "counts": {
             "validated-neutral": counts["validated-neutral"],
@@ -1266,6 +1320,7 @@ def build_matrix(
             "framework-bound": counts["framework-bound"],
         },
         "typescript_shared_primitives": SHARED_PRIMITIVES,
+        "language_validation": language_validation,
         "skills": rows,
     }
 
@@ -1314,6 +1369,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dart-coverage", type=Path, default=DEFAULT_DART_COVERAGE)
     parser.add_argument("--kotlin-coverage", type=Path, default=DEFAULT_KOTLIN_COVERAGE)
     parser.add_argument("--csharp-coverage", type=Path, default=DEFAULT_CSHARP_COVERAGE)
+    parser.add_argument(
+        "--real-repo-validation", type=Path, default=DEFAULT_REAL_REPO_VALIDATION
+    )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -1340,6 +1398,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.dart_coverage,
                 args.kotlin_coverage,
                 args.csharp_coverage,
+                args.real_repo_validation,
             )
         )
     except ValueError as exc:

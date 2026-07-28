@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
 TASKS = ROOT / ".claude" / "tasks"
 MATRIX = TASKS / "multilanguage-skill-matrix.json"
+REAL_REPO_STATUS = TASKS / "real-repository-validation-status.json"
+REAL_REPO_CORPUS = TASKS / "real-repository-corpus.json"
 ROUTER = ROOT / ".claude" / "skills" / "which-skill" / "scripts" / "match.py"
 
 
@@ -78,3 +80,38 @@ def test_public_language_counts_match_coverage_matrix_and_router() -> None:
         assert routed["recommendation"] == "find-omnibus"
         capability = routed["handoff"]["capabilities"]["skills"][0]
         assert capability[f"{language}_disposition"] == f"{language}-supported"
+
+
+def test_public_validation_claims_are_separate_pinned_and_traceable() -> None:
+    readme_lines = README.read_text(encoding="utf-8").splitlines()
+    matrix = json.loads(MATRIX.read_text(encoding="utf-8"))
+    status = json.loads(REAL_REPO_STATUS.read_text(encoding="utf-8"))
+    corpus = json.loads(REAL_REPO_CORPUS.read_text(encoding="utf-8"))
+    projected = {row["language"]: row for row in matrix["language_validation"]}
+    declared = {row["language"]: row for row in status["languages"]}
+    pinned = {row["language"]: row for row in corpus["repositories"]}
+
+    assert matrix["language_validation"] == sorted(
+        status["languages"], key=lambda row: row["language"]
+    )
+    assert set(projected) == set(declared) == set(pinned) | {"python"}
+    for language, row in projected.items():
+        assert row["validation_level"] == "journey-validated"
+        assert (ROOT / row["evidence_path"]).is_file()
+        assert len(row["revision"]) == 40
+        if language in pinned:
+            assert row["repository"] == pinned[language]["name"]
+            assert row["revision"] == pinned[language]["revision"]
+
+    display_names = {
+        "python": "Python", "typescript": "TypeScript", "javascript": "JavaScript",
+        "go": "Go", "java": "Java", "php": "PHP", "ruby": "Ruby",
+        "swift": "Swift", "rust": "Rust", "dart": "Dart", "c": "C",
+        "cpp": "C++", "kotlin": "Kotlin", "csharp": "C#",
+    }
+    for language, display in display_names.items():
+        matches = [line for line in readme_lines if line.startswith(f"| {display} |")]
+        assert len(matches) == 1
+        assert "journey-validated" in matches[0]
+        expected_coverage = "Original host contract" if language == "python" else "22/22"
+        assert expected_coverage in matches[0]

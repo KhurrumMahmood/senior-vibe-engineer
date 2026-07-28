@@ -120,7 +120,7 @@ Initial-slice exit gate:
 - [x] E3. At least one mutation-capable closure is exercised in preview mode
   and proves exact proposed changes, rollback/refusal behavior, and native test
   obligations without modifying the source checkout.
-- [ ] E4. README and generated language surfaces display validation level
+- [x] E4. README and generated language surfaces display validation level
   separately from `22/22` implementation coverage.
 - [ ] E5. A clean public install performs: three-router install, on-demand
   bootstrap, route, real-repository execution, verified final artifact,
@@ -151,6 +151,7 @@ Initial-slice exit gate:
 | Corpus harness, slice 4 | `.venv/bin/python scripts/real_repo_corpus.py prepare --slice 4`; final `verify --slice 4` | exact detached Swift/C# checkouts; declared Apache-2.0 license files and clean revisions verified; corpus suite `11 passed` | pass |
 | Routed slice 4 | exact evidence in `real-repository-slice4-evidence.md`; C# repair `50e1359`, Swift/closure closeout `877045b` | Swift 14 useful partial; C# 5 useful partial; every C# result and top Swift spans manually checked; source checkouts preserved | pass |
 | Real mutation preview | `golang/example@7f05d217867b2af52b0a28c6d1c91df97e1b5b39`; exact evidence in `real-repository-mutation-preview-evidence.md` | authoritative checkout preview proposes one directory move + two AST import edits; disposable exact clone passes gofmt, `go test ./...`, and exact-diff; invalid file move refuses; forced native failure regression rolls back; original checkout clean | pass |
+| Public validation truth | `real-repository-validation-status.json`; generated `multilanguage-skill-matrix.json`; README capability table; release/matrix/installed-router sentinels | implementation coverage and `journey-validated` status are separate for all 14 advertised languages; every validation claim names a pinned repository, exact revision, and committed evidence path; `6 passed in 7.36s` | pass |
 
 ## Validation status
 

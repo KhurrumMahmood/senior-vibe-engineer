@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "languages": [
+    {
+      "language": "python",
+      "implementation_coverage": "original-host-contract",
+      "validation_level": "journey-validated",
+      "repository": "requests",
+      "revision": "414f0513c33883adf6f2b46901d4f0b38a455851",
+      "evidence_path": ".claude/tasks/real-repository-initial-slice-evidence.md"
+    },
+    {
+      "language": "typescript",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "got",
+      "revision": "e3924aa1e53a6ca3eb93a43618ce532442a89b40",
+      "evidence_path": ".claude/tasks/real-repository-initial-slice-evidence.md"
+    },
+    {
+      "language": "javascript",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "express",
+      "revision": "a3714473feb3d2908add734d340e7755fd85e0a3",
+      "evidence_path": ".claude/tasks/real-repository-slice3-evidence.md"
+    },
+    {
+      "language": "go",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "chi",
+      "revision": "8b258c7bb28f97a5f2a856ff7ef962578fec9215",
+      "evidence_path": ".claude/tasks/real-repository-initial-slice-evidence.md"
+    },
+    {
+      "language": "java",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "spring-petclinic",
+      "revision": "f182358d02e4a68e52bdbabf55ca7800288511e7",
+      "evidence_path": ".claude/tasks/real-repository-initial-slice-evidence.md"
+    },
+    {
+      "language": "php",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "slim",
+      "revision": "80900fb39cafce3ae53b18a2c4f642a122f03095",
+      "evidence_path": ".claude/tasks/real-repository-breadth-slice-evidence.md"
+    },
+    {
+      "language": "ruby",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "sinatra",
+      "revision": "cb22afd7902b566b6eaba6c4ea89739494a65d12",
+      "evidence_path": ".claude/tasks/real-repository-breadth-slice-evidence.md"
+    },
+    {
+      "language": "swift",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "swift-argument-parser",
+      "revision": "2f77f2fccb6e84fecff338c37b199e33e7dfd119",
+      "evidence_path": ".claude/tasks/real-repository-slice4-evidence.md"
+    },
+    {
+      "language": "rust",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "ripgrep",
+      "revision": "f9c05a949d1a0dc8e16dee28ca9605d38611faeb",
+      "evidence_path": ".claude/tasks/real-repository-breadth-slice-evidence.md"
+    },
+    {
+      "language": "dart",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "path",
+      "revision": "7e3d5d87220133ad9cc99f82e85a826011a62859",
+      "evidence_path": ".claude/tasks/real-repository-breadth-slice-evidence.md"
+    },
+    {
+      "language": "c",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "inih",
+      "revision": "5cc5e2c24642513aaa5b19126aad42d0e4e0923e",
+      "evidence_path": ".claude/tasks/real-repository-slice3-evidence.md"
+    },
+    {
+      "language": "cpp",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "fmt",
+      "revision": "40626af88bd7df9a5fb80be7b25ac85b122d6c21",
+      "evidence_path": ".claude/tasks/real-repository-slice3-evidence.md"
+    },
+    {
+      "language": "kotlin",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "detekt",
+      "revision": "e019e63ee459bd005694ed944af7ad6c8a165c57",
+      "evidence_path": ".claude/tasks/real-repository-slice3-evidence.md"
+    },
+    {
+      "language": "csharp",
+      "implementation_coverage": "22/22",
+      "validation_level": "journey-validated",
+      "repository": "stateless",
+      "revision": "588f1a1a08683b452eb7c05562d9f055693cba5d",
+      "evidence_path": ".claude/tasks/real-repository-slice4-evidence.md"
+    }
+  ]
+}
