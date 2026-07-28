@@ -117,7 +117,7 @@ Initial-slice exit gate:
 - [x] E2. Representative deep journeys cover Python, TypeScript, Go, Java, one
   dynamic non-Python language, one systems language, and one mobile-oriented
   language.
-- [ ] E3. At least one mutation-capable closure is exercised in preview mode
+- [x] E3. At least one mutation-capable closure is exercised in preview mode
   and proves exact proposed changes, rollback/refusal behavior, and native test
   obligations without modifying the source checkout.
 - [ ] E4. README and generated language surfaces display validation level
@@ -150,6 +150,7 @@ Initial-slice exit gate:
 | Routed slice 3 | exact evidence in `real-repository-slice3-evidence.md` at `4f3bf41` | JavaScript 1 complete; C 1 complete; C++ 36 useful partial; Kotlin 5 useful partial; sampled spans and clean revisions pass | pass |
 | Corpus harness, slice 4 | `.venv/bin/python scripts/real_repo_corpus.py prepare --slice 4`; final `verify --slice 4` | exact detached Swift/C# checkouts; declared Apache-2.0 license files and clean revisions verified; corpus suite `11 passed` | pass |
 | Routed slice 4 | exact evidence in `real-repository-slice4-evidence.md`; C# repair `50e1359`, Swift/closure closeout `877045b` | Swift 14 useful partial; C# 5 useful partial; every C# result and top Swift spans manually checked; source checkouts preserved | pass |
+| Real mutation preview | `golang/example@7f05d217867b2af52b0a28c6d1c91df97e1b5b39`; exact evidence in `real-repository-mutation-preview-evidence.md` | authoritative checkout preview proposes one directory move + two AST import edits; disposable exact clone passes gofmt, `go test ./...`, and exact-diff; invalid file move refuses; forced native failure regression rolls back; original checkout clean | pass |
 
 ## Validation status
 
