@@ -208,7 +208,7 @@ def test_javascript_syntax_cohort_reaches_final_artifacts_for_all_suffixes(
     }
 
 
-def test_javascript_syntax_errors_and_missing_local_parser_are_not_clean(
+def test_javascript_syntax_errors_and_parser_fallback_are_honest(
     tmp_path: Path,
 ) -> None:
     host = _host(tmp_path)
@@ -236,5 +236,19 @@ def test_javascript_syntax_errors_and_missing_local_parser_are_not_clean(
         "src",
         cwd=missing,
     )
-    assert result.returncode == 2
-    assert "project-local TypeScript package is unavailable" in result.stderr
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "status=complete" in result.stdout
+
+    isolated = tmp_path / "isolated" / "find-complexity-hotspots"
+    shutil.copytree(SKILLS / "find-complexity-hotspots", isolated)
+    unavailable = _run(
+        sys.executable,
+        str(isolated / "scripts" / "detect.py"),
+        "--project-root", str(missing),
+        "--language", "javascript",
+        "--output", str(missing / "unavailable.jsonl"),
+        "src",
+        cwd=missing,
+    )
+    assert unavailable.returncode == 2
+    assert "TypeScript parser package is unavailable" in unavailable.stderr
