@@ -26,8 +26,14 @@ DEFAULT_OUTPUT_ROOT = REPO_ROOT / "reports" / SKILL_NAME
 DOC_COUNT_FILES = ("README.md", "ONBOARDING.md")
 CATALOG_PATH = ".claude/docs/skill-catalog.md"
 SHAPES_PATH = ".claude/skills/which-shape/shapes.json"
+DEFAULT_ROUTERS = ("which-shape", "which-skill", "which-cleanup")
 SKILL_REF_RE = re.compile(r"(?<![A-Za-z0-9_-])/([a-z][a-z0-9]*(?:-[a-z0-9]+)*)")
-SKILL_COUNT_RE = re.compile(r"\b(\d+)\s+skills\b", re.IGNORECASE)
+SKILL_COUNT_RE = re.compile(
+    r"\b(?:(?P<prefix>other|remaining|on-demand)\s+)?"
+    r"(?P<count>\d+)\s+"
+    r"(?:(?P<infix>on-demand|non-router)\s+)?skills\b",
+    re.IGNORECASE,
+)
 FRONTMATTER_RE = re.compile(r"\A---\n(?P<body>.*?)\n---\n", re.DOTALL)
 
 
@@ -178,9 +184,16 @@ def discover_docs(project_root: Path, skills: dict[str, dict[str, Any]]) -> dict
     for rel in DOC_COUNT_FILES + (CATALOG_PATH,):
         path = project_root / rel
         if not path.exists():
-            docs[rel] = {"present": False, "sha256": None, "skill_count_mentions": [], "mentioned_skills": []}
+            docs[rel] = {
+                "present": False,
+                "sha256": None,
+                "skill_count_mentions": [],
+                "non_router_skill_count_mentions": [],
+                "mentioned_skills": [],
+            }
             continue
         text = read_text(path)
+        count_mentions = list(SKILL_COUNT_RE.finditer(text))
         mentioned = sorted(
             slug
             for slug in skills
@@ -189,7 +202,16 @@ def discover_docs(project_root: Path, skills: dict[str, dict[str, Any]]) -> dict
         docs[rel] = {
             "present": True,
             "sha256": sha256_text(text),
-            "skill_count_mentions": [int(match) for match in SKILL_COUNT_RE.findall(text)],
+            "skill_count_mentions": [
+                int(match.group("count"))
+                for match in count_mentions
+                if not match.group("prefix") and not match.group("infix")
+            ],
+            "non_router_skill_count_mentions": [
+                int(match.group("count"))
+                for match in count_mentions
+                if match.group("prefix") or match.group("infix")
+            ],
             "mentioned_skills": mentioned,
         }
     return docs
@@ -383,6 +405,21 @@ def compare_states(previous: dict[str, Any] | None, current: dict[str, Any]) -> 
                     finding(
                         "docs_skill_count_mismatch",
                         f"{rel} says {count} skills, but the current inventory has {current['skill_count']}.",
+                        "Update the public count or remove the exact count if it is not worth maintaining.",
+                        file=rel,
+                        severity="warning",
+                        confidence="high",
+                    )
+                )
+        router_count = sum(slug in current["skills"] for slug in DEFAULT_ROUTERS)
+        expected_non_router_count = current["skill_count"] - router_count
+        for count in doc.get("non_router_skill_count_mentions", []):
+            if count != expected_non_router_count:
+                findings.append(
+                    finding(
+                        "docs_non_router_skill_count_mismatch",
+                        f"{rel} says {count} non-router skills, but the current inventory has "
+                        f"{expected_non_router_count} after excluding {router_count} default routers.",
                         "Update the public count or remove the exact count if it is not worth maintaining.",
                         file=rel,
                         severity="warning",

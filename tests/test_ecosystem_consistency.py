@@ -108,6 +108,23 @@ def test_docs_skill_count_mismatch_is_reported(tmp_path):
     assert mismatches[0]["file"] == "README.md"
 
 
+def test_docs_other_skill_count_excludes_present_default_routers(tmp_path):
+    _base_repo(tmp_path, count=2)
+    (tmp_path / "README.md").write_text(
+        "# Test\n\nOnly one router is present. Materialize the other 1 skills on demand.\n",
+        encoding="utf-8",
+    )
+
+    current = check.discover_state(tmp_path)
+    findings = check.compare_states(None, current)
+
+    assert not any(
+        record["pattern"].startswith("docs_")
+        and record["pattern"].endswith("skill_count_mismatch")
+        for record in findings
+    )
+
+
 def test_missing_shape_skill_reference_is_reported(tmp_path):
     _write_skill(tmp_path, "which-shape", job="meta")
     _write_shapes(tmp_path, first_next="/missing-skill")
