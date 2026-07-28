@@ -122,7 +122,7 @@ and human review decide what deserves to become doctrine.
   classify Maven or Gradle markers, emit the matching test command, and declare
   `analysis.java.status: complete`.
 - The same canonical installed command identifies marker-backed PHP/Composer,
-  Ruby/Bundler, Rust/Cargo, and Dart/Pub hosts, counts their authored source
+  Ruby/Bundler, Rust/Cargo, Dart/Pub, and Swift/SwiftPM hosts, counts their authored source
   roots, and emits conventional setup/test/lint commands without invoking the
   richer language provider or claiming framework semantics.
 
@@ -179,9 +179,9 @@ markers and commands, native fixture check, and explicit non-claims.
 ## Specialized-language filesystem baseline
 
 The installed `scripts/discover.py` command always supplies a small objective
-baseline for PHP, Ruby, Rust, and Dart. It recognizes `composer.json`, Gemfile,
-`Cargo.toml`, and `pubspec.yaml`; inventories authored `.php`, `.rb`, `.rs`, and
-`.dart` source in conventional or project-owned top-level roots; excludes test,
+baseline for PHP, Ruby, Rust, Dart, and Swift. It recognizes `composer.json`, Gemfile,
+`Cargo.toml`, `pubspec.yaml`, and `Package.swift`; inventories authored `.php`,
+`.rb`, `.rs`, `.dart`, and `.swift` source in conventional or project-owned top-level roots; excludes test,
 example/benchmark, generated, dependency, build, report, and symlink roles; and
 names conventional package-manager commands. This is sufficient for routing
 and setup guidance from a no-host-write scan.

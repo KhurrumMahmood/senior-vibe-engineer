@@ -34,6 +34,8 @@ SOURCE_ROOT_CANDIDATES = (
     "docs",
     "ai-docs",
     ".claude",
+    "Sources",
+    "Plugins",
 )
 GO_SOURCE_ROOT_CANDIDATES = ("cmd", "internal", "pkg")
 DOC_NAMES = ("AGENTS.md", "CLAUDE.md", "CONTEXT.md", "ONBOARDING.md", "README.md")
@@ -86,10 +88,11 @@ JAVA_GENERATED_MARKER_RE = re.compile(
     r"(?m)^\s*// Code generated .* DO NOT EDIT\.\s*$"
 )
 SIMPLE_LANGUAGE_SUFFIXES = {
-    "php": ".php",
-    "ruby": ".rb",
-    "rust": ".rs",
-    "dart": ".dart",
+    "php": (".php",),
+    "ruby": (".rb",),
+    "rust": (".rs",),
+    "dart": (".dart",),
+    "swift": (".swift",),
 }
 SIMPLE_LANGUAGE_NON_SOURCE_PARTS = {
     "php": frozenset({"build", "example", "examples", "generated", "test", "tests", "vendor"}),
@@ -101,6 +104,9 @@ SIMPLE_LANGUAGE_NON_SOURCE_PARTS = {
     "dart": frozenset({
         ".dart_tool", "benchmark", "benchmarks", "build", "example", "examples",
         "generated", "test", "tests", "vendor",
+    }),
+    "swift": frozenset({
+        ".build", "build", "example", "examples", "generated", "test", "tests", "vendor",
     }),
 }
 JAVA_GENERATED_ANNOTATION_RE = re.compile(
@@ -270,7 +276,7 @@ def is_java_source(path: Path, project_root: Path) -> bool:
 
 def is_simple_language_source(path: Path, project_root: Path, language: str) -> bool:
     """Recognize authored source for marker-backed filesystem discovery."""
-    if path.suffix.casefold() != SIMPLE_LANGUAGE_SUFFIXES[language]:
+    if path.suffix.casefold() not in SIMPLE_LANGUAGE_SUFFIXES[language]:
         return False
     if _has_symlink_boundary(path, project_root):
         return False
@@ -287,6 +293,8 @@ def is_simple_language_source(path: Path, project_root: Path, language: str) -> 
     if "generated" in name:
         return False
     if language == "dart" and name.endswith((".g.dart", ".freezed.dart")):
+        return False
+    if language == "swift" and name == "package.swift":
         return False
     return not (language == "rust" and name == "build.rs")
 
@@ -332,10 +340,11 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
     root_simple_paths = {
         language: [
             item
+            for suffix in suffixes
             for item in root.glob(f"*{suffix}")
             if is_within(item, root) and is_simple_language_source(item, root, language)
         ]
-        for language, suffix in SIMPLE_LANGUAGE_SUFFIXES.items()
+        for language, suffixes in SIMPLE_LANGUAGE_SUFFIXES.items()
     }
     if root_go_paths or root_java_paths or any(root_simple_paths.values()):
         root_row: dict[str, Any] = {
@@ -375,11 +384,12 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
         simple_paths = {
             language: [
                 item
+                for suffix in suffixes
                 for item in path.rglob(f"*{suffix}")
                 if is_within(item, root)
                 and is_simple_language_source(item, root, language)
             ]
-            for language, suffix in SIMPLE_LANGUAGE_SUFFIXES.items()
+            for language, suffixes in SIMPLE_LANGUAGE_SUFFIXES.items()
         }
         if name in GO_SOURCE_ROOT_CANDIDATES and not go_paths:
             continue
@@ -501,11 +511,12 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
         simple_paths = {
             language: [
                 item
+                for suffix in suffixes
                 for item in path.rglob(f"*{suffix}")
                 if is_within(item, root)
                 and is_simple_language_source(item, root, language)
             ]
-            for language, suffix in SIMPLE_LANGUAGE_SUFFIXES.items()
+            for language, suffixes in SIMPLE_LANGUAGE_SUFFIXES.items()
         }
         if not any(simple_paths.values()):
             continue
@@ -598,6 +609,7 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         ("ruby", ("Gemfile", "gems.rb")),
         ("rust", ("Cargo.toml",)),
         ("dart", ("pubspec.yaml",)),
+        ("swift", ("Package.swift",)),
     )
     for language, markers in marker_languages:
         if any((root / marker).is_file() for marker in markers) or any(
@@ -627,6 +639,8 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         package_managers.append("cargo")
     if (root / "pubspec.yaml").is_file():
         package_managers.append("pub")
+    if (root / "Package.swift").is_file():
+        package_managers.append("swiftpm")
 
     requirements_text = "\n".join(read_text(path) for path in requirements)
     python_config = requirements_text + "\n" + read_text(root / "pyproject.toml")
@@ -638,6 +652,7 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         "build.gradle.kts", "settings.gradle", "settings.gradle.kts", "gradlew",
         "composer.json", "composer.lock", "Gemfile", "Gemfile.lock", "gems.rb",
         "gems.locked", "Cargo.toml", "Cargo.lock", "pubspec.yaml", "pubspec.lock",
+        "Package.swift", ".swift-format",
     ) if (root / name).exists()]
     return {
         "languages": languages,
@@ -735,6 +750,10 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, list[str]]:
             commands["test"].append("dart test")
         commands["lint"].append("dart analyze")
         commands["setup"].append("dart pub get")
+    if "swift" in stack["languages"] and (root / "Package.swift").is_file():
+        commands["test"].append("swift test")
+        commands["lint"].append("swift-format lint --strict --recursive Sources")
+        commands["setup"].append("swift package resolve")
     return {kind: list(dict.fromkeys(values)) for kind, values in commands.items()}
 
 
@@ -800,6 +819,7 @@ def detect_sensitive_surfaces(root: Path) -> list[dict[str, str]]:
         elif path.is_file() and SENSITIVE_NAME_RE.search(rel) and path.suffix in {
             ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".java",
             ".php", ".rb", ".rs", ".dart",
+            ".swift",
         } and (path.suffix != ".java" or is_java_source(path, root)):
             surfaces.append({"path": rel, "kind": "file", "reason": "sensitive-looking name"})
     return surfaces
@@ -816,6 +836,7 @@ def standardization(source_root_rows: list[dict[str, Any]], guards: dict[str, An
         or row.get("ruby_files", 0) > 200
         or row.get("rust_files", 0) > 200
         or row.get("dart_files", 0) > 200
+        or row.get("swift_files", 0) > 200
         for row in source_root_rows
     )
     cautions = [
@@ -850,7 +871,7 @@ def discover(project_root: Path) -> dict[str, Any]:
                 "status": "complete",
                 "analyzer": "filesystem-source-inventory",
             }
-            for language in ("go", "java", "php", "ruby", "rust", "dart")
+            for language in ("go", "java", "php", "ruby", "rust", "dart", "swift")
             if language in stack["languages"]
         },
         "generated_at": utc_now(),
@@ -911,6 +932,7 @@ def adapter_markdown(adapter: dict[str, Any]) -> str:
                 ("ruby", "Ruby"),
                 ("rust", "Rust"),
                 ("dart", "Dart"),
+                ("swift", "Swift"),
             ):
                 if row.get(f"{language}_files"):
                     line += f"{label}: {row[f'{language}_files']}; "

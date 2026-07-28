@@ -67,10 +67,10 @@ def add_tool_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--swift", type=Path, default=Path("swift"))
     parser.add_argument("--swiftc", type=Path, default=Path("swiftc"))
     parser.add_argument("--swift-format", type=Path, default=Path("swift-format"))
-    parser.add_argument("--check-product", required=True)
-    parser.add_argument("--expected-check", required=True)
-    parser.add_argument("--smoke-product", required=True)
-    parser.add_argument("--expected-smoke", required=True)
+    parser.add_argument("--check-product")
+    parser.add_argument("--expected-check", default="")
+    parser.add_argument("--smoke-product")
+    parser.add_argument("--expected-smoke", default="")
 
 
 def atomic_text(path: Path, text: str) -> None:
@@ -761,9 +761,9 @@ def collect_snapshot(
     swift: Path,
     swiftc: Path,
     swift_format: Path,
-    check_product: str,
+    check_product: str | None,
     expected_check: str,
-    smoke_product: str,
+    smoke_product: str | None,
     expected_smoke: str,
 ) -> dict[str, Any]:
     """Collect one source-preserving SwiftPM and lexical snapshot."""
@@ -819,6 +819,20 @@ def collect_snapshot(
     if not package.is_file():
         snapshot.update(status="partial", failure_kind="swiftpm-project-incomplete")
         return snapshot
+
+    # Preserve hash-bound lexical evidence even when a later SwiftPM/native
+    # gate cannot complete. Real packages commonly have dependencies, plugins,
+    # or no executable smoke products; those facts limit project validation,
+    # but they do not make the authored source bytes disappear.
+    for row in inventory:
+        if row["role"] != "candidate" or not row["selected"]:
+            continue
+        code_mask, comment_mask, comments, lexical_errors = lexical_facts(row["_source"])
+        if lexical_errors:
+            row.update(role="failed", reason="lexical-provider-failed", detail="; ".join(lexical_errors))
+            errors.append(f"{row['file']}:lexical-provider-failed")
+            continue
+        row.update(comments=comments, _mask=code_mask, _comment_mask=comment_mask)
 
     with tempfile.TemporaryDirectory(prefix="swift-project-lexical-") as temporary:
         state = Path(temporary)
@@ -953,6 +967,8 @@ def collect_snapshot(
             ("direct-check", check_product, expected_check),
             ("executable-smoke", smoke_product, expected_smoke),
         ):
+            if not product:
+                continue
             executable = state / "build" / "debug" / product
             argv = [str(executable)]
             result = _run(argv, root, timeout=30)
@@ -963,6 +979,8 @@ def collect_snapshot(
 
     for row in inventory:
         if row["role"] != "eligible":
+            continue
+        if "_mask" in row:
             continue
         code_mask, comment_mask, comments, lexical_errors = lexical_facts(row["_source"])
         if lexical_errors:

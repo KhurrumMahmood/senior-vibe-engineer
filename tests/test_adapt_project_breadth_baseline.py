@@ -126,3 +126,32 @@ def test_canonical_discovery_identifies_specialized_real_repo_shapes(
         scan / "report.md"
     ).read_text(encoding="utf-8")
     assert _state(host) == before
+
+
+def test_canonical_discovery_identifies_swiftpm_without_counting_tests(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "swift"
+    _write(host / "Package.swift", "// swift-tools-version: 6.0\n")
+    _write(host / ".swift-format", "{}\n")
+    _write(host / "Sources/Core/Engine.swift", "public struct Engine {}\n")
+    _write(host / "Tests/CoreTests/EngineTests.swift", "struct EngineTests {}\n")
+    _write(host / "Examples/Demo.swift", "print(\"demo\")\n")
+    before = _state(host)
+
+    adapter, scan = _discover(host, tmp_path / "swift-artifacts", "swift")
+
+    source = next(row for row in adapter["source_roots"] if row["path"] == "Sources")
+    assert adapter["stack"]["languages"] == ["swift"]
+    assert adapter["stack"]["package_managers"] == ["swiftpm"]
+    assert adapter["stack"]["markers"] == ["Package.swift", ".swift-format"]
+    assert source["swift_files"] == 1
+    assert not any(row["path"] in {"Tests", "Examples"} for row in adapter["source_roots"])
+    assert adapter["commands"] == {
+        "test": ["swift test"],
+        "lint": ["swift-format lint --strict --recursive Sources"],
+        "dev": [],
+        "setup": ["swift package resolve"],
+    }
+    assert "Swift: 1" in (scan / "report.md").read_text(encoding="utf-8")
+    assert _state(host) == before

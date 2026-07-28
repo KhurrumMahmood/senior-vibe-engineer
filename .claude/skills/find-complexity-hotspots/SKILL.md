@@ -73,6 +73,10 @@ the exact commands, nested-callable boundaries, native gates, and non-claims.
 For Ruby complexity only, a missing gem lockfile or unavailable frozen bundle
 does not erase source-bound Prism leads; the report remains `partial` /
 `safe-defer-incomplete` and never claims a clean project result.
+Swift complexity likewise accepts an external `--output-dir` with
+`--no-host-write`. A dependency, plugin, or target-shape gate may preserve
+hash-bound lexical leads under `partial` / `incomplete`; only a passed compiler
+gate labels them compiler-validated.
 
 ## Dart v1
 

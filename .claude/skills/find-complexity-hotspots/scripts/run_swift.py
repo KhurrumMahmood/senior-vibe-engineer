@@ -87,15 +87,8 @@ def _public(facts: dict[str, Any], producer: ModuleType | None) -> dict[str, Any
 
 def _output(root: Path, requested: Path) -> Path:
     output = Path(os.path.abspath(requested if requested.is_absolute() else root / requested))
-    try:
-        relative = output.relative_to(root)
-    except ValueError as exc:
-        raise ValueError("output must remain inside the project") from exc
-    current = root
-    for part in relative.parts:
-        current /= part
-        if current.is_symlink():
-            raise ValueError("output must not cross a symlink")
+    if output == root:
+        raise ValueError("output must not replace the project root")
     return output
 
 
@@ -103,10 +96,10 @@ def _tool_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--swift", type=Path, default=Path("swift"))
     parser.add_argument("--swiftc", type=Path, default=Path("swiftc"))
     parser.add_argument("--swift-format", type=Path, default=Path("swift-format"))
-    parser.add_argument("--check-product", required=True)
-    parser.add_argument("--expected-check", required=True)
-    parser.add_argument("--smoke-product", required=True)
-    parser.add_argument("--expected-smoke", required=True)
+    parser.add_argument("--check-product")
+    parser.add_argument("--expected-check", default="")
+    parser.add_argument("--smoke-product")
+    parser.add_argument("--expected-smoke", default="")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -114,6 +107,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project-root", required=True, type=Path)
     parser.add_argument("--target", required=True)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument(
+        "--no-host-write",
+        action="store_true",
+        help="Require output-dir outside project-root for read-only dogfood",
+    )
     _tool_arguments(parser)
     args = parser.parse_args(argv)
     root = args.project_root.resolve()
@@ -122,6 +120,13 @@ def main(argv: list[str] | None = None) -> int:
         output = _output(root, args.output_dir)
     except ValueError as exc:
         parser.error(str(exc))
+    if args.no_host_write:
+        try:
+            output.relative_to(root)
+        except ValueError:
+            pass
+        else:
+            parser.error("--no-host-write requires output-dir outside project-root")
     latest = output.parent / "latest"
     latest.unlink(missing_ok=True)
     for name in ARTIFACTS:
@@ -129,9 +134,13 @@ def main(argv: list[str] | None = None) -> int:
 
     facts, producer, code = _facts(args)
     findings: list[dict[str, Any]] = []
-    if facts["status"] == "complete" and producer is not None:
+    compiler_validated = any(
+        row.get("id") == "compiler-parse" and row.get("returncode") == 0
+        for row in facts.get("native_checks", [])
+    )
+    if producer is not None and facts["status"] != "failed":
         for row in facts["inventory"]:
-            if row["role"] != "eligible":
+            if row["role"] not in {"eligible", "candidate"} or "_mask" not in row:
                 continue
             for function in producer.function_syntax_facts(row):
                 if function["branch_score"] < BRANCH_THRESHOLD:
@@ -156,9 +165,15 @@ def main(argv: list[str] | None = None) -> int:
                         "branch_events": function["branch_events"],
                         "runtime_cost_claimed": False,
                         "refactor_authority": False,
+                        "evidence_level": (
+                            "compiler-validated-lexical"
+                            if compiler_validated
+                            else "hash-bound-lexical"
+                        ),
                         "summary": (
-                            "direct-body syntax score only; nested callable bodies are "
-                            "excluded and runtime cost remains unmeasured"
+                            "direct-body syntax score only; project-native validation is "
+                            f"{'complete' if compiler_validated else 'incomplete'}, nested callable "
+                            "bodies are excluded, and runtime cost remains unmeasured"
                         ),
                     }
                 )
@@ -187,7 +202,8 @@ def main(argv: list[str] | None = None) -> int:
         },
         "findings": findings,
         "limitation": (
-            "Compiler-validated lexical branch tokens only; no resolved symbols, control-flow "
+            f"{'Compiler-validated' if compiler_validated else 'Hash-bound'} lexical branch "
+            "tokens only; no resolved symbols, control-flow "
             "equivalence, runtime frequency/cost, framework/Xcode truth, or refactor authority."
         ),
     }

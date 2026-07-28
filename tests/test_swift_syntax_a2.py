@@ -319,6 +319,54 @@ def test_three_final_outcomes_roles_native_source_preservation_and_boundaries(
     assert _state(host) == before
 
 
+def test_complexity_external_partial_preserves_hash_bound_syntax_leads(
+    tmp_path: Path,
+) -> None:
+    host = _copy_host(tmp_path)
+    package = host / "Package.swift"
+    package.write_text(
+        package.read_text(encoding="utf-8").replace(
+            "  targets: [",
+            '  dependencies: [.package(url: "https://example.com/dep.git", from: "1.0.0")],\n'
+            "  targets: [",
+        ),
+        encoding="utf-8",
+    )
+    before = _state(host)
+    output = tmp_path / "external" / "swift-hotspots"
+
+    result = _run(
+        str(PYTHON),
+        "-I",
+        "-S",
+        str(ADAPTERS["complexity"]),
+        "--project-root",
+        str(host),
+        "--target",
+        "Sources/SwiftA2Core",
+        "--output-dir",
+        str(output),
+        "--no-host-write",
+        "--swift",
+        str(SWIFT),
+        "--swiftc",
+        str(SWIFTC),
+        "--swift-format",
+        str(SWIFT_FORMAT),
+        cwd=host,
+    )
+
+    assert result.returncode == 2, result.stdout + result.stderr
+    payload = json.loads((output / "findings.json").read_text(encoding="utf-8"))
+    assert payload["status"] == "partial"
+    assert payload["failure_kind"] == "swiftpm-dependencies-outside-contract"
+    assert [(row["function"], row["branch_score"]) for row in payload["findings"]] == [
+        ("routeInvoice", 11)
+    ]
+    assert payload["findings"][0]["evidence_level"] == "hash-bound-lexical"
+    assert _state(host) == before
+
+
 def test_clean_outcomes_are_complete_not_deferred(tmp_path: Path) -> None:
     audit_host = _copy_host(tmp_path, "audit-clean")
     audit_source = audit_host / "Sources/SwiftA2Core/A2Cases.swift"
