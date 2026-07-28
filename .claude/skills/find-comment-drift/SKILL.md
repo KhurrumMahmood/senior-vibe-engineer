@@ -32,34 +32,19 @@ scans: [python, javascript, typescript, go, java, kotlin, csharp, php, ruby, swi
 # /find-comment-drift
 
 ## C# 14 / .NET 10 branch
-
 Trigger this branch only for exact manifest-selected authored `.cs` source.
-Copy the sibling `_csharp` provider and enter through
-`scripts/analyze_comments_csharp.py`; run it with `--help` for the exact CLI.
-It emits `detections.jsonl`, `scan.json`, `findings.json`, and `report.md` under
-one named `reports/find-comment-drift/` run directory. The four frozen lexical
-bands are legacy-term spelling, source-line-shaped reference, section/banner
-form, and imperative narration without a rationale lexeme.
-
-Only Roslyn comment trivia can create a lead. Findings retain the exact
-half-open Roslyn `TextSpan` in zero-based UTF-16 code units, comment form,
-spelling hash, source hash, and a per-pattern non-claim. Strings, directives,
-disabled text, tests, generated/vendor/build/tooling/symlink inputs, malformed
-source, and incomplete projects never become production findings. The branch
-does not attach prose to a declaration or prove staleness, behavior, runtime
-reachability, XML-doc completeness, or refactor safety. Missing SDK 10.0.302 is
-`unsupported`; malformed source or project evidence is `failed`; neither can
-be reported as clean.
+Copy sibling `_csharp`, enter through `scripts/analyze_comments_csharp.py`, and
+read [`references/csharp.md`](references/csharp.md) first. Findings use
+exact UTF-16 code units. Strings, directives, and disabled text are excluded;
+the branch does not attach prose to a declaration, and runtime reachability or
+XML-doc completeness remain outside its claim.
 
 ## Kotlin/JVM 2.4.10 branch
 
 Trigger this branch only for manifest-selected authored `.kt` comments. Keep
-sibling `_kotlin`, read [`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md), and enter
-through `scripts/analyze_comments_kotlin.py`. It emits four lexical hygiene
-bands with exact comment spans and final advisory/clean artifacts. It does not
-associate comments with declarations or prove semantic/runtime drift; strings,
-tests, generated/vendor/build/tooling/symlink inputs, `.kts`, Java,
-annotations, plugins, Gradle variants, reflection, frameworks, and behavior
+sibling `_kotlin`, read [`../_kotlin/GUIDE.md`](../_kotlin/GUIDE.md) and
+[`references/kotlin.md`](references/kotlin.md), then enter through
+`scripts/analyze_comments_kotlin.py`. Semantic/runtime drift and behavior
 remain outside the claim.
 
 ## Dart v1
