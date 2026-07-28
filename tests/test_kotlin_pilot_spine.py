@@ -1,4 +1,4 @@
-"""Bounded Kotlin/JVM spine, direct build gate, and pending-work truth."""
+"""Bounded Kotlin/JVM spine, direct build gate, and promotion history."""
 from __future__ import annotations
 
 import hashlib
@@ -419,7 +419,7 @@ def test_kotlin_doctor_reports_exact_tools_missing_old_and_malformed(
     )
 
 
-def test_kotlin_feasibility_packet_and_all_22_initial_dispositions() -> None:
+def test_kotlin_feasibility_packet_and_all_22_promotions() -> None:
     packet = PACKET.read_text(encoding="utf-8")
     assert "Kotlin/JVM 2.4.10" in packet
     assert "JDK 17.0.12" in packet
@@ -432,7 +432,13 @@ def test_kotlin_feasibility_packet_and_all_22_initial_dispositions() -> None:
     assert coverage["decision"] == "expand"
     assert len(rows) == 22
     assert {row["skill"] for row in rows} == EXPECTED_SKILLS
-    assert all(row["disposition"] == "kotlin-pending-implementation" for row in rows)
+    baseline = coverage["historical_spine_baseline"]
+    assert baseline["disposition"] == "kotlin-pending-implementation"
+    assert baseline["skill_count"] == 22
+    assert set(baseline["skills"]) == EXPECTED_SKILLS
+    assert all(row["disposition"] == "kotlin-supported" for row in rows)
+    assert set(coverage["current_assertions"]["supported_skills"]) == EXPECTED_SKILLS
+    assert coverage["current_assertions"]["pending_skills"] == []
     assert all(
         row["evidence_path"]
         and row["native_check"]
