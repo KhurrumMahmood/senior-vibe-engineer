@@ -62,3 +62,37 @@ The matching ledger entry is
 `high-assurance-skill-distribution-runtime`, composed with
 `skill-runtime-adherence-harness`, `skill-execution-planner`, and
 `skill-run-state-resume`.
+
+## Preflight delta review — 2026-07-28
+
+`codex/portable-v1-preflight` ends at `c4de33f`. It contains 59 commits not
+reachable from the pre-closeout `main`; the first 55 end at the archive
+revision above and are already dispositioned by this value map. The four-commit
+delta after the archive was reviewed separately rather than merged:
+
+| Commit | Disposition | Reason / current equivalent |
+|---|---|---|
+| `5a8a571` | archive only | Redacted historical agent-policy telemetry is evidence, not product source. |
+| `3e106d4` | archive only | Repairs the retired tree-sitter analysis-fact stack and `distribution_probe.py`. Current language delivery uses profile-driven inventory plus language-local native providers and has completed real-repository validation. The current execution plan explicitly rejected changes to `scripts/_lib/lang_adapter/` for that substrate. Reintroducing this 805-line slice would create a second analysis path. |
+| `36bfce1` | selectively ported | The `distribution_probe.py` half targets a removed release mechanism. The independent test-hygiene lesson remains valid: current pytest imports leave ignored bytecode under skill source directories. `81b7c88` ports only the no-bytecode policy and adds a focused assertion. |
+| `c4de33f` | archive only | Adds multiple adapters per language to the retired `scripts/sweep/` registry, which does not exist on current `main`. Current profiles, fact tiers, and language-local providers already represent multiple bounded capabilities without restoring the sweep runtime. |
+
+The uncommitted work found in the preflight checkout was protected on
+`codex/portable-v1-closeout-2026-07-28` before the checkout was retired:
+
+| Protected commit | Disposition | Reason |
+|---|---|---|
+| `163c8d9` | ported and adapted | The generated query-CLI index prevents false capability-absence claims. It was regenerated for the current command surface, stale productization examples were removed, membership dispatch was supported, and 39 focused tests pass (`a19f8a5`, `c0b39fd`). |
+| `7457cfb` | archive only | The 38 frontmatter edits are unmeasured lexical rewrites from the divergent preflight contracts. Several reduce present-day precision (for example, narrowing a general lifecycle handoff to polling, removing a concrete layer-finding handoff, or describing duplication in Python-only terms). Ten patches also conflict with subsequently generalized contracts. No routing-quality evidence justifies applying the remaining clean patches piecemeal. |
+| `729702e` | archive only | Raw local policy telemetry remains preserved for later research and is not part of the shipped product. |
+
+Verification for this disposition:
+
+- `git rev-list --count main..codex/portable-v1-preflight` reported `59`;
+- `git rev-list --count archive/productization-platform-2026-07-18..codex/portable-v1-preflight` reported `4`;
+- the current real-repository validation plan is complete and explicitly
+  requires repairs on the authoritative product architecture;
+- current `main` has neither `scripts/distribution_probe.py` nor
+  `scripts/sweep/ecosystem.py`; and
+- the selectively ported query index and test-hygiene slices pass their focused
+  suites and repository hooks.
