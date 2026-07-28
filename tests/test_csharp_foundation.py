@@ -116,15 +116,25 @@ def _provider(
 def test_csharp_profile_inventory_roles_and_preservation(tmp_path: Path) -> None:
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))
     assert profile["suffixes"] == [".cs"]
-    assert profile["project_markers"] == ["*.csproj"]
-    assert profile["fact_tiers"] == ["lexical-filesystem"]
+    assert profile["project_markers"] == [
+        "*.csproj",
+        "csharp-project.json",
+        "csharp-semantic-project.json",
+        "global.json",
+        "NuGet.Config",
+    ]
+    assert profile["fact_tiers"] == [
+        "lexical-filesystem",
+        "syntax",
+        "semantic-project",
+    ]
     assert profile["native_tools"] == [
         {
             "id": "dotnet",
             "project_paths": [".dotnet/dotnet", "dotnet/dotnet"],
             "system_commands": ["dotnet"],
             "version_argv": ["{tool}", "--version"],
-            "minimum_version": "10.0.0",
+            "minimum_version": "10.0.302",
             "required": True,
         }
     ]
@@ -184,10 +194,20 @@ def test_csharp_doctor_reports_glob_evidence_and_capability_boundaries(
     shutil.copytree(FIXTURE / "host", host)
     real = _doctor(host, path=str(Path(real_dotnet).parent))
     assert real["status"] == "available"
-    assert real["fact_tiers"] == ["lexical-filesystem"]
+    assert real["fact_tiers"] == [
+        "lexical-filesystem",
+        "syntax",
+        "semantic-project",
+    ]
     assert real["project_markers"] == {
-        "declared": ["*.csproj"],
-        "present": [],
+        "declared": [
+            "*.csproj",
+            "csharp-project.json",
+            "csharp-semantic-project.json",
+            "global.json",
+            "NuGet.Config",
+        ],
+        "present": ["global.json", "NuGet.Config"],
         "matches": {"*.csproj": ["CSharpFoundation.csproj"]},
     }
     assert real["tools"][0]["status"] == "available"
