@@ -423,6 +423,58 @@ def test_ungraded_omnibus_candidate_never_becomes_confirmed(tmp_path: Path) -> N
     assert _jsonl(_output(host, "omnibus") / "omnibus.jsonl") == []
 
 
+def test_complexity_keeps_source_bound_leads_when_only_native_contract_is_missing(
+    tmp_path: Path,
+) -> None:
+    host = _copy_host(tmp_path, "positive")
+    before = _state(host)
+    facts_path = tmp_path / "partial-facts.json"
+    _run(
+        PRODUCT_PYTHON,
+        "-I",
+        "-S",
+        SNAPSHOT,
+        "--project-root",
+        host,
+        "--target",
+        "lib",
+        "--output",
+        facts_path,
+        "--dart",
+        DART,
+        cwd=host,
+        expected=2,
+    )
+    external = tmp_path / "external-artifacts" / "dart"
+
+    _run(
+        PRODUCT_PYTHON,
+        "-I",
+        "-S",
+        ADAPTERS["complexity"],
+        "--project-root",
+        host,
+        "--target",
+        "lib",
+        "--facts",
+        facts_path,
+        "--output-dir",
+        external,
+        "--no-host-write",
+        cwd=tmp_path,
+        expected=2,
+    )
+
+    report = json.loads((external / "findings.json").read_text(encoding="utf-8"))
+    assert (report["status"], report["outcome"]) == ("partial", "incomplete")
+    assert [(row["function"], row["branch_score"]) for row in report["findings"]] == [
+        ("routeInvoice", 18)
+    ]
+    assert "Incomplete evidence" in (external / "report.md").read_text(encoding="utf-8")
+    assert _state(host) == before
+    assert not (host / "reports").exists()
+
+
 @pytest.mark.parametrize("kind", list(ADAPTERS))
 def test_each_consumer_rejects_stale_snapshot_independently(tmp_path: Path, kind: str) -> None:
     host = _copy_host(tmp_path, "positive")

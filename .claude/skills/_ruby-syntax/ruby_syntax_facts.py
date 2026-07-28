@@ -612,6 +612,7 @@ def produce(
     bundler: str | Path = "bundle",
     test: str | None = None,
     smoke: str | None = None,
+    allow_partial_syntax: bool = False,
 ) -> tuple[dict[str, Any], int]:
     root = project_root.resolve()
     target_path = Path(target)
@@ -673,7 +674,10 @@ def produce(
         ), 1 if status == "failed" else 2
 
     prerequisites = (root / "Gemfile", root / "Gemfile.lock")
-    if not all(path.is_file() for path in prerequisites) or not any(root.glob("*.gemspec")):
+    project_incomplete = not all(path.is_file() for path in prerequisites) or not any(
+        root.glob("*.gemspec")
+    )
+    if project_incomplete and not allow_partial_syntax:
         after = _project_manifest(root)
         return _terminal(
             status="partial",
@@ -716,12 +720,17 @@ def produce(
             errors=errors,
         ), 1
 
-    bundled = _bundle_check(root, tools["bundler"]["path"])
-    bundle_check = {
-        "command": "bundle check (frozen, isolated config, no install/update)",
-        "returncode": bundled.returncode,
-    }
-    if bundled.returncode:
+    bundled = None if project_incomplete else _bundle_check(root, tools["bundler"]["path"])
+    bundle_check = (
+        {"status": "not-run", "reason": "ruby-project-incomplete"}
+        if bundled is None
+        else {
+            "command": "bundle check (frozen, isolated config, no install/update)",
+            "returncode": bundled.returncode,
+            "stderr": bundled.stderr[-4000:],
+        }
+    )
+    if bundled is not None and bundled.returncode and not allow_partial_syntax:
         after = _project_manifest(root)
         return _terminal(
             status="failed",
@@ -807,6 +816,30 @@ def produce(
             inventory=inventory,
             files=[],
             ambiguities=ambiguities,
+            tools=tools,
+            prism=prism,
+            bundle_check=bundle_check,
+            syntax_checks=syntax_checks,
+            native=empty,
+            errors=errors,
+        ), 2
+
+    if project_incomplete or (bundled is not None and bundled.returncode):
+        after = _project_manifest(root)
+        return _terminal(
+            status="partial",
+            failure_kind=(
+                "ruby-project-incomplete"
+                if project_incomplete
+                else "bundle-check-failed"
+            ),
+            root=root,
+            target=target_path,
+            before=before,
+            after=after,
+            inventory=inventory,
+            files=files,
+            ambiguities=sorted(ambiguities, key=lambda row: (row["file"], row["kind"])),
             tools=tools,
             prism=prism,
             bundle_check=bundle_check,

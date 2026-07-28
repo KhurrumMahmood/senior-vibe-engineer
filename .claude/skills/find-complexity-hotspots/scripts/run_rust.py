@@ -91,7 +91,15 @@ def main(argv: list[str] | None = None) -> int:
     ]
     findings.sort(key=lambda row: (-row["branch_score"], row["file"], row["lineno"]))
     status = facts["status"]
-    verdict = "scan-blocked" if status == "failed" else "measure-first" if findings else "no-hotspots"
+    verdict = (
+        "scan-blocked"
+        if status == "failed"
+        else "safe-defer-incomplete"
+        if status != "complete"
+        else "measure-first"
+        if findings
+        else "no-hotspots"
+    )
     payload = {
         "status": status,
         "failure_kind": facts["failure_kind"],

@@ -57,7 +57,15 @@ def _facts(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             "ambiguities": [],
             "source_manifest": {"preserved": True},
         }, 2
-    return producer.produce(args.project_root, args.target, ruby=args.ruby, bundler=args.bundler, test=args.test, smoke=args.smoke)
+    return producer.produce(
+        args.project_root,
+        args.target,
+        ruby=args.ruby,
+        bundler=args.bundler,
+        test=args.test,
+        smoke=args.smoke,
+        allow_partial_syntax=True,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -75,7 +83,10 @@ def main(argv: list[str] | None = None) -> int:
         (output / name).unlink(missing_ok=True)
     facts, code = _facts(args)
     findings = []
-    if facts["status"] == "complete":
+    if facts["status"] == "complete" or (
+        facts["status"] == "partial"
+        and facts["failure_kind"] in {"ruby-project-incomplete", "bundle-check-failed"}
+    ):
         findings = [
             {
                 "pattern": "high-branch-method",
@@ -96,7 +107,15 @@ def main(argv: list[str] | None = None) -> int:
         ]
     findings.sort(key=lambda row: (-row["branch_score"], row["file"], row["lineno"]))
     status = facts["status"]
-    verdict = "scan-blocked" if status == "failed" else "measure-first" if findings else "no-hotspots"
+    verdict = (
+        "scan-blocked"
+        if status == "failed"
+        else "safe-defer-incomplete"
+        if status != "complete"
+        else "measure-first"
+        if findings
+        else "no-hotspots"
+    )
     payload = {
         "status": status,
         "failure_kind": facts["failure_kind"],

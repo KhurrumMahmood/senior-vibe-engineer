@@ -75,10 +75,25 @@ def _load(args: argparse.Namespace) -> dict[str, Any]:
         return support.terminal(exc.status, exc.failure_kind, str(exc))
 
 
-def _safe_output(root: Path, requested: Path) -> Path:
+def _safe_output(root: Path, requested: Path, *, no_host_write: bool) -> Path:
     configured = root / "reports/find-complexity-hotspots"
     output = requested if requested.is_absolute() else root / requested
     output = Path(os.path.abspath(output))
+    if no_host_write:
+        try:
+            output.relative_to(root)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("--no-host-write requires --output-dir outside --project-root")
+        if output == Path(output.anchor) or output.suffix.casefold() == ".dart":
+            raise ValueError("external output must name a non-source run directory")
+        current = Path(output.anchor)
+        for part in output.parts[1:]:
+            current /= part
+            if current.is_symlink():
+                raise ValueError("external output must not traverse a symlink")
+        return output
     try:
         relative = output.relative_to(configured)
     except ValueError as exc:
@@ -105,7 +120,17 @@ def _selected(file: str, root: Path, target: str) -> bool:
 
 
 def _findings(snapshot: dict[str, Any], root: Path, target: str) -> list[dict[str, Any]]:
-    if snapshot["status"] != "complete":
+    syntax_usable = snapshot["status"] == "complete" or (
+        snapshot["status"] == "partial"
+        and snapshot["failure_kind"] == "native_contract_unavailable"
+        and snapshot.get("provider", {}).get("source_manifest", {}).get("preserved") is True
+        and all(
+            isinstance(file.get("named_bodies"), list)
+            and isinstance(file.get("direct_body_branches"), list)
+            for file in snapshot.get("provider", {}).get("files", [])
+        )
+    )
+    if not syntax_usable:
         return []
     findings: list[dict[str, Any]] = []
     for file in snapshot["provider"]["files"]:
@@ -171,10 +196,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--target", required=True)
     parser.add_argument("--facts", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument(
+        "--no-host-write",
+        action="store_true",
+        help="Require output-dir outside project-root for read-only dogfood",
+    )
     args = parser.parse_args(argv)
     root = args.project_root.resolve()
     try:
-        output = _safe_output(root, args.output_dir)
+        output = _safe_output(root, args.output_dir, no_host_write=args.no_host_write)
     except ValueError as exc:
         parser.error(str(exc))
     latest = output.parent / "latest"

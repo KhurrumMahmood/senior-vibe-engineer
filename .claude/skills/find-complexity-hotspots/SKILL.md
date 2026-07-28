@@ -70,6 +70,9 @@ read the matching on-demand guide before execution:
 
 These are frozen direct-body syntax scores and advisory leads. The guides own
 the exact commands, nested-callable boundaries, native gates, and non-claims.
+For Ruby complexity only, a missing gem lockfile or unavailable frozen bundle
+does not erase source-bound Prism leads; the report remains `partial` /
+`safe-defer-incomplete` and never claims a clean project result.
 
 ## Dart v1
 
@@ -85,12 +88,20 @@ python3 "${SKILL_ROOT}/scripts/run_dart.py" \
   --output-dir "$PWD/reports/complexity-hotspots/dart"
 ```
 
+For source-preserving dogfood, set `--output-dir` to a path outside the host
+and add `--no-host-write`. A `partial/native_contract_unavailable` snapshot may
+still publish hash-bound syntax leads, but its outcome remains `incomplete` and
+must not be reported as a clean scan.
+
 ## Rust v1
 
 Rust v1 reports advisory direct-body branch scores for named functions. It
 excludes nested functions and braced closures and never infers runtime cost.
 The copied closure must include sibling `_rust-syntax`; cfg, macro/build,
-generated, and symlink uncertainty prevents a clean result.
+generated, and symlink uncertainty prevents a clean result. Locked/offline
+native checks may reuse dependencies already present in the user's Cargo cache
+but never fetch them. A missing cached dependency leaves source-bound syntax
+leads visible with `partial` / `safe-defer-incomplete`; it is not a clean scan.
 
 ```bash
 SKILL_ROOT=".agents/skills/on-demand/find-complexity-hotspots"
@@ -112,9 +123,10 @@ proof that an optimization is safe or valuable.
   Go, and Java findings carry their exact `language`, native analyzer, function
   start/end lines, LOC, and branch score in both JSON artifacts; `report.md`
   prints the analyzer provenance.
-- Use one verdict: `no-hotspots`, `measure-first`, `actionable-hotspot`, or
-  `scan-blocked`. TypeScript findings are normally `measure-first` until native
-  tests and realistic input sizes justify a change.
+- Use one verdict: `no-hotspots`, `measure-first`, `actionable-hotspot`,
+  `safe-defer-incomplete`, or `scan-blocked`. Incomplete evidence must never be
+  presented as `no-hotspots`. TypeScript findings are normally `measure-first`
+  until native tests and realistic input sizes justify a change.
 - This skill never edits source files or claims framework identity, API
   ownership, runtime cost, Java type resolution, or Kotlin/JVM-wide support.
 

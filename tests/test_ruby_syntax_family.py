@@ -381,13 +381,25 @@ def test_each_consumer_valid_failed_valid_clears_stale_and_recovers(
 
     failing = _fake_bundler(tmp_path / f"failing-bundle-{kind}")
     failed = _invoke(host, kind, adapter=copied[kind], bundler=failing)
-    assert failed.returncode == 1
     terminal = _final(host, kind)
-    assert (terminal["status"], terminal["failure_kind"]) == ("failed", "bundle-check-failed")
+    if kind == "complexity":
+        assert failed.returncode == 2
+        assert (terminal["status"], terminal["failure_kind"]) == (
+            "partial",
+            "bundle-check-failed",
+        )
+        assert terminal["verdict"] == "safe-defer-incomplete"
+        assert terminal["findings"]
+    else:
+        assert failed.returncode == 1
+        assert (terminal["status"], terminal["failure_kind"]) == (
+            "failed",
+            "bundle-check-failed",
+        )
     if kind == "audit":
         assert terminal["references"] == [] and terminal["drift"] == []
     elif kind == "complexity":
-        assert terminal["findings"] == []
+        pass
     elif kind == "omnibus":
         assert terminal["findings"] == [] and terminal["missing_scouts"] == []
     else:
@@ -420,6 +432,24 @@ def test_each_consumer_missing_old_and_malformed_sources_are_partial_exit_two(
     assert malformed.returncode == 2, malformed.stdout + malformed.stderr
     assert _final(host, kind)["status"] == "partial"
     assert _state(host) == before
+
+
+def test_complexity_incomplete_project_is_not_presented_as_no_hotspots(
+    tmp_path: Path,
+) -> None:
+    host = _copy_host(tmp_path, "missing-lock")
+    (host / "Gemfile.lock").unlink()
+
+    result = _invoke(host, "complexity")
+
+    assert result.returncode == 2, result.stdout + result.stderr
+    report = _final(host, "complexity")
+    assert report["status"] == "partial"
+    assert report["verdict"] == "safe-defer-incomplete"
+    assert report["verdict"] != "no-hotspots"
+    assert [(row["function"], row["branch_score"]) for row in report["findings"]] == [
+        ("route_invoice", 9)
+    ]
 
 
 @pytest.mark.parametrize("kind", sorted(ADAPTERS))

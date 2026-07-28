@@ -2,9 +2,10 @@
 """Produce bounded, source-preserving Rust syntax facts for read-only skills.
 
 This is deliberately not a universal AST. It inventories first-party Rust,
-validates one locked/offline Cargo workspace with stable native tools, masks
-Rust comments and literals, and emits only comment, function, branch, and
-direct-call facts needed by the four Rust syntax-family consumers.
+attempts a locked/offline Cargo validation with stable native tools, masks Rust
+comments and literals, and emits only comment, function, branch, and direct-call
+facts needed by the four Rust syntax-family consumers. Offline validation may
+reuse an existing local Cargo cache but never fetches dependencies.
 """
 from __future__ import annotations
 
@@ -38,6 +39,11 @@ IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 CFG_RE = re.compile(r"#\s*!?\s*\[\s*cfg(?:_attr)?\b")
 MACRO_RE = re.compile(r"\b(?:macro_rules|include)\s*!|\b[A-Za-z_][A-Za-z0-9_]*\s*!")
 BUILD_OUTPUT_RE = re.compile(r"\b(?:OUT_DIR|include!)\b|fs::write|File::create|cargo:rustc-(?:cfg|env)")
+OFFLINE_DEPENDENCY_RE = re.compile(
+    r"no matching package named|failed to download|attempting to make an HTTP request|"
+    r"can't find crate|could not find .* in registry",
+    re.IGNORECASE,
+)
 CONTROL_WORDS = frozenset({
     "if", "else", "for", "while", "loop", "match", "return", "break",
     "continue", "fn", "struct", "enum", "impl", "trait", "mod", "use",
@@ -523,12 +529,9 @@ def _facts(row: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
 
 
 def _cargo_environment(state: Path, probes: dict[str, Any]) -> dict[str, str]:
-    cargo_home = state / "cargo-home"
     target = state / "target"
-    cargo_home.mkdir(parents=True, exist_ok=True)
     return {
         **os.environ,
-        "CARGO_HOME": str(cargo_home),
         "CARGO_TARGET_DIR": str(target),
         "CARGO_NET_OFFLINE": "true",
         "RUSTC": probes["rustc"]["path"],
@@ -538,7 +541,11 @@ def _cargo_environment(state: Path, probes: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def _native(root: Path, probes: dict[str, Any], selected: list[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:
+def _native(
+    root: Path,
+    probes: dict[str, Any],
+    selected: list[dict[str, Any]],
+) -> tuple[dict[str, Any], str | None, str]:
     with tempfile.TemporaryDirectory(prefix="rust-syntax-") as raw_state:
         state = Path(raw_state)
         env = _cargo_environment(state, probes)
@@ -554,7 +561,10 @@ def _native(root: Path, probes: dict[str, Any], selected: list[dict[str, Any]]) 
         for name, argv in commands.items():
             results[name] = _run(argv, root, env=env)
             if not results[name]["passed"]:
-                return results, f"{name}_failed"
+                transcript = results[name]["stdout"] + "\n" + results[name]["stderr"]
+                if name.startswith("cargo_") and OFFLINE_DEPENDENCY_RE.search(transcript):
+                    return results, "cargo_dependency_cache_unavailable", "partial"
+                return results, f"{name}_failed", "failed"
         for row in selected:
             command = [
                 probes["rustfmt"]["path"],
@@ -564,8 +574,8 @@ def _native(root: Path, probes: dict[str, Any], selected: list[dict[str, Any]]) 
             result = _run(command, root, env=env)
             results.setdefault("rustfmt_files", []).append({"file": row["file"], **result})
             if not result["passed"]:
-                return results, "rustfmt_parse_failed"
-        return results, None
+                return results, "rustfmt_parse_failed", "failed"
+        return results, None, "complete"
 
 
 def _terminal(
@@ -672,7 +682,7 @@ def produce(
             before=before, after=after, inventory=inventory, files=facts,
             ambiguities=ambiguities, tools=probes, native={},
         ), 0
-    native, native_failure = _native(root, probes, selected)
+    native, native_failure, native_status = _native(root, probes, selected)
     after = _project_manifest(root)
     if before != after:
         return _terminal(
@@ -682,10 +692,10 @@ def produce(
         ), 2
     if native_failure:
         return _terminal(
-            status="failed", failure_kind=native_failure, root=root, target=target,
+            status=native_status, failure_kind=native_failure, root=root, target=target,
             before=before, after=after, inventory=inventory, files=facts,
             ambiguities=ambiguities, tools=probes, native=native,
-        ), 2
+        ), 0 if native_status == "partial" else 2
     if any(row["kind"] == "rust_source_read_failed" for row in ambiguities):
         return _terminal(
             status="failed", failure_kind="rust_source_read_failed", root=root, target=target,

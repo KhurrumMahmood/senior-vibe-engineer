@@ -309,6 +309,36 @@ def test_shared_tool_old_and_failing_states_are_honest(
     assert payload["status"] != "unsupported"
 
 
+def test_missing_offline_dependency_cache_keeps_syntax_leads_as_partial(
+    tmp_path: Path,
+) -> None:
+    host = _copy_host(tmp_path, "offline-cache")
+    fake = _fake(
+        host / "cargo-offline-cache",
+        """
+case "${1:-}" in
+  --version) echo 'cargo 1.97.1 (fixture)' ;;
+  metadata) exit 0 ;;
+  check) echo "error: no matching package named 'example-dependency' found" >&2; exit 101 ;;
+  *) exit 0 ;;
+esac
+""",
+    )
+
+    result = _invoke(host, "complexity", extra=("--cargo", str(fake)))
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = _final_json(host, "complexity")
+    assert (report["status"], report["failure_kind"]) == (
+        "partial",
+        "cargo_dependency_cache_unavailable",
+    )
+    assert report["verdict"] == "safe-defer-incomplete"
+    assert [(row["function"], row["branch_score"]) for row in report["findings"]] == [
+        ("route_invoice", 9)
+    ]
+
+
 def test_incomplete_project_symlink_macro_and_build_output_are_not_clean(tmp_path: Path) -> None:
     missing = _copy_host(tmp_path, "missing-project")
     (missing / "Cargo.lock").unlink()
@@ -317,6 +347,13 @@ def test_incomplete_project_symlink_macro_and_build_output_are_not_clean(tmp_pat
     assert result.returncode == 0
     assert payload["status"] == "partial"
     assert payload["failure_kind"] == "cargo_lock_missing"
+
+    complexity = _invoke(missing, "complexity")
+    assert complexity.returncode == 0, complexity.stdout + complexity.stderr
+    complexity_payload = _final_json(missing, "complexity")
+    assert complexity_payload["status"] == "partial"
+    assert complexity_payload["verdict"] == "safe-defer-incomplete"
+    assert complexity_payload["verdict"] != "no-hotspots"
 
     ambiguous = _copy_host(tmp_path, "ambiguous")
     os.symlink(FIXTURE / "symlink-target/External.rs", ambiguous / "crates/syntax-core/src/external.rs")
