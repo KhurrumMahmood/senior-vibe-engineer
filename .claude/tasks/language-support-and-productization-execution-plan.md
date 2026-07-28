@@ -2,7 +2,7 @@
 
 Status: complete
 Current phase: none — P1 through P9 are complete
-Last updated: 2026-07-24 (final product journey closed at `1a56dd4`; exact public package closeout at `568d2f7`)
+Last updated: 2026-07-28 (final product journey closed at `1a56dd4`; branch/worktree closeout integrated through `55dd3cd`)
 
 ## Objective
 
@@ -80,12 +80,11 @@ historical evidence, not competing execution authorities.
   represented on `main` and their working tree is clean. The 2026-07-23 review
   reduced 70 registrations to two by retiring 64 clean patch-equivalent
   worktrees, two reviewed superseded/anomaly worktrees, and the two accepted
-  Dart lanes while retaining every branch and commit. The product checkout is
-  `main`. The only other checkout is the clean archived preflight branch,
-  retained as the repository's primary administrative worktree because its
-  `.git` directory owns the common metadata used by the linked product
-  checkout. Removing it requires a separate metadata migration, not ordinary
-  worktree retirement.
+  Dart lanes while retaining every branch and commit. The 2026-07-28 closeout
+  returned the original administrative checkout to `main` and retired the
+  temporary product checkout after its clean integration. Only `main` remains
+  checked out; the preflight, closeout, archive, and integration histories
+  remain available as branch refs.
 - Implementation workers are fresh non-context sub-agents. Every packet names
   the project/worktree root, `.venv/bin/python`, platform, base SHA, owned and
   forbidden paths, native tools, final artifacts, stop conditions, and exact
@@ -200,10 +199,9 @@ F0 acceptance:
   implied.
 - [x] The committed ledger records the Java byte-equivalence decision and the
   JavaScript supersession plus green mutation regression; branch refs remain.
-- [x] ~~Only `main` remains checked out.~~ The product checkout is `main`; the
-  only other checkout is the clean archived preflight branch that owns Git's
-  common administrative metadata. All completed implementation lanes are
-  retired, and archive/completed lane branches remain as refs.
+- [x] Only `main` remains checked out. The former preflight/admin checkout was
+  returned to `main`, the temporary product checkout was retired cleanly, and
+  all preflight, closeout, archive, and integration histories remain as refs.
 
 ### F1 — Evidence-backed reuse decision
 

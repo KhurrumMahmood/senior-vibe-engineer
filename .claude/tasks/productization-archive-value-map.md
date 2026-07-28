@@ -84,7 +84,7 @@ The uncommitted work found in the preflight checkout was protected on
 |---|---|---|
 | `163c8d9` | ported and adapted | The generated query-CLI index prevents false capability-absence claims. It was regenerated for the current command surface, stale productization examples were removed, membership dispatch was supported, and 39 focused tests pass (`a19f8a5`, `c0b39fd`). |
 | `7457cfb` | archive only | The 38 frontmatter edits are unmeasured lexical rewrites from the divergent preflight contracts. Several reduce present-day precision (for example, narrowing a general lifecycle handoff to polling, removing a concrete layer-finding handoff, or describing duplication in Python-only terms). Ten patches also conflict with subsequently generalized contracts. No routing-quality evidence justifies applying the remaining clean patches piecemeal. |
-| `729702e` | archive only | Raw local policy telemetry remains preserved for later research and is not part of the shipped product. |
+| `729702e`, `1de9e82` | archive only | Raw local policy telemetry, including the final closeout commands, remains preserved for later research and is not part of the shipped product. |
 
 Verification for this disposition:
 
@@ -96,3 +96,14 @@ Verification for this disposition:
   `scripts/sweep/ecosystem.py`; and
 - the selectively ported query index and test-hygiene slices pass their focused
   suites and repository hooks.
+
+A fresh non-context adversarial review independently reproduced the ancestry
+counts, verified every four-commit and protected-WIP disposition, reran the
+generated query-index check, and found no P0-P2 missed value or harmful port.
+The integration candidate's 458-test final tail passed. The one remaining
+repository-wide decode-safety guard fails at the identical 104 locations on
+the pre-integration `main` archive and the candidate; it is therefore recorded
+as inherited follow-up `ML-035`, not hidden as a successful gate or used to
+weaken the no-regression closeout criterion. `main` was fast-forwarded to
+`55dd3cd`, the original checkout was returned to `main`, and the temporary
+product worktree was retired without force.
