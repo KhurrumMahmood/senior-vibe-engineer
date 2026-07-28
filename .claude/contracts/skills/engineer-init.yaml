@@ -6,8 +6,8 @@ schema_version: 2
 skill: engineer-init
 job: meta
 problem_class: "ecosystem runtime bootstrap (META)"
-intent: "Bootstrap the engineering-skills runtime so the script-backed skills can actually run — check Python >= 3.11, create the .venv, install requirements.txt (PyYAML, ruff, pre-commit), wire pre-commit hooks when the repo is git-tracked, and prove the install by running a script-backed skill (skill_meta.py lint) to exit 0. Idempotent: every stage no-ops if its work is already done."
-solves: "Claude Code auto-lists every skill as a slash command BEFORE the runtime exists, so a skill looks available yet fails on its first scripts/*.py call because the venv / PyYAML isn't installed. There was no single idempotent setup path that installed the runtime and verified an actual script-backed call succeeds; the chicken-and-egg (a setup skill cannot depend on the runtime it installs) is resolved by keeping it to stdlib venv + pip, prompt-only."
+intent: "Bootstrap the engineering-skills runtime so script-backed skills actually run — check Python >= 3.11, create the .venv, install requirements.txt and pinned package-lock Node tooling when declared, wire pre-commit hooks, and prove the installed runtimes resolve. Idempotent: every stage no-ops if its work is already done."
+solves: "Agents can discover a skill before its Python or TypeScript parser runtime exists. This provides one idempotent setup path for the venv, locked Python packages, the library-owned TypeScript compiler API, dependency verification, and hooks without installing system-wide language runtimes."
 born:
   commit: "90f8567"
   date: "2026-05-15"

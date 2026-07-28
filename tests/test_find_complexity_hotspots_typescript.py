@@ -58,9 +58,15 @@ def _documented_command(skill: Path, name: str) -> str:
     return match.group(1)
 
 
-def _run_pipeline(skill: Path, host: Path, *, isolated: bool) -> list[dict]:
+def _run_pipeline(
+    skill: Path,
+    host: Path,
+    *,
+    isolated: bool,
+    artifact_root: Path | None = None,
+) -> list[dict]:
     prefix = (sys.executable, "-I", "-S") if isolated else (sys.executable,)
-    result = _run(
+    args = [
         *prefix,
         str(skill / "scripts" / "run.py"),
         "--project-root",
@@ -68,11 +74,18 @@ def _run_pipeline(skill: Path, host: Path, *, isolated: bool) -> list[dict]:
         "--language",
         "typescript",
         "--skip-effectiveness-log",
-        ".",
+    ]
+    if artifact_root is not None:
+        args.extend(["--artifact-root", str(artifact_root), "--no-host-write"])
+    args.append(".")
+    result = _run(
+        *args,
         cwd=host,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    report_dir = (host / "reports" / "find-complexity-hotspots" / "latest").resolve()
+    report_dir = (
+        (artifact_root or host) / "reports" / "find-complexity-hotspots" / "latest"
+    ).resolve()
     findings = json.loads((report_dir / "findings.json").read_text(encoding="utf-8"))
     assert findings["summary"]["findings_total"] == 3
     assert "typescript" in (report_dir / "report.md").read_text(encoding="utf-8")
@@ -113,6 +126,40 @@ def test_typescript_outcome_reaches_final_report_with_provenance_and_spans(tmp_p
     _assert_typescript_outcome(records)
 
 
+def test_javascript_commonjs_function_assignments_are_analyzed(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path)
+    assignment = host / "src" / "prototype.js"
+    branches = "\n".join(f"  if (value === {index}) return {index};" for index in range(18))
+    assignment.write_text(
+        "const service = {};\n"
+        "service.route = function route(value) {\n"
+        f"{branches}\n"
+        "  return -1;\n"
+        "};\n",
+        encoding="utf-8",
+    )
+    output = host / "commonjs.jsonl"
+
+    result = _run(
+        sys.executable,
+        str(SKILL / "scripts" / "detect.py"),
+        "--project-root",
+        str(host),
+        "--output",
+        str(output),
+        "--language",
+        "javascript",
+        "src/prototype.js",
+        cwd=host,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    records = _records(output)
+    assert [(row["symbol"], row["branch_score"]) for row in records] == [
+        ("service.route", 18)
+    ]
+
+
 def test_typescript_syntax_and_prerequisite_failures_are_clear(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     broken = host / "src" / "broken.ts"
@@ -149,8 +196,25 @@ def test_typescript_syntax_and_prerequisite_failures_are_clear(tmp_path: Path) -
         "src",
         cwd=missing_ts,
     )
-    assert missing_package.returncode == 2
-    assert "project-local TypeScript package is unavailable" in missing_package.stderr
+    assert missing_package.returncode == 0, missing_package.stdout + missing_package.stderr
+    assert _records(missing_ts / "out.jsonl") == []
+
+    isolated_skill = tmp_path / "isolated-skill"
+    shutil.copytree(SKILL, isolated_skill)
+    unavailable = _run(
+        sys.executable,
+        str(isolated_skill / "scripts" / "detect.py"),
+        "--project-root",
+        str(missing_ts),
+        "--output",
+        str(missing_ts / "unavailable.jsonl"),
+        "--language",
+        "typescript",
+        "src",
+        cwd=missing_ts,
+    )
+    assert unavailable.returncode == 2
+    assert "TypeScript parser package is unavailable" in unavailable.stderr
 
     missing_node = _run(
         sys.executable,
@@ -227,6 +291,24 @@ def test_copied_skill_runs_without_toolkit_or_sibling_runtime(tmp_path: Path) ->
     )
     assert "scripts/_lib" not in closure
     assert "/_common" not in closure
+
+
+def test_typescript_pipeline_uses_library_runtime_and_external_artifacts(
+    tmp_path: Path,
+) -> None:
+    host = _copy_host(tmp_path)
+    shutil.rmtree(host / "node_modules")
+    artifact_root = tmp_path / "external-artifacts"
+
+    records = _run_pipeline(
+        SKILL,
+        host,
+        isolated=True,
+        artifact_root=artifact_root,
+    )
+
+    _assert_typescript_outcome(records)
+    assert not (host / "reports").exists()
 
 
 def test_stock_install_runs_documented_commands_verbatim_under_host_python(tmp_path: Path) -> None:

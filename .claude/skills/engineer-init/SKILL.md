@@ -1,6 +1,6 @@
 ---
 name: engineer-init
-description: Bootstrap the engineering-skills runtime so the script-backed skills can actually run. Health-checks candidate Python >= 3.11 interpreters, creates the .venv, installs requirements.txt (PyYAML, ruff, pre-commit), wires pre-commit hooks when the repo is git-tracked, and verifies the install by running a script-backed skill end to end. Idempotent — safe to re-run; each stage skips work already done. Run once per clone, or whenever a skill fails with a missing-module / dependency error. Does not edit production code, does not git-init, and does not scaffold a new project (that is /init-project).
+description: Bootstrap the engineering-skills runtime so the script-backed skills can actually run. Health-checks candidate Python >= 3.11 interpreters, creates the .venv, installs requirements.txt plus pinned package-lock Node tooling when declared, wires pre-commit hooks when the repo is git-tracked, and verifies the install by running script-backed paths. Idempotent — safe to re-run; each stage skips work already done. Run once per clone, or whenever a skill fails with a missing-module / dependency error. Does not edit production code, does not git-init, and does not scaffold a new project (that is /init-project).
 argument-hint: "[--check] [--python /absolute/path]"
 allowed-tools: Bash, Read
 user-invocable: true
@@ -11,16 +11,17 @@ best_for: |
   project that vendored it) to the point where the script-backed skills
   actually run. The common trigger: Claude Code lists a skill as a slash
   command, you invoke it, and it fails on its first scripts/*.py call
-  because the venv / PyYAML isn't installed. Also the fix when ruff or
-  pre-commit is missing. Idempotent status check via --check.
+  because the venv / PyYAML or library-owned Node tooling isn't installed. Also
+  the fix when ruff, pre-commit, or library-owned Node tooling is missing.
+  Idempotent status check via --check.
 not_for: |
   Greenfield project scaffolding — conventions, lint/CI, baseline ADRs
   and subsystem maps (use /init-project when it ships; until then seed
   them by hand). Installing the ecosystem INTO a host project — copying
   or symlinking .claude/, scripts/, ai-docs/ is a manual step this skill
   does not perform. Upgrading or re-pinning dependencies — edit
-  requirements.txt directly. Running git init — this skill detects a git
-  repo but never creates one; that is the repo owner's call.
+  requirements.txt or package-lock.json directly. Running git init — this
+  skill detects a git repo but never creates one; that is the repo owner's call.
 escalate_to: |
   /init-project (planned) when the task is greenfield project
   scaffolding rather than runtime setup. /which-skill once the runtime
@@ -34,14 +35,15 @@ framework: any
 You are the **bootstrapper** for the engineering-skills runtime. Most
 skills in this ecosystem shell out to helper scripts under `scripts/`
 (`decisions.py`, `plans.py`, `ledger.py`, `skill_meta.py`, the lint
-runner) that need `PyYAML` from `requirements.txt`. Claude Code
+runner) that need `PyYAML` from `requirements.txt`; JavaScript-family analysis
+also needs the pinned TypeScript compiler API from `package-lock.json`. Claude Code
 auto-discovers and lists every skill as a slash command *before* that
 runtime exists — so a skill can look available and still fail on its
 first script call. This skill closes that gap: it installs the runtime
 and proves it works.
 
 You do NOT edit production code, author docs, or create a git
-repository. The only things you change on disk are the `.venv/`
+repository. The only things you change on disk are the `.venv/`, `node_modules/`
 directory and (when a git repo is present) the project's pre-commit
 hook. Everything else is read-only inspection and a verification run.
 
@@ -53,8 +55,9 @@ hook. Everything else is read-only inspection and a verification run.
   importing required stdlib modules.
 - Stage 2 leaves `.venv/bin/python` present, healthy, and tied to this
   directory rather than a stale pre-rename venv.
-- Stage 3 resolves `PyYAML`, `ruff`, and `pre-commit` from the venv by
-  installing `requirements.txt` with `.venv/bin/python -m pip`.
+- Stage 3 resolves `PyYAML`, `ruff`, and `pre-commit` from the venv and,
+  when `package-lock.json` exists, installs and verifies its exact TypeScript
+  runtime with `npm ci --ignore-scripts`.
 - Stage 5 prints the real runtime gates: `.venv/bin/ruff --version`,
   `.venv/bin/python scripts/decisions.py list`, and
   `.venv/bin/python scripts/skill_meta.py lint`. The run is done only
@@ -169,7 +172,7 @@ healthy base interpreter.
 ### Stage 3 — Install dependencies
 
 **Pre:** venv present. **Post:** `PyYAML`, `ruff`, `pre-commit` resolve
-from the venv.
+from the venv and the pinned TypeScript compiler API resolves from the library.
 
 The Stage 1 helper runs `.venv/bin/python -m pip install -r requirements.txt`
 and `.venv/bin/python -m pip check`, plus an import check for PyYAML when it is
@@ -177,6 +180,12 @@ declared. Always use `python -m pip`, never the `.venv/bin/pip` shim.
 
 `pip` is idempotent — satisfied requirements are left alone. If it fails on a
 network error, stop and report it; the first install needs PyPI reachable.
+
+When `package-lock.json` exists, the helper also requires Node.js >=20 and npm,
+runs `npm ci --ignore-scripts --no-audit --no-fund`, and verifies that the
+installed `typescript/package.json` version matches the lock. This runtime is
+owned by the external skill library; host projects may still use their own
+TypeScript package, which analyzers prefer when available.
 
 Optional dev/CI extras (the status-dashboard browser smoke) live in
 `requirements-dev.txt` — install only when working on the renderer or
@@ -210,6 +219,7 @@ Run the three checks. Each exercises a different layer of the runtime:
 .venv/bin/ruff --version                     # ruff resolves
 .venv/bin/python scripts/decisions.py list    # PyYAML frontmatter path
 .venv/bin/python scripts/skill_meta.py lint   # whole-skill frontmatter parse
+node -e "require('typescript')"               # pinned parser resolves (when declared)
 ```
 
 `skill_meta.py lint` exiting 0 is the load-bearing signal — it parses
@@ -224,7 +234,7 @@ Report to the user in <= 8 lines:
 
 - Python version used.
 - venv: created / already present.
-- deps: installed / already satisfied.
+- Python/Node deps: installed / already satisfied / not declared.
 - pre-commit hooks: wired / skipped (and why).
 - Verify: the `skill_meta.py lint` result line.
 - Next move: `/which-skill "<task>"` if the user has a task in mind, or
@@ -246,8 +256,8 @@ MISSING with the one fixing command, and writes nothing.
 - **Creating a git repository.** The skill detects one and wires hooks
   into it; it never runs `git init`.
 - **Dependency management.** Upgrading, re-pinning, or adding deps means
-  editing `requirements.txt` by hand. This skill only installs what is
-  already pinned there.
+  editing `requirements.txt` or `package-lock.json` by hand. This skill only
+  installs what is already pinned there.
 - **Editing production code or docs.**
 
 ## When things go sideways
@@ -258,6 +268,8 @@ MISSING with the one fixing command, and writes nothing.
 | No candidate passes the Python health probe | Install Python >= 3.11, then rerun with `--python /absolute/path`; do not lower `pyproject.toml`. |
 | `pip install` fails on a network error | Stop and report. First install needs PyPI; a re-run on a healthy network is safe (idempotent). |
 | `pip install` fails on a build error for one package | Report the failing package and its error; the venv is partially populated — Stage 3 is safe to re-run after the cause is fixed. |
+| Node.js or npm is missing when `package-lock.json` exists | Install Node.js >=20 with npm, then rerun; the helper does not install a system-wide Node runtime. |
+| `npm ci` fails | Report the npm error. The library runtime is incomplete; rerunning Stage 3 after fixing network/cache access is safe. |
 | `.venv` exists but `.venv/bin/python` is missing or broken | The venv is corrupt. Remove `.venv/` and re-run; Stage 2 rebuilds it. |
 | Not a git repo (Stage 4) | Expected for an unversioned copy. Hooks are skipped, not failed. `git init` + re-run enables them. |
 | `skill_meta.py lint` exits 1 on a frontmatter diagnostic | Runtime is fine — this is a skill-authoring issue. Report the diagnostic; recommend fixing the offending SKILL.md, not re-running setup. |

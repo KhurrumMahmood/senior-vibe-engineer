@@ -287,8 +287,9 @@ def _load_database(
     root: Path,
     clang: Path,
     readable: dict[Path, dict[str, Any]],
-) -> tuple[list[dict[str, Any]], dict[Path, list[Path]]]:
-    database = root / "compile_commands.json"
+    database: Path,
+    target: Path,
+) -> tuple[list[dict[str, Any]], dict[Path, list[Path]], list[Path]]:
     if not database.is_file():
         raise Terminal(
             "unsupported", "compile_database_missing",
@@ -307,61 +308,76 @@ def _load_database(
         )
     entries: list[dict[str, Any]] = []
     actual: set[Path] = set()
+    eligible = _eligible_tus(root, readable)
     for row in payload:
-        if (
-            set(row) != {"directory", "file", "arguments"}
-            or not isinstance(row["arguments"], list)
-            or any(not isinstance(token, str) for token in row["arguments"])
-        ):
+        if not {"directory", "file"} <= set(row) or not set(row) <= {
+            "directory", "file", "arguments", "command", "output"
+        }:
             raise Terminal(
                 "failed", "compile_database_malformed",
-                "Each compile command requires exact directory, file, and string arguments fields.",
+                "Each compile command requires directory, file, and exactly one command form.",
                 code=2,
             )
         directory = Path(row["directory"])
-        source = Path(row["file"])
-        if not directory.is_absolute() or directory.resolve(strict=False) != root:
+        if not directory.is_absolute():
             raise Terminal(
                 "unsupported", "compile_database_mismatched_directory",
-                "Every compile command directory must name the project root.",
+                "Every compile command directory must be absolute.",
             )
-        if not source.is_absolute() or not _inside(source.resolve(strict=False), root):
+        directory = directory.resolve(strict=False)
+        raw_source = Path(row["file"])
+        source = raw_source if raw_source.is_absolute() else directory / raw_source
+        source = source.resolve(strict=False)
+        if not _inside(source, root):
             raise Terminal(
                 "unsupported", "compile_database_mismatched_directory",
-                "Every compile command source must stay inside the project root.",
+                "Every compile command source must resolve inside the project root.",
             )
-        if not _is_c_command(row["arguments"], row["file"]):
+        if source.suffix.casefold() not in SOURCE_SUFFIXES or source not in eligible:
+            continue
+        has_arguments = isinstance(row.get("arguments"), list)
+        has_command = isinstance(row.get("command"), str)
+        if has_arguments == has_command:
+            raise Terminal(
+                "failed", "compile_database_malformed",
+                "Each compile command requires exactly one of arguments or command.", code=2,
+            )
+        arguments = list(row["arguments"]) if has_arguments else shlex.split(row["command"])
+        if any(not isinstance(token, str) or not token for token in arguments):
+            raise Terminal(
+                "failed", "compile_database_malformed",
+                "Compile-command arguments must be non-empty strings.", code=2,
+            )
+        raw_file = str(row["file"])
+        arguments = [str(source) if token == raw_file else token for token in arguments]
+        if not _is_c_command(arguments, str(source)):
             raise Terminal(
                 "unsupported", "compile_database_non_c_command",
                 "Every compile command must be explicit C17 mode.",
             )
-        compiler = _resolve_tool(row["arguments"][0])
+        compiler = _resolve_tool(arguments[0])
         if compiler is None or compiler != clang:
             raise Terminal(
                 "unsupported", "compile_database_non_c_command",
                 "Every compile command must use the version-gated Clang executable.",
             )
-        resolved = source.resolve(strict=False)
-        if resolved in actual:
+        if source in actual:
             raise Terminal(
                 "failed", "compile_database_malformed",
                 "Duplicate translation-unit entries are not allowed.", code=2,
             )
-        actual.add(resolved)
+        actual.add(source)
         entries.append({
-            "directory": str(root), "file": str(resolved), "arguments": row["arguments"]
+            "directory": str(directory), "file": str(source), "arguments": arguments
         })
-    expected = _eligible_tus(root, readable)
-    if actual != expected:
-        raise Terminal(
-            "partial", "compile_database_incomplete",
-            "Compilation database does not exactly cover first-party C translation units.",
-        )
+    expected = {path for path in eligible if _selected(path, target)}
+    missing = sorted(expected - actual)
     dependencies: dict[Path, list[Path]] = {}
     for entry in sorted(entries, key=lambda item: item["file"]):
         source = Path(entry["file"])
         result = _run(
-            _analysis_argv(entry, clang, "-MM", "-MT", _relative(source, root)), root
+            _analysis_argv(entry, clang, "-MM", "-MT", _relative(source, root)),
+            Path(entry["directory"]),
         )
         if result.returncode != 0:
             raise Terminal(
@@ -382,7 +398,7 @@ def _load_database(
             "partial", "compile_database_stale",
             "compile_commands.json predates a compiler-owned input.",
         )
-    return sorted(entries, key=lambda item: item["file"]), dependencies
+    return sorted(entries, key=lambda item: item["file"]), dependencies, missing
 
 
 def _selected(path: Path, target: Path) -> bool:
@@ -645,6 +661,7 @@ def produce(
     target: Path,
     *,
     clang: str | None = None,
+    compile_database: Path | None = None,
 ) -> tuple[dict[str, Any], int]:
     root = project_root.resolve()
     target = target if target.is_absolute() else root / target
@@ -667,8 +684,15 @@ def produce(
     try:
         tool = _probe_clang(root, clang)
         clang_path = Path(tool["path"])
-        entries, dependencies = _load_database(root, clang_path, readable)
-        owned = set(_eligible_tus(root, readable))
+        database_path = (
+            compile_database.resolve()
+            if compile_database is not None
+            else root / "compile_commands.json"
+        )
+        entries, dependencies, missing_tus = _load_database(
+            root, clang_path, readable, database_path, target
+        )
+        owned = {Path(entry["file"]) for entry in entries}
         for paths in dependencies.values():
             owned.update(paths)
         selected_paths = sorted(path for path in owned if _selected(path, target))
@@ -700,7 +724,7 @@ def produce(
                 _analysis_argv(
                     entry, clang_path, "-Xclang", "-ast-dump=json", "-fsyntax-only"
                 ),
-                root,
+                Path(entry["directory"]),
             )
             if result.returncode != 0:
                 raise Terminal(
@@ -735,7 +759,7 @@ def produce(
                     "failed", "compile_database_ownership_failed",
                     f"No compile command owns {_relative(path, root)}.", code=2,
                 )
-            raw = _run(_raw_command(clang_path, entry, path), root)
+            raw = _run(_raw_command(clang_path, entry, path), Path(entry["directory"]))
             raw_text = raw.stdout + raw.stderr
             if raw.returncode != 0 or not raw_text.strip():
                 raise Terminal(
@@ -756,9 +780,14 @@ def produce(
                 "Project fingerprints changed during read-only C analysis.", code=2,
             )
         payload = _terminal_payload(
-            status="complete",
-            kind="none",
-            detail="Complete for the exact current C17 compile-command snapshot.",
+            status="partial" if missing_tus else "complete",
+            kind="compile_database_incomplete" if missing_tus else "none",
+            detail=(
+                "Useful syntax facts were produced, but the compilation database "
+                "does not cover every first-party C translation unit in the target."
+                if missing_tus
+                else "Complete for the exact current C17 compile-command snapshot."
+            ),
             root=root,
             target=target,
             before=before,
@@ -766,10 +795,21 @@ def produce(
             inventory=inventory,
             tool=tool,
             database={
-                "path": "compile_commands.json",
-                "state": "valid-current-complete-c-mode",
+                "path": (
+                    "compile_commands.json"
+                    if database_path == root / "compile_commands.json"
+                    else str(database_path)
+                ),
+                "state": (
+                    "valid-current-partial-target-c-mode"
+                    if missing_tus
+                    else "valid-current-complete-c-mode"
+                ),
                 "entries": len(entries),
                 "translation_units": [_relative(Path(entry["file"]), root) for entry in entries],
+                "missing_target_translation_units": [
+                    _relative(path, root) for path in missing_tus
+                ],
                 "owned_headers": sorted(
                     _relative(path, root)
                     for paths in dependencies.values()
@@ -800,13 +840,19 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--project-root", required=True, type=Path)
     parser.add_argument("--target", required=True, type=Path)
     parser.add_argument("--clang")
+    parser.add_argument("--compile-database", type=Path)
     parser.add_argument("--json", action="store_true")
     return parser
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    payload, code = produce(args.project_root, args.target, clang=args.clang)
+    payload, code = produce(
+        args.project_root,
+        args.target,
+        clang=args.clang,
+        compile_database=args.compile_database,
+    )
     if args.json:
         print(json.dumps(payload, sort_keys=True))
     return code

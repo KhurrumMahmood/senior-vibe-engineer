@@ -1,0 +1,11 @@
+{
+  "name": "engineering-skills-tooling",
+  "private": true,
+  "description": "Pinned JavaScript tooling used by the external engineering-skills library.",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "typescript": "5.9.3"
+  }
+}

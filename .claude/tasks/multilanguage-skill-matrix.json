@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": ".claude/skills/which-skill/catalog.json",
-      "sha256": "7adad86f1c32dad4a3031c6f670b6b6b6813f6f6a12577bba463bbd4f96bdf9c"
+      "sha256": "7d10dffc1d0cb344a756aae29bcdb83a01f70d5dc733f4d466e4296589fdc3da"
     },
     {
       "path": ".claude/tasks/typescript-skill-coverage.json",

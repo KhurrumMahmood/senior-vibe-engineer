@@ -108,7 +108,9 @@ conversational.
 The default router installation also bundles `scripts/bootstrap_library.py`
 and its stdlib-only `scripts/setup_runtime.py` helper. Run the bootstrap once
 from the host project to materialize the full repository outside agent
-discovery and leave its Python >= 3.11 venv plus pinned requirements ready:
+discovery and leave its Python >= 3.11 venv plus pinned Python and Node tooling
+ready. The Node lane is installed only when the library has a
+`package-lock.json`; it never adds packages to the analyzed host:
 
 ```bash
 PROJECT_ROOT="$PWD"
@@ -307,7 +309,7 @@ move.
 ├── catalog.json              # generated metadata for all distributable skills
 └── scripts/
     ├── bootstrap_library.py  # external library + runtime setup
-    ├── setup_runtime.py      # healthy Python / venv / dependency bootstrap
+    ├── setup_runtime.py      # healthy Python / venv / Python+Node dependency bootstrap
     └── match.py              # stdlib-only installed matcher
 ```
 

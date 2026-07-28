@@ -47,9 +47,14 @@ cognitive complexity, resolved control flow, or refactor safety.
 
 Use `scripts/run_cpp.py` with the sibling `_cpp` provider; run the script with
 `--help` for the exact CLI. It scores direct function bodies from a current
-complete C++20 compile database, with compiler-owned headers and exact
+target-covering C++20 compile database, with compiler-owned headers and exact
 namespace/signature/overload identity. The score says nothing about runtime
 cost, ODR/ABI, specializations, dynamic dispatch, or external variants.
+`--compile-database` accepts a standard CMake-style database outside the host;
+`--no-host-write` requires only the report output to stay outside. A database
+that omits other target translation units retains facts from covered units and
+their owned headers as `partial` / `safe-defer-incomplete` rather than erasing
+them or claiming a clean result.
 
 ## C17 branch
 
@@ -58,6 +63,10 @@ scripts/run_c.py --help` for the exact CLI. This external-library branch emits
 a direct-function-body syntax score from one current C17 compile-command
 snapshot. Macro meaning, runtime cost/control flow, performance, behavior, and
 refactor safety remain unresolved.
+Pass an external Meson/CMake compilation database with `--compile-database`
+and external artifacts with `--no-host-write` when dogfooding a clean checkout.
+Standard `command` or `arguments` rows and mixed C/C++ databases are accepted;
+only selected C17 entries become C evidence.
 
 ## External syntax variants
 
@@ -141,21 +150,25 @@ proof that an optimization is safe or valuable.
 - **Python branch:** the existing stdlib AST detector remains intact: nested
   loops, membership scans, sort/repeated scans, Django QuerySet-like calls in
   loops, and high-branch functions. `--include-tests` affects this branch only.
-- **TypeScript v1:** `.ts` and `.tsx` function declarations, methods, and
-  block-bodied arrows. It counts only syntactically established counterparts of
+- **JavaScript/TypeScript v1:** `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, and `.tsx`
+  function declarations, methods, block-bodied arrows and variable function
+  expressions, and
+  CommonJS/prototype or object-property function assignments. It counts only syntactically established counterparts of
   the existing branch invariant: conditionals, loop forms, try/catch, `with`,
   switch, `&&`/`||`, and ternaries. It does not infer data cost from these
   syntax facts.
-- **TypeScript exclusions:** React/Node/ORM semantics, receiver or
-  type claims, function expressions, expression-bodied arrows, declarations and
+- **JavaScript/TypeScript exclusions:** React/Node/ORM semantics, receiver or
+  type claims, anonymous callback-only function expressions, expression-bodied arrows, declarations and
   overload signatures without a body, declarations (`.d.ts`), and generated,
   vendor, minified, bundle, test, spec, and fixture paths. These exclusions are
   deliberate even when `--include-tests` is present.
-- **TypeScript prerequisite:** Node plus a `typescript` package resolvable from
-  the target host's `package.json`. The bundled family-local Compiler API parser
-  uses `createSourceFile`, not a tsconfig, Program, TypeChecker, shared parser,
-  or fact platform. Missing Node/package, malformed parser output, or TypeScript
-  syntax errors stop the run with exit code 2 instead of silently under-detecting.
+- **JavaScript/TypeScript prerequisite:** Node plus a `typescript` package. The
+  parser prefers the target host's package when available and otherwise uses
+  the pinned package installed at the external engineering-skills library root.
+  The family-local Compiler API parser uses `createSourceFile`, not a tsconfig,
+  Program, TypeChecker, shared parser, or fact platform. Missing both parser
+  packages, missing Node, malformed parser output, or source syntax errors stop
+  the run with exit code 2 instead of silently under-detecting.
 - **Go v1:** `.go` named functions and receiver methods using the host Go
   toolchain's standard-library `go/parser` and `go/ast`. It counts `if`,
   `for`, `range`, `switch`, type-switch, `select`, `&&`, and `||` in the direct

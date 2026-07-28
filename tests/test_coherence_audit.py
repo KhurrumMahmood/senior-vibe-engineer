@@ -212,6 +212,29 @@ def test_unclassified_legacy_reference_is_reported(tmp_path: Path) -> None:
     ]
 
 
+def test_local_reference_checkouts_are_not_scanned_as_project_sources(
+    tmp_path: Path,
+) -> None:
+    audit = _load()
+    _write(
+        tmp_path / ".engineering/local/reference-clone/README.md",
+        "use .claude/old-state.json\n",
+    )
+    fallback = {
+        "legacy": ".claude/old-state.json",
+        "canonical": ".engineering/old-state.json",
+        "owner": "migration",
+        "removal_condition": "after v2",
+        "review_trigger": "release",
+        "allowed_reference_prefixes": ["scripts/allowed.py"],
+    }
+
+    result = audit._reference_audit(tmp_path, [fallback])
+
+    assert result["errors"] == []
+    assert result["rows"][0]["references"] == []
+
+
 def test_host_only_adoption_requires_scope_clarification(tmp_path: Path) -> None:
     audit = _load()
     path = tmp_path / ".claude/ideas/log.jsonl"

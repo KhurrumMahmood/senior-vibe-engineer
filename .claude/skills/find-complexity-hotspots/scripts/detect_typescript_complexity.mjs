@@ -2,10 +2,11 @@
 /**
  * Extract syntax-only per-function JavaScript/TypeScript complexity facts.
  *
- * This launcher is family-local. It resolves the target host's pinned
- * `typescript` package and uses `createSourceFile`; it never reads a tsconfig,
- * resolves imports, constructs a Program/TypeChecker, or infers framework or
- * receiver identity.
+ * This launcher is family-local. It prefers the target host's `typescript`
+ * package, then falls back to the external engineering-skills library's pinned
+ * runtime. It uses `createSourceFile`; it never reads a tsconfig, resolves
+ * imports, constructs a Program/TypeChecker, or infers framework or receiver
+ * identity.
  */
 import { createRequire } from "node:module";
 import fs from "node:fs";
@@ -24,18 +25,27 @@ function parseArgs(argv) {
 
 function loadTypeScript(projectRoot) {
   const packageJson = path.join(projectRoot, "package.json");
-  if (!fs.existsSync(packageJson)) {
-    fail(`project-local TypeScript requires ${packageJson}`);
-  }
-  try {
-    const ts = createRequire(packageJson)("typescript");
-    if (typeof ts.createSourceFile !== "function") {
-      fail("project-local TypeScript package lacks createSourceFile");
+  const attempts = [];
+  if (fs.existsSync(packageJson)) {
+    try {
+      const ts = createRequire(packageJson)("typescript");
+      if (typeof ts.createSourceFile === "function") return ts;
+      attempts.push(`project-local package from ${packageJson} lacks createSourceFile`);
+    } catch (error) {
+      attempts.push(`project-local package from ${packageJson}: ${error.message}`);
     }
-    return ts;
-  } catch (error) {
-    fail(`project-local TypeScript package is unavailable from ${packageJson}: ${error.message}`);
+  } else {
+    attempts.push(`project-local package.json absent at ${packageJson}`);
   }
+
+  try {
+    const ts = createRequire(import.meta.url)("typescript");
+    if (typeof ts.createSourceFile === "function") return ts;
+    attempts.push("engineering-skills TypeScript runtime lacks createSourceFile");
+  } catch (error) {
+    attempts.push(`engineering-skills TypeScript runtime: ${error.message}`);
+  }
+  fail(`TypeScript parser package is unavailable; checked ${attempts.join("; ")}`);
 }
 
 function lineOf(sourceFile, position) {
@@ -103,8 +113,8 @@ function nameText(name, ts) {
   return ts.isIdentifier(name) ? name.text : null;
 }
 
-function complexityRecord(sourceFile, node, body, name, kind, containers, ts) {
-  const symbol = [...containers, name].join(".");
+function complexityRecord(sourceFile, node, body, name, kind, containers, ts, symbolOverride = null) {
+  const symbol = symbolOverride ?? [...containers, name].join(".");
   return {
     name,
     symbol,
@@ -142,16 +152,50 @@ function functions(sourceFile, ts) {
     } else if (ts.isVariableDeclaration(node) && node.initializer) {
       const name = nameText(node.name, ts);
       const initializer = unwrapInitializer(node.initializer, ts);
-      if (name && ts.isArrowFunction(initializer) && ts.isBlock(initializer.body)) {
+      if (
+        name
+        && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+        && ts.isBlock(initializer.body)
+      ) {
         records.push(complexityRecord(
           sourceFile,
           initializer,
           initializer.body,
           name,
           initializer.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)
-            ? "async_arrow" : "arrow",
+            ? "async_function_value" : "function_value",
           containers,
           ts,
+        ));
+      }
+    } else if (
+      ts.isFunctionExpression(node)
+      && node.body
+      && !(ts.isVariableDeclaration(node.parent) && node.parent.initializer === node)
+    ) {
+      let symbol = null;
+      if (
+        ts.isBinaryExpression(node.parent)
+        && node.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+        && node.parent.right === node
+      ) {
+        symbol = node.parent.left.getText(sourceFile);
+      } else if (ts.isPropertyAssignment(node.parent) && node.parent.initializer === node) {
+        symbol = [...containers, node.parent.name.getText(sourceFile)].join(".");
+      } else if (node.name) {
+        symbol = [...containers, node.name.text].join(".");
+      }
+      if (symbol) {
+        const name = node.name?.text ?? symbol.split(".").at(-1);
+        records.push(complexityRecord(
+          sourceFile,
+          node,
+          node.body,
+          name,
+          "function_expression",
+          containers,
+          ts,
+          symbol,
         ));
       }
     }

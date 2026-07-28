@@ -13,6 +13,7 @@ dist/
 .pytest_cache/
 .mypy_cache/
 .playwright-mcp/
+node_modules/
 
 # Reproducible but machine-local evaluation environments, caches, checkouts,
 # and raw model traces. Compact evidence and harnesses live beside this folder.

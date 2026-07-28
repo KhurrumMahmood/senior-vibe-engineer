@@ -155,11 +155,18 @@ def test_public_manifest_is_valid_and_names_are_unique() -> None:
         "typescript",
         "go",
         "java",
+        "javascript",
+        "c",
+        "cpp",
+        "kotlin",
         "php",
         "ruby",
         "rust",
         "dart",
     }
-    assert {entry.slice for entry in entries} == {1, 2}
-    assert all(sum(entry.slice == slice_id for entry in entries) == 4 for slice_id in (1, 2))
+    assert {entry.slice for entry in entries} == {1, 2, 3}
+    assert all(
+        sum(entry.slice == slice_id for entry in entries) == 4
+        for slice_id in (1, 2, 3)
+    )
     assert len(entries) == len({entry.name for entry in entries})

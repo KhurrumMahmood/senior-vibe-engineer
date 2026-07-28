@@ -153,7 +153,7 @@ Initial-slice exit gate:
 |---|---:|---:|---:|---:|
 | Python | yes | yes | yes | yes |
 | TypeScript | yes | yes | yes | yes |
-| JavaScript | yes | yes | pending | pending |
+| JavaScript | yes | yes | yes | yes |
 | Go | yes | yes | yes | yes |
 | Java | yes | yes | yes | yes |
 | PHP | yes | yes | yes | yes |
@@ -161,9 +161,9 @@ Initial-slice exit gate:
 | Swift | yes | yes | pending | pending |
 | Rust | yes | yes | yes | yes |
 | Dart | yes | yes | yes | yes |
-| C | yes | yes | pending | pending |
-| C++ | yes | yes | pending | pending |
-| Kotlin | yes | yes | pending | pending |
+| C | yes | yes | yes | yes |
+| C++ | yes | yes | yes | yes |
+| Kotlin | yes | yes | yes | yes |
 | C# | yes | yes | pending | pending |
 
 ## Current disposition of the preflight findings

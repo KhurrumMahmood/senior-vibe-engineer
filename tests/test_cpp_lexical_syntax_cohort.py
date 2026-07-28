@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -208,23 +209,48 @@ def test_cpp_complexity_writes_useful_artifacts_outside_host(tmp_path: Path) -> 
     host = _copy_host(tmp_path)
     before = _state(host)
     output = tmp_path / "external-artifacts" / "complexity"
+    original = json.loads((host / "compile_commands.json").read_text(encoding="utf-8"))
+    source = (host / "src/syntax.cpp").resolve()
+    row = next(item for item in original if Path(item["file"]) == source)
+    database = tmp_path / "external-artifacts" / "compile_commands.json"
+    database.parent.mkdir(parents=True)
+    database.write_text(
+        json.dumps([{
+            "directory": str(database.parent),
+            "command": shlex.join(row["arguments"]),
+            "file": str(source),
+            "output": "syntax.o",
+        }]),
+        encoding="utf-8",
+    )
 
     result = _run(
         str(PYTHON), "-I", "-S", str(SCRIPTS["complexity"]),
         "--project-root", str(host), "--clangxx", str(CLANGXX),
-        "--target", "src", "--output-dir", str(output), "--no-host-write",
+        "--target", ".", "--output-dir", str(output),
+        "--compile-database", str(database), "--no-host-write",
         cwd=host,
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
     payload = json.loads((output / "findings.json").read_text(encoding="utf-8"))
-    assert payload["status"] == "complete"
+    assert payload["status"] == "partial"
+    assert payload["failure_kind"] == "compile_database_incomplete"
+    assert payload["verdict"] == "safe-defer-incomplete"
     assert [(row["qualified_name"], row["branch_score"]) for row in payload["findings"]] == [
         ("cohort::route_invoice", 8)
     ]
     report = (output / "report.md").read_text(encoding="utf-8")
     assert "Findings: 1" in report
     assert "cohort::route_invoice" in report
+    assert payload["analysis"]["cpp"]["compile_database"]["path"] == str(database)
+    assert payload["analysis"]["cpp"]["compile_database"]["missing_target_translation_units"] == [
+        "src/billing_parser.cpp",
+        "src/billing_types.cc",
+        "src/billing_validator.cxx",
+        "src/main.cpp",
+        "src/omnibus.cpp",
+    ]
     assert _state(host) == before
 
 

@@ -55,7 +55,12 @@ def _facts(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             "inventory": [],
             "source_manifest": {"preserved": True},
         }, 0
-    return producer.produce(args.project_root, args.target, clang=args.clang)
+    return producer.produce(
+        args.project_root,
+        args.target,
+        clang=args.clang,
+        compile_database=args.compile_database,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -64,8 +69,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--target", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--clang")
+    parser.add_argument("--compile-database", type=Path)
+    parser.add_argument(
+        "--no-host-write",
+        action="store_true",
+        help="Require output-dir outside project-root",
+    )
     args = parser.parse_args(argv)
+    root = args.project_root.resolve()
     output = args.output_dir.resolve()
+    if args.no_host_write:
+        try:
+            output.relative_to(root)
+        except ValueError:
+            pass
+        else:
+            parser.error("--no-host-write requires --output-dir outside --project-root")
     for name in ARTIFACTS:
         (output / name).unlink(missing_ok=True)
     facts, code = _facts(args)

@@ -50,7 +50,7 @@ skills retain their coupling. See `docs/language-support-development.md` before
 changing a language claim and `.claude/skills/_common/portability-roadmap.md`
 for the longer-term core/language/framework layering contract.
 
-## Python Environment
+## Runtime Environment
 
 Many scripts and skills are stdlib-only and run on any Python ≥ 3.11.
 Some (e.g. PyYAML-backed frontmatter parsing in `scripts/_lib/`) need
@@ -62,8 +62,10 @@ python3 .claude/skills/which-skill/scripts/setup_runtime.py --project-root .
 ```
 
 The helper health-probes candidate Python >=3.11 interpreters with a timeout,
-creates or rebuilds `.venv`, installs pinned requirements, runs dependency
-checks, and installs hooks for a Git worktree. Pass `--python /absolute/path`
+creates or rebuilds `.venv`, installs pinned Python requirements, installs the
+pinned TypeScript parser from `package-lock.json` when present, runs dependency
+checks, and installs hooks for a Git worktree. The JavaScript tooling requires
+Node.js >=20 and npm. Pass `--python /absolute/path`
 when discovery should use a specific interpreter; if none is healthy, install
 Python 3.11+ first. It does not install a system-wide Python.
 
@@ -75,7 +77,7 @@ venv automatically. CI-only extras (dashboard browser smoke) live in
 `requirements-dev.txt` — optional locally.
 
 `/engineer-init` runs these steps idempotently — Python-version check,
-venv, deps, and pre-commit hooks when the repo is git-tracked — then
+venv, Python/Node deps, and pre-commit hooks when the repo is git-tracked — then
 verifies a script-backed skill runs. Prefer it over the manual block.
 
 **Use `.venv/bin/python` explicitly** (not bare `python`) — sub-agents

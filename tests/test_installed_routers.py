@@ -1476,6 +1476,46 @@ def test_runtime_setup_rejects_an_explicit_python_below_the_minimum(tmp_path):
     assert not (project_root / ".venv").exists()
 
 
+@pytest.mark.skipif(
+    shutil.which("node") is None or shutil.which("npm") is None,
+    reason="Node.js and npm are required for the locked Node runtime proof",
+)
+def test_runtime_setup_installs_and_checks_locked_node_tooling(tmp_path):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "requirements.txt").write_text(
+        "# no packages needed\n", encoding="utf-8"
+    )
+    shutil.copy2(REPO_ROOT / "package.json", project_root / "package.json")
+    shutil.copy2(REPO_ROOT / "package-lock.json", project_root / "package-lock.json")
+    router = _install_router(project_root, "which-skill")
+
+    installed = _run_isolated(
+        router / "scripts" / "setup_runtime.py",
+        "--project-root",
+        str(project_root),
+        "--python",
+        sys.executable,
+        "--no-hooks",
+        cwd=project_root,
+    )
+
+    assert installed.returncode == 0, installed.stdout + installed.stderr
+    assert "node dependencies: TypeScript 5.9.3 verified" in installed.stdout
+    assert (project_root / "node_modules/typescript/package.json").is_file()
+
+    checked = _run_isolated(
+        router / "scripts" / "setup_runtime.py",
+        "--project-root",
+        str(project_root),
+        "--check",
+        "--no-hooks",
+        cwd=project_root,
+    )
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+    assert "node dependencies: TypeScript 5.9.3 verified" in checked.stdout
+
+
 def test_runtime_setup_rebuilds_a_venv_moved_from_another_root(tmp_path):
     project_root = tmp_path / "project"
     project_root.mkdir()

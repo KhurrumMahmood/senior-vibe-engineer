@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -196,6 +197,45 @@ def test_shared_c_facts_use_compile_db_raw_tokens_ast_and_preserve_source(
     ]
     assert len(calls) == 2
     assert sorted("if" in call["enclosures"] for call in calls) == [False, True]
+
+
+def test_c_complexity_accepts_standard_external_compilation_database(
+    tmp_path: Path,
+) -> None:
+    host = _copy_host(tmp_path)
+    before = _state(host)
+    original = json.loads((host / "compile_commands.json").read_text(encoding="utf-8"))
+    source = (host / "src/complexity.c").resolve()
+    row = next(item for item in original if Path(item["file"]) == source)
+    external = tmp_path / "external"
+    external.mkdir()
+    database = external / "compile_commands.json"
+    database.write_text(
+        json.dumps([{
+            "directory": str(external),
+            "command": shlex.join(row["arguments"]),
+            "file": str(source),
+            "output": "complexity.o",
+        }]),
+        encoding="utf-8",
+    )
+    output = external / "artifacts"
+
+    result = _run(
+        sys.executable, "-I", "-S", str(ADAPTERS["complexity"]),
+        "--project-root", str(host), "--target", "src/complexity.c",
+        "--output-dir", str(output), "--compile-database", str(database),
+        "--clang", CLANG or "clang", "--no-host-write", cwd=host,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads((output / "findings.json").read_text(encoding="utf-8"))
+    assert payload["status"] == "complete"
+    assert [(row["function"], row["branch_score"]) for row in payload["findings"]] == [
+        ("route_invoice", 8)
+    ]
+    assert payload["analysis"]["c"]["compile_database"]["path"] == str(database)
+    assert _state(host) == before
 
 
 def test_audit_decisions_c_reaches_real_resolved_and_orphan_comment_refs(

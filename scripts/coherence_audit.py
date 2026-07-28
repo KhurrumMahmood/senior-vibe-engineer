@@ -46,6 +46,7 @@ ACTIVE_REFERENCE_ROOTS = (
     "ai-docs/decisions",
     ".engineering",
 )
+LOCAL_STATE_ROOT = PurePosixPath(".engineering/local")
 
 
 class CoherenceError(ValueError):
@@ -374,11 +375,14 @@ def _text_files(root: Path) -> Iterable[Path]:
             yield base
         elif base.is_dir():
             for path in base.rglob("*"):
+                relative_path = PurePosixPath(path.relative_to(root).as_posix())
                 if (
                     path.is_file()
                     and not path.is_symlink()
                     and path.suffix in TEXT_SUFFIXES
                     and "__pycache__" not in path.parts
+                    and relative_path != LOCAL_STATE_ROOT
+                    and LOCAL_STATE_ROOT not in relative_path.parents
                     and ".engineering/quality/decision-impacts/"
                     not in path.as_posix()
                 ):

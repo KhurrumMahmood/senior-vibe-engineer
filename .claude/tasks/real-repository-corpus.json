@@ -64,6 +64,38 @@
       "revision": "7e3d5d87220133ad9cc99f82e85a826011a62859",
       "slice": 2,
       "source": "https://github.com/dart-lang/path.git"
+    },
+    {
+      "language": "javascript",
+      "license": "MIT",
+      "name": "express",
+      "revision": "a3714473feb3d2908add734d340e7755fd85e0a3",
+      "slice": 3,
+      "source": "https://github.com/expressjs/express.git"
+    },
+    {
+      "language": "c",
+      "license": "BSD-3-Clause",
+      "name": "inih",
+      "revision": "5cc5e2c24642513aaa5b19126aad42d0e4e0923e",
+      "slice": 3,
+      "source": "https://github.com/benhoyt/inih.git"
+    },
+    {
+      "language": "cpp",
+      "license": "MIT",
+      "name": "fmt",
+      "revision": "40626af88bd7df9a5fb80be7b25ac85b122d6c21",
+      "slice": 3,
+      "source": "https://github.com/fmtlib/fmt.git"
+    },
+    {
+      "language": "kotlin",
+      "license": "Apache-2.0",
+      "name": "detekt",
+      "revision": "e019e63ee459bd005694ed944af7ad6c8a165c57",
+      "slice": 3,
+      "source": "https://github.com/detekt/detekt.git"
     }
   ]
 }

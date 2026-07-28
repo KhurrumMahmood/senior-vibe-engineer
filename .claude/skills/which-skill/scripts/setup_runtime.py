@@ -172,6 +172,39 @@ def _dependencies_healthy(project_root: Path, runtime_python: Path) -> tuple[boo
     return True, "dependencies resolve"
 
 
+def _node_dependencies_healthy(project_root: Path) -> tuple[bool, str]:
+    lock_path = project_root / "package-lock.json"
+    if not lock_path.is_file():
+        return True, "not declared"
+    package_path = project_root / "package.json"
+    if not package_path.is_file():
+        return False, f"{lock_path.name} exists without {package_path.name}"
+    node = shutil.which("node")
+    if node is None:
+        return False, "Node.js is required by package-lock.json but was not found"
+    try:
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        expected = lock["packages"]["node_modules/typescript"]["version"]
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        return False, f"package-lock.json has no pinned TypeScript runtime: {exc}"
+    check = _run(
+        [
+            node,
+            "-e",
+            (
+                "const p=require('typescript/package.json');"
+                f"if(p.version!=={json.dumps(expected)})"
+                "{throw new Error(`expected TypeScript "
+                f"{expected}, found ${{p.version}}`);}}"
+            ),
+        ],
+        cwd=project_root,
+    )
+    if check.returncode != 0:
+        return False, check.stderr.strip() or "pinned TypeScript import failed"
+    return True, f"TypeScript {expected} verified from package-lock.json"
+
+
 def setup_runtime(
     *,
     project_root: Path,
@@ -196,6 +229,9 @@ def setup_runtime(
         dependencies_ok, detail = _dependencies_healthy(project_root, runtime_python)
         if not dependencies_ok:
             raise ValueError(f"runtime dependencies are not ready: {detail}")
+        node_ok, node_detail = _node_dependencies_healthy(project_root)
+        if not node_ok:
+            raise ValueError(f"Node dependencies are not ready: {node_detail}")
         return runtime_python, current_version, "already present", "not changed"
 
     venv_state = "already present"
@@ -239,6 +275,25 @@ def setup_runtime(
     dependencies_ok, detail = _dependencies_healthy(project_root, runtime_python)
     if not dependencies_ok:
         raise ValueError(f"runtime dependency verification failed: {detail}")
+
+    if (project_root / "package-lock.json").is_file():
+        npm = shutil.which("npm")
+        if npm is None:
+            raise ValueError("npm is required by package-lock.json but was not found")
+        node_install = _run(
+            [npm, "ci", "--ignore-scripts", "--no-audit", "--no-fund"],
+            cwd=project_root,
+        )
+        if node_install.returncode != 0:
+            detail = (
+                node_install.stderr.strip()
+                or node_install.stdout.strip()
+                or "npm ci failed"
+            )
+            raise ValueError(detail)
+    node_ok, node_detail = _node_dependencies_healthy(project_root)
+    if not node_ok:
+        raise ValueError(f"Node dependency verification failed: {node_detail}")
 
     hook_state = "not requested"
     if install_hooks:
@@ -284,6 +339,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Python: {'.'.join(map(str, version))}")
     print(f"venv: {venv_state} ({runtime_python})")
     print("dependencies: verified from requirements.txt")
+    _, node_detail = _node_dependencies_healthy(args.project_root.resolve())
+    print(f"node dependencies: {node_detail}")
     print(f"pre-commit hooks: {hook_state}")
     return 0
 

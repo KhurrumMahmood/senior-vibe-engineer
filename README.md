@@ -271,7 +271,10 @@ python3 .claude/skills/which-skill/scripts/setup_runtime.py --project-root .
 ```
 
 The helper health-probes Python 3.11+ interpreters, creates or repairs `.venv`,
-installs pinned requirements, verifies dependencies, and installs Git hooks.
+installs pinned Python requirements and the library-owned TypeScript parser,
+verifies both dependency lanes, and installs Git hooks. The JavaScript tooling
+requires Node.js >=20 and npm; setup uses the committed `package-lock.json` and
+does not add dependencies to the analyzed host project.
 Use `.venv/bin/python` explicitly and invoke pip as
 `.venv/bin/python -m pip`; venv `pip` shims can retain stale absolute paths after
 a checkout is moved.

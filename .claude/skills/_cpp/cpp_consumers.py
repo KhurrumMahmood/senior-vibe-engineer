@@ -24,7 +24,12 @@ from cpp_facts import (
 
 
 def _facts(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
-    return produce(args.project_root, args.target, clangxx=args.clangxx)
+    return produce(
+        args.project_root,
+        args.target,
+        clangxx=args.clangxx,
+        compile_database=args.compile_database,
+    )
 
 
 def _parser(description: str) -> argparse.ArgumentParser:
@@ -481,6 +486,11 @@ def complexity_main(argv: list[str] | None = None) -> int:
         output = _inside_output(root, output, parser)
     clear_artifacts(output / name for name in ("detections.jsonl", "findings.json", "report.md"))
     facts, code = _facts(args)
+    evidence_level = (
+        "compile-database-complete-source-syntax"
+        if facts["status"] == "complete"
+        else "compile-database-partial-source-syntax"
+    )
     findings = [{
         "pattern": "high-branch-function", "language": "cpp",
         "analyzer": facts["analyzer"], "file": row["file"],
@@ -490,10 +500,12 @@ def complexity_main(argv: list[str] | None = None) -> int:
         "branch_score": row["branch_score"],
         "macro_nodes_omitted": row["macro_nodes_omitted"],
         "evidence_scope": "direct-body-c++-syntax-only",
-    } for row in _functions(facts) if row["branch_score"] >= 8] if facts["status"] == "complete" else []
+        "evidence_level": evidence_level,
+    } for row in _functions(facts) if row["branch_score"] >= 8] if facts["status"] in {"complete", "partial"} else []
     findings.sort(key=lambda row: (-row["branch_score"], row["file"], row["lineno"]))
     verdict = (
-        "incomplete-syntax-evidence" if facts["status"] != "complete"
+        "safe-defer-incomplete" if facts["status"] == "partial"
+        else "incomplete-syntax-evidence" if facts["status"] != "complete"
         else "measure-first" if findings else "no-hotspots"
     )
     payload = {

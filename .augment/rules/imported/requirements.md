@@ -128,10 +128,12 @@ These live in `.claude/docs/canonical-patterns.md` as documentation;
 
 ## Technical Conventions
 
-- **Python runtime**: Run
+- **Tooling runtime**: Run
   `python3 .claude/skills/which-skill/scripts/setup_runtime.py --project-root .`
   once per clone. It health-probes Python >=3.11, creates/rebuilds `.venv`,
-  installs pinned requirements, verifies dependencies, and wires Git hooks.
+  installs pinned Python requirements plus the package-lock TypeScript parser
+  when declared, verifies dependencies, and wires Git hooks. The Node lane
+  requires Node.js >=20 and npm.
   Use the reported `.venv/bin/python` path explicitly in delegated work.
 - **Services**: Static methods, no instance state, lazy imports.
 - **Views**: Thin HTTP wrappers calling services.

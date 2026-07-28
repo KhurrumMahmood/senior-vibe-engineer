@@ -47,8 +47,8 @@ def _write_json(data: dict[str, Any], path: Path) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _invalidate_latest_report(project_root: Path) -> None:
-    latest = project_root / "reports" / "find-complexity-hotspots" / "latest"
+def _invalidate_latest_report(artifact_root: Path) -> None:
+    latest = artifact_root / "reports" / "find-complexity-hotspots" / "latest"
     if latest.is_symlink() or latest.exists():
         latest.unlink()
 
@@ -143,10 +143,10 @@ def _render_simple_report(
 def _write_scan_outputs(
     scan: ScanResult,
     target: str,
-    project_root: Path,
+    artifact_root: Path,
 ) -> Path:
     scan_id = _utc_scan_id("scan")
-    report_dir = project_root / "reports" / "find-complexity-hotspots" / scan_id
+    report_dir = artifact_root / "reports" / "find-complexity-hotspots" / scan_id
     _write_jsonl(scan.records, report_dir / "detections.jsonl")
     markdown, findings = _render_simple_report(
         "Complexity hotspot audit",
@@ -161,7 +161,7 @@ def _write_scan_outputs(
     _write_json(findings, report_dir / "findings.json")
 
     latest = report_dir.parent / "latest"
-    _invalidate_latest_report(project_root)
+    _invalidate_latest_report(artifact_root)
     latest.symlink_to(scan_id)
     return report_dir
 
@@ -170,6 +170,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="+", help="Files, directories, or globs to scan.")
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--artifact-root",
+        type=Path,
+        help="Write reports under this root instead of the analyzed project.",
+    )
+    parser.add_argument(
+        "--no-host-write",
+        action="store_true",
+        help="Require --artifact-root to be outside --project-root.",
+    )
     parser.add_argument("--include-tests", action="store_true")
     parser.add_argument("--max-findings", type=_positive_int, default=80)
     parser.add_argument("--skip-effectiveness-log", action="store_true")
@@ -183,8 +193,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     project_root = args.project_root.resolve()
+    artifact_root = (args.artifact_root or project_root).resolve()
+    if args.no_host_write:
+        if args.artifact_root is None:
+            parser.error("--no-host-write requires --artifact-root")
+        try:
+            artifact_root.relative_to(project_root)
+        except ValueError:
+            pass
+        else:
+            parser.error("--no-host-write requires --artifact-root outside --project-root")
     target = " ".join(args.paths)
-    _invalidate_latest_report(project_root)
+    _invalidate_latest_report(artifact_root)
     try:
         scan = detect_scan(
             project_root,
@@ -196,7 +216,7 @@ def main(argv: list[str] | None = None) -> int:
     except (TypeScriptExtractionError, GoExtractionError, JavaExtractionError) as exc:
         print(f"[find-complexity-hotspots] ERROR: {exc}", file=sys.stderr)
         return 2
-    report_dir = _write_scan_outputs(scan, target, project_root)
+    report_dir = _write_scan_outputs(scan, target, artifact_root)
     print(f"wrote {report_dir}")
     return 0
 
