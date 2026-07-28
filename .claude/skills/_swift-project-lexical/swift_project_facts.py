@@ -18,6 +18,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Iterable
@@ -132,14 +133,47 @@ def _run(argv: list[str], cwd: Path, *, timeout: int = 180) -> subprocess.Comple
         return subprocess.CompletedProcess(argv, 124, "", str(exc))
 
 
+def _is_executable(path: Path) -> bool:
+    try:
+        return path.is_file() and os.access(path, os.X_OK)
+    except OSError:
+        return False
+
+
 def _which(configured: Path) -> Path | None:
     if configured.is_absolute():
-        return configured
+        return configured if _is_executable(configured) else None
     for directory in os.environ.get("PATH", "").split(os.pathsep):
         candidate = Path(directory or ".") / configured
-        if candidate.is_file() and os.access(candidate, os.X_OK):
+        if not _is_executable(candidate):
+            continue
+        try:
             return candidate.resolve()
+        except OSError:
+            continue
     return None
+
+
+def _xcrun_tool(configured: Path, root: Path) -> Path | None:
+    if (
+        sys.platform != "darwin"
+        or configured.is_absolute()
+        or configured.parent != Path(".")
+    ):
+        return None
+    xcrun = Path("/usr/bin/xcrun")
+    if not _is_executable(xcrun):
+        return None
+    result = _run([str(xcrun), "--find", configured.name], root, timeout=30)
+    if result.returncode:
+        return None
+    candidate = Path(result.stdout.strip())
+    if not candidate.is_absolute() or not _is_executable(candidate):
+        return None
+    try:
+        return candidate.resolve()
+    except OSError:
+        return None
 
 
 def _version_tuple(text: str, *, formatter: bool) -> tuple[int, int, int] | None:
@@ -153,8 +187,8 @@ def _version_tuple(text: str, *, formatter: bool) -> tuple[int, int, int] | None
 
 
 def _probe(configured: Path, name: str, root: Path) -> dict[str, Any]:
-    path = _which(configured)
-    if path is None or not path.is_file() or not os.access(path, os.X_OK):
+    path = _which(configured) or _xcrun_tool(configured, root)
+    if path is None or not _is_executable(path):
         return {"state": "missing", "failure_kind": f"{name}-tool-missing"}
     result = _run([str(path), "--version"], root, timeout=30)
     if result.returncode:

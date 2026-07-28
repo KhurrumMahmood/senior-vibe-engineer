@@ -607,6 +607,52 @@ public struct Fallback {
     assert [fact["symbol"] for fact in facts] == ["charge"]
 
 
+def test_tool_lookup_skips_inaccessible_path_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = runpy.run_path(str(PROVIDER))
+    denied = tmp_path / "denied"
+    available = tmp_path / "available"
+    denied.mkdir()
+    available.mkdir()
+    tool = available / "swift-format"
+    tool.write_text("#!/bin/sh\n", encoding="utf-8")
+    tool.chmod(0o755)
+    inaccessible = denied / tool.name
+    original_is_file = Path.is_file
+
+    def guarded_is_file(path: Path) -> bool:
+        if path == inaccessible:
+            raise PermissionError("PATH entry is not traversable")
+        return original_is_file(path)
+
+    monkeypatch.setenv("PATH", os.pathsep.join((str(denied), str(available))))
+    monkeypatch.setattr(Path, "is_file", guarded_is_file)
+
+    assert module["_which"](Path(tool.name)) == tool.resolve()
+
+
+def test_tool_probe_uses_xcrun_for_unqualified_macos_tool(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = runpy.run_path(str(PROVIDER))
+    tool = tmp_path / "swift-format"
+    tool.write_text("#!/bin/sh\n", encoding="utf-8")
+    tool.chmod(0o755)
+    lookup = module["_xcrun_tool"]
+    monkeypatch.setattr(module["sys"], "platform", "darwin")
+    monkeypatch.setitem(lookup.__globals__, "_is_executable", lambda _path: True)
+    monkeypatch.setitem(
+        lookup.__globals__,
+        "_run",
+        lambda argv, cwd, timeout: subprocess.CompletedProcess(
+            argv, 0, f"{tool}\n", ""
+        ),
+    )
+
+    assert lookup(Path("swift-format"), tmp_path) == tool.resolve()
+
+
 def test_ml025_shared_provider_clears_loc_and_copied_closure_gates() -> None:
     helper_loc = len(PROVIDER.read_text(encoding="utf-8").splitlines())
     consumer_loc = sum(
