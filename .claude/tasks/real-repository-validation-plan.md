@@ -1,6 +1,6 @@
 # Real-repository product validation plan
 
-Status: in progress
+Status: complete
 
 Branch: `codex/real-repo-validation`
 
@@ -122,10 +122,10 @@ Initial-slice exit gate:
   obligations without modifying the source checkout.
 - [x] E4. README and generated language surfaces display validation level
   separately from `22/22` implementation coverage.
-- [ ] E5. A clean public install performs: three-router install, on-demand
+- [x] E5. A clean public install performs: three-router install, on-demand
   bootstrap, route, real-repository execution, verified final artifact,
   cleanup, and uninstall.
-- [ ] E6. A release candidate is eligible only when focused tests, the release
+- [x] E6. A release candidate is eligible only when focused tests, the release
   boundary, and the declared real-repository journeys pass from one exact
   revision.
 
@@ -152,6 +152,9 @@ Initial-slice exit gate:
 | Routed slice 4 | exact evidence in `real-repository-slice4-evidence.md`; C# repair `50e1359`, Swift/closure closeout `877045b` | Swift 14 useful partial; C# 5 useful partial; every C# result and top Swift spans manually checked; source checkouts preserved | pass |
 | Real mutation preview | `golang/example@7f05d217867b2af52b0a28c6d1c91df97e1b5b39`; exact evidence in `real-repository-mutation-preview-evidence.md` | authoritative checkout preview proposes one directory move + two AST import edits; disposable exact clone passes gofmt, `go test ./...`, and exact-diff; invalid file move refuses; forced native failure regression rolls back; original checkout clean | pass |
 | Public validation truth | `real-repository-validation-status.json`; generated `multilanguage-skill-matrix.json`; README capability table; release/matrix/installed-router sentinels | implementation coverage and `journey-validated` status are separate for all 14 advertised languages; every validation claim names a pinned repository, exact revision, and committed evidence path; `6 passed in 7.36s` | pass |
+| Swift inaccessible-tool repair | Default public Swift replay at `9ad8e1b` reproduced `PermissionError` while probing a macOS PATH entry; focused `_which`/`xcrun` regressions plus the identical real-repository command at `b73aa380eb6fb5aa0b3294f657f8a34cb57b01d9` | inaccessible entries are skipped, unqualified Apple developer tools resolve through `xcrun`, focused tests `2 passed`, and the default runner returns declared partial exit `2` with 14 retained leads instead of a traceback | pass |
+| Final clean public journey | `/private/tmp/engineering-skills-e5-b73aa38`; stock `skills@1.5.19`; public `main` and external library `b73aa380eb6fb5aa0b3294f657f8a34cb57b01d9`; pinned `swift-argument-parser@2f77f2fccb6e84fecff338c37b199e33e7dfd119` | clean Git host installed exactly three routers; runtime and schema 3 prepared; status matched all router bytes; router selected on-demand complexity; default runner produced 14 useful partial leads in 4.18 s and top `parseValue` span was source-verified; task skill stayed non-ambient; bounded cleanup resolved; uninstall list `[]`; sentinel, library, and clean subject preserved | pass |
+| Exact release-candidate gate | `b73aa380eb6fb5aa0b3294f657f8a34cb57b01d9`; focused matrix/release/router/installed-router/corpus plus Swift tool-probe regressions; public-library Swift and C# replays | `110 passed in 42.97s`; Swift 14 useful partial findings in 4.70 s; C# 6 useful partial findings in 1.54 s; public `main` and library HEAD equal the candidate; both pinned subjects clean | pass |
 
 ## Validation status
 
