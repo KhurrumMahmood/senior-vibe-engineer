@@ -112,3 +112,16 @@ an ancestor of `codex/portable-v1-closeout-2026-07-28` with four later protected
 commits. Because no matching remote ref existed, the redundant local preflight
 ref was deleted instead of being published. The fully merged integration ref
 was deleted at the same time; its history is on `main`.
+
+The follow-on legacy-ref audit covered all 163 remaining `codex/*` branches in
+three disjoint fresh-context lanes: 53 compiled-language refs, 82 dynamic-
+language refs, and 28 platform/misc refs. Git patch identity put 148 branches
+entirely on `main`; detailed review found explicit mainline successors for the
+two language patches whose identities had changed and no current value in the
+retired WP3/WP5/router-contract residuals. The reviewers classified 162 refs
+as safe to delete and the closeout ref as an optional archive. The root then
+deleted that final ref as well: its failed-platform prefix remains at
+`archive/productization-platform-2026-07-18`, the query-index and no-bytecode
+slices are on `main`, and its remaining unique commits are rejected
+frontmatter or local telemetry. All 163 `codex/*` refs were removed; no useful
+product bytes or accepted evidence became unreachable.

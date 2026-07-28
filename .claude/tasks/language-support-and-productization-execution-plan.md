@@ -83,9 +83,9 @@ historical evidence, not competing execution authorities.
   Dart lanes while retaining every branch and commit. The 2026-07-28 closeout
   returned the original administrative checkout to `main` and retired the
   temporary product checkout after its clean integration. Only `main` remains
-  checked out. The intentionally retained historical refs are the closeout
-  branch and productization archive; the redundant preflight and merged
-  integration refs were deleted after their ancestry was verified.
+  checked out. A three-lane 2026-07-28 commit/branch-point audit then removed
+  every remaining `codex/*` ref after finding no unrepresented product value.
+  Only `main` and the explicitly named `archive/*` histories remain locally.
 - Implementation workers are fresh non-context sub-agents. Every packet names
   the project/worktree root, `.venv/bin/python`, platform, base SHA, owned and
   forbidden paths, native tools, final artifacts, stop conditions, and exact
@@ -180,9 +180,11 @@ Run in this order:
    regression passed `2 passed`. Both worktrees were retired and their branch
    refs retained. The preflight worktree was retired after its machine-local
    policy logs were handled. Its temporary branch ref was retained through the
-   2026-07-28 delta review, then deleted after the complete history and final
-   WIP were verified reachable from the closeout branch. Retire the two Dart
-   worktrees only after accepted integration.
+   2026-07-28 delta review, then deleted. The descendant closeout ref was also
+   deleted after the failed-platform prefix was verified on the productization
+   archive, useful slices on `main`, and every remaining unique commit rejected
+   or telemetry-only. Retire the two Dart worktrees only after accepted
+   integration.
 
 F0 acceptance:
 
@@ -201,11 +203,12 @@ F0 acceptance:
   contract/runtime-partial distinction; no whole-language or Flutter claim is
   implied.
 - [x] The committed ledger records the Java byte-equivalence decision and the
-  JavaScript supersession plus green mutation regression; branch refs remain.
+  JavaScript supersession plus green mutation regression; their implementation
+  history is represented on `main`, and their redundant refs are retired.
 - [x] Only `main` remains checked out. The former preflight/admin checkout was
   returned to `main`, the temporary product checkout was retired cleanly, and
-  the intentional closeout and archive histories remain as refs. The redundant
-  preflight and merged integration refs were deleted after reachability proof.
+  all `codex/*` refs were deleted after patch-equivalence and value review. Only
+  the explicitly named `archive/*` histories remain alongside `main`.
 
 ### F1 — Evidence-backed reuse decision
 
