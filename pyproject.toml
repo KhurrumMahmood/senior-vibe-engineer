@@ -36,6 +36,15 @@ ignore = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# tests/fixtures/ holds reference source trees that skills are run *against*
+# (b2p_state_reference before/after, find-duplication-python/host). The
+# test_*.py files inside them are data, read by tests/test_b2p_state_reference.py
+# and friends — not tests. Collecting them broke the suite outright: `before/`
+# and `after/` each carry an `app/tests/test_jobs.py`, and with no __init__.py
+# to disambiguate, pytest's rootdir-relative module naming makes the second a
+# duplicate of the first and aborts collection. That is a hard error, not a
+# skip, so bare `python3 -m pytest` — what CI runs — collected nothing at all.
+norecursedirs = ["tests/fixtures"]
 markers = [
     "slow: multi-subprocess end-to-end runs; deselect with `-m 'not slow'`",
 ]
