@@ -863,6 +863,32 @@ auditable when completeness matters.
 - Non-goals: a new Python analyzer, matrix schema platform, or relabeling
   framework-bound skills as language-supported.
 
+### ML-035 — Make skill file reads decode-safe by semantic role
+
+- State: `candidate`
+- User value: one malformed or non-UTF-8 source/artifact must not crash an
+  otherwise useful repository scan with a Python traceback.
+- Evidence: the post-release closeout replay found 104 unguarded
+  `Path.read_text()` calls across skill scripts. The long-standing
+  `tests/test_skill_detector_reads.py` guard fails at the same 104 locations
+  on both current `main` and the integration candidate, proving inherited debt
+  rather than a closeout regression. Representative locations include
+  arbitrary source scanners and required JSON/configuration artifact readers,
+  which need different failure semantics.
+- Smallest experiment: classify the existing calls as arbitrary-source,
+  required-artifact, or impossible-by-contract; repair one representative of
+  each real class without weakening the structural guard, then apply the
+  proven patterns mechanically to the remaining same-class reads.
+- Acceptance: the structural guard reports zero offenders; malformed-byte
+  fixtures prove arbitrary source is skipped or explicitly reported partial,
+  required artifacts fail cleanly without a traceback, and successful UTF-8
+  output remains unchanged; at least one copied external-library journey for
+  every affected behavior class passes from the committed revision.
+- Non-goals: blanket `errors="replace"` where mangled source could be mistaken
+  for a clean scan, a universal file-I/O framework, changing language coverage
+  claims, or blocking a no-regression branch closeout solely because `main`
+  already contains the identical known debt.
+
 ## External release dependency (tracked, not a language feature)
 
 The reviewed branch is still not the public source named by the README. Before
