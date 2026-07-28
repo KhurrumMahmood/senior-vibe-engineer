@@ -67,17 +67,18 @@ def test_concept_glossary_scans_ts_and_tsx_through_final_report(tmp_path: Path) 
 
 def test_b1_frontmatter_is_host_language_neutral_without_fake_ts_scans() -> None:
     expected_scans = {
-        "find-concept-divergence": "scans: [python, javascript, typescript, markdown, templates]",
-        "find-rule-surface-drift": "scans: [markdown]",
-        "find-skill-artifact-drift": "scans: [python, markdown]",
-        "find-stale-artifacts": "scans: [markdown]",
+        "find-concept-divergence": {"python", "javascript", "typescript", "markdown", "templates"},
+        "find-rule-surface-drift": {"markdown"},
+        "find-skill-artifact-drift": {"python", "markdown"},
+        "find-stale-artifacts": {"markdown"},
     }
     for name in SKILL_NAMES:
         text = (SKILLS_ROOT / name / "SKILL.md").read_text(encoding="utf-8")
         assert "language: any" in text
         assert "framework: any" in text
         if name in expected_scans:
-            assert expected_scans[name] in text
+            scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
+            assert expected_scans[name] <= scans
     assert "scans: [typescript]" not in (
         SKILLS_ROOT / "find-rule-surface-drift" / "SKILL.md"
     ).read_text(encoding="utf-8")

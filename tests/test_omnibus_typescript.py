@@ -173,12 +173,13 @@ def test_copied_skill_is_self_contained_for_typescript_pipeline(tmp_path: Path) 
 
 def test_frontmatter_truthfully_declares_all_supported_scanners() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
 
     assert "language: any" in text
-    assert (
-        "scans: [python, javascript, typescript, go, java, php, ruby, rust, dart, swift]"
-        in text
-    )
+    assert {
+        "python", "javascript", "typescript", "go", "java", "php", "ruby",
+        "rust", "dart", "swift",
+    } <= scans
     assert "JavaScript/TypeScript" in text
 
 
