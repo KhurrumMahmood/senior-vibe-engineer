@@ -793,6 +793,23 @@ auditable when completeness matters.
 - Non-goals: semantic security analysis or eliminating every lexical false
   positive.
 
+### ML-032 — Publish explicit Python capability status
+
+- State: `proposed`
+- User value: router output should say that the original Python contract is
+  supported rather than requiring consumers to infer support from the absence
+  of a language-specific expansion field.
+- Evidence: the real Requests journey routed and executed correctly, but its
+  capability record has no `python_disposition`; TypeScript, Go, and Java each
+  return an explicit supported value.
+- Smallest experiment: add one baseline Python disposition to the existing
+  generated capability record without changing eligibility or matrix counts.
+- Acceptance: the installed Requests route states an explicit bounded Python
+  support value; all generated surfaces remain consistent; no new headline
+  coverage count is introduced.
+- Non-goals: a new Python analyzer, matrix schema platform, or relabeling
+  framework-bound skills as language-supported.
+
 ## External release dependency (tracked, not a language feature)
 
 The reviewed branch is still not the public source named by the README. Before

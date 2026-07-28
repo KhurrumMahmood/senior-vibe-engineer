@@ -76,25 +76,25 @@ For every initial repository:
 - [x] C1. `/adapt-project` discovery runs read-only with artifacts outside the
   target repository, identifies the expected language, and names executable
   project test/build commands or an explicit limitation.
-- [ ] C2. An installed `which-shape`/`which-skill` route selects a relevant
+- [x] C2. An installed `which-shape`/`which-skill` route selects a relevant
   read-only code-health closure without ambient installation of the full
   catalog.
-- [ ] C3. At least one routed language-level skill completes through its final
+- [x] C3. At least one routed language-level skill completes through its final
   report boundary. Exit zero alone is insufficient: referenced paths must
   exist, malformed/partial analysis must be disclosed, and the report must
   contain either a supported clean result or actionable findings.
-- [ ] C4. Up to five sampled findings per non-clean report are manually checked
+- [x] C4. Up to five sampled findings per non-clean report are manually checked
   against source (all findings when fewer than five exist). At least four of
   five, or every finding in a smaller sample, must be correct; duplicate or
   materially misleading findings count as incorrect.
-- [ ] C5. `git status --porcelain` and tracked-file hashes are unchanged after
+- [x] C5. `git status --porcelain` and tracked-file hashes are unchanged after
   every read-only journey.
-- [ ] C6. Setup time, execution time, peak artifact size, errors, warnings, and
+- [x] C6. Setup time, execution time, peak artifact size, errors, warnings, and
   required improvisations are recorded.
 
 Initial-slice exit gate:
 
-- [ ] C7. All four languages reach `real-repo-smoke`, or every exception has a
+- [x] C7. All four languages reach `real-repo-smoke`, or every exception has a
   reproducible blocker, regression test, and explicit user-facing limitation.
 
 ### D. Repair gate
@@ -140,16 +140,18 @@ Initial-slice exit gate:
 | TypeScript corpus | `https://github.com/sindresorhus/got.git@e3924aa1e53a6ca3eb93a43618ce532442a89b40` | canonical scan: TypeScript, `source=25`, tests excluded, declared npm tests/setup, one correct auth surface, 6,570 bytes, 0.05 s, evidence pass, host clean | C1 pass |
 | Go corpus | `https://github.com/go-chi/chi.git@8b258c7bb28f97a5f2a856ff7ef962578fec9215` | canonical scan: Go, root `5`, middleware `30`, examples excluded, `go test ./...`, 7,051 bytes, 0.06 s, evidence pass, host clean | C1 pass |
 | Java corpus | `https://github.com/spring-projects/spring-petclinic.git@f182358d02e4a68e52bdbabf55ca7800288511e7` | canonical scan: Java, `src=30`, Maven+Gradle wrapper tests, no inferred framework, 6,730 bytes, 0.08 s, evidence pass, host clean | C1 pass |
+| Installed router lifecycle | local committed source at `1179fa1`; `skills@1.5.19`; three routers; external library/runtime; schema plan/apply; route; uninstall | compatibility match; health-audit + on-demand complexity handoffs; selected skill never ambient-installed; final list `[]` | pass |
+| Routed initial slice | exact evidence in `real-repository-initial-slice-evidence.md` | Python 24 complete; TypeScript 4 complete; Go 1 partial with build-tag disclosure; Java 0 complete; sampled claims and tracked digests pass | pass |
 
 ## Validation status
 
 | Language | Implemented | Fixture validated | Real-repo smoke | Journey validated |
 |---|---:|---:|---:|---:|
-| Python | yes | yes | pending | pending |
-| TypeScript | yes | yes | pending | pending |
+| Python | yes | yes | yes | pending |
+| TypeScript | yes | yes | yes | pending |
 | JavaScript | yes | yes | pending | pending |
-| Go | yes | yes | pending | pending |
-| Java | yes | yes | pending | pending |
+| Go | yes | yes | yes | pending |
+| Java | yes | yes | yes | pending |
 | PHP | yes | yes | pending | pending |
 | Ruby | yes | yes | pending | pending |
 | Swift | yes | yes | pending | pending |
