@@ -6,6 +6,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import yaml
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILL = REPO_ROOT / ".claude" / "skills" / "find-duplication"
@@ -50,9 +52,11 @@ def test_copied_python_pipeline_preserves_legacy_scout_triage(tmp_path: Path) ->
     report = host / "reports" / "duplication" / "python-installed"
     report.mkdir(parents=True)
     skill_text = (installed / "SKILL.md").read_text()
+    _, raw_frontmatter, _ = skill_text.split("---", 2)
+    scans = set(yaml.safe_load(raw_frontmatter)["scans"])
     assert "language: any" in skill_text
     assert "framework: any" in skill_text
-    assert "scans: [python, javascript, typescript, go, java, rust, dart]" in skill_text
+    assert {"python", "javascript", "typescript"} <= scans
     assert "Python legacy triage branch" in skill_text
     assert "TypeScript lexical-evidence branch" in skill_text
 

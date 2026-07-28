@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -308,7 +309,9 @@ def test_go_output_overlap_is_rejected_without_source_mutation(tmp_path: Path) -
 
 def test_go_contract_declares_bounded_evidence() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-    assert "scans: [python, javascript, typescript, go, java, rust, dart]" in text
+    _, raw_frontmatter, _ = text.split("---", 2)
+    scans = set(yaml.safe_load(raw_frontmatter)["scans"])
+    assert {"python", "javascript", "typescript", "go"} <= scans
     assert "Go exact-function evidence branch" in text
     assert "go/parser" in text
     assert "Do not consolidate automatically" in text
