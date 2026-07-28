@@ -65,10 +65,11 @@ The matching ledger entry is
 
 ## Preflight delta review — 2026-07-28
 
-`codex/portable-v1-preflight` ends at `c4de33f`. It contains 59 commits not
-reachable from the pre-closeout `main`; the first 55 end at the archive
-revision above and are already dispositioned by this value map. The four-commit
-delta after the archive was reviewed separately rather than merged:
+The reviewed `codex/portable-v1-preflight` ref ended at `c4de33f`. It contained
+59 commits not reachable from the pre-closeout `main`; the first 55 ended at
+the archive revision above and were already dispositioned by this value map.
+The four-commit delta after the archive was reviewed separately rather than
+merged:
 
 | Commit | Disposition | Reason / current equivalent |
 |---|---|---|
@@ -86,7 +87,7 @@ The uncommitted work found in the preflight checkout was protected on
 | `7457cfb` | archive only | The 38 frontmatter edits are unmeasured lexical rewrites from the divergent preflight contracts. Several reduce present-day precision (for example, narrowing a general lifecycle handoff to polling, removing a concrete layer-finding handoff, or describing duplication in Python-only terms). Ten patches also conflict with subsequently generalized contracts. No routing-quality evidence justifies applying the remaining clean patches piecemeal. |
 | `729702e`, `1de9e82` | archive only | Raw local policy telemetry, including the final closeout commands, remains preserved for later research and is not part of the shipped product. |
 
-Verification for this disposition:
+Verification recorded before deleting the redundant preflight ref:
 
 - `git rev-list --count main..codex/portable-v1-preflight` reported `59`;
 - `git rev-list --count archive/productization-platform-2026-07-18..codex/portable-v1-preflight` reported `4`;
@@ -106,4 +107,8 @@ the pre-integration `main` archive and the candidate; it is therefore recorded
 as inherited follow-up `ML-035`, not hidden as a successful gate or used to
 weaken the no-regression closeout criterion. `main` was fast-forwarded to
 `55dd3cd`, the original checkout was returned to `main`, and the temporary
-product worktree was retired without force.
+product worktree was retired without force. The preflight tip was then proven
+an ancestor of `codex/portable-v1-closeout-2026-07-28` with four later protected
+commits. Because no matching remote ref existed, the redundant local preflight
+ref was deleted instead of being published. The fully merged integration ref
+was deleted at the same time; its history is on `main`.

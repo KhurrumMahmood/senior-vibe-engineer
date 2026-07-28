@@ -83,8 +83,9 @@ historical evidence, not competing execution authorities.
   Dart lanes while retaining every branch and commit. The 2026-07-28 closeout
   returned the original administrative checkout to `main` and retired the
   temporary product checkout after its clean integration. Only `main` remains
-  checked out; the preflight, closeout, archive, and integration histories
-  remain available as branch refs.
+  checked out. The intentionally retained historical refs are the closeout
+  branch and productization archive; the redundant preflight and merged
+  integration refs were deleted after their ancestry was verified.
 - Implementation workers are fresh non-context sub-agents. Every packet names
   the project/worktree root, `.venv/bin/python`, platform, base SHA, owned and
   forbidden paths, native tools, final artifacts, stop conditions, and exact
@@ -177,9 +178,11 @@ Run in this order:
    already exist on `main`, and the dirty JavaScript lane was an abandoned
    precursor to the smaller committed mutation implementation; its focused
    regression passed `2 passed`. Both worktrees were retired and their branch
-   refs retained. Keep `codex/portable-v1-preflight` as an archive branch, but
-   retire its physical worktree after its machine-local policy logs are
-   handled. Retire the two Dart worktrees only after accepted integration.
+   refs retained. The preflight worktree was retired after its machine-local
+   policy logs were handled. Its temporary branch ref was retained through the
+   2026-07-28 delta review, then deleted after the complete history and final
+   WIP were verified reachable from the closeout branch. Retire the two Dart
+   worktrees only after accepted integration.
 
 F0 acceptance:
 
@@ -201,7 +204,8 @@ F0 acceptance:
   JavaScript supersession plus green mutation regression; branch refs remain.
 - [x] Only `main` remains checked out. The former preflight/admin checkout was
   returned to `main`, the temporary product checkout was retired cleanly, and
-  all preflight, closeout, archive, and integration histories remain as refs.
+  the intentional closeout and archive histories remain as refs. The redundant
+  preflight and merged integration refs were deleted after reachability proof.
 
 ### F1 — Evidence-backed reuse decision
 
