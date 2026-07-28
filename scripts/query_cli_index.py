@@ -4,7 +4,7 @@
 Emits `.claude/docs/query-cli-index.md` — the answer to "what can I *ask*
 this repo?", one row per argparse subcommand under `scripts/`.
 
-Why this exists: `scripts/` holds 42 top-level utilities, 22 of which
+Why this exists: `scripts/` holds dozens of utilities, many of which
 expose subcommands, and there is no entry point above them — no Makefile,
 no justfile, no index. Nothing distinguishes the commands that answer a
 question from the ones that rewrite a registry. So an agent that needs
@@ -22,7 +22,7 @@ Four decisions, and why
    All three candidates were on the table:
 
    - **`--help` subprocess.** Rejected on two independent grounds. It
-     executes every script's module level (111 processes here), and —
+     executes every script's module level, and —
      fatally for a pre-commit hook — its output is not deterministic
      across machines. `scripts/subsystems.py:156` builds its help string
      as `f"Subsystem registry (default: {DEFAULT_REGISTRY})"`, and
@@ -46,10 +46,9 @@ Four decisions, and why
    The obvious mechanical signal is the subcommand's verb (`list`/`show`
    read, `init`/`prune` write). It is also wrong often enough to be
    dangerous in the one direction that matters: an agent running something
-   it believed was read-only. This tree supplies the counterexample —
-   `distribution_probe.py verify-matrix` is explicitly "read-only", while
-   `skill_installer.py verify` and `sweep/__main__.py verify` both write.
-   One verb, both answers.
+   it believed was read-only. The current tree includes both reporting
+   commands and commands that update registries or host state; their names
+   are only a fallback when the handler cannot be resolved.
 
    So the classifier is the *behaviour*. For each subcommand this resolves
    its handler and walks it for filesystem writes, following calls up to
@@ -66,7 +65,7 @@ Four decisions, and why
    dynamic or third-party writer; a verb is only a name), so the rule is
    monotone toward the answer that is safe to be wrong about. An
    unresolvable handler with an unrecognised verb stays Unclassified and
-   is labelled treat-as-action; three subcommands sit there today.
+   is labelled treat-as-action rather than being silently trusted.
 
    The write-primitive set was tuned against this tree by measurement, not
    taste. Counting `.replace` as a path write (rather than `str.replace`)
@@ -76,26 +75,25 @@ Four decisions, and why
    one nobody believes, so both were excluded.
 
    Explicitly rejected: a declared `# query:` / `# action:` marker in each
-   script. That is 57 file edits to buy a fact the code already states,
+   script. That is one extra declaration per script for a fact the code already states,
    and it decays the moment someone adds a write to an existing handler —
    which the AST scan notices and a comment does not.
 
 3. SCOPE — all of `scripts/`, recursively, minus fixtures.
 
-   One recursive root rather than a declared list: this tree has no domain
-   sub-toolkit worth carving out (`_lib/` holds 28 modules and exposes no
-   CLI at all, so including it costs nothing), and a recursive root keeps
+   One recursive root rather than a declared list: shared helper packages
+   mostly expose no CLI, so including them costs little, and a recursive root keeps
    a new `scripts/` package indexed the day it lands.
 
    Excluded, each with a reason and a pointer rather than a silent
    omission — silence in a catalog reads as "nothing exists", which is the
    failure this file was built to stop:
 
-   - `.claude/skills/*/scripts/` — 109 skill-private helpers. They are the
+   - `.claude/skills/*/scripts/` — skill-private helpers. They are the
      private implementation of the SKILL.md that invokes them;
      `skill-catalog.md` and `/which-skill` are already the router, and
      `find-skill-artifact-drift` already gates SKILL.md -> script
-     existence. 109 near-identically-named `detect.py` / `report.py` rows
+     existence. Hundreds of near-identically-named `detect.py` / `report.py` rows
      would be noise, not signal.
    - `scripts/skill_comply/fixtures/` — deliberately defective sample
      projects kept as test input, excluded from ruff for the same reason
@@ -128,9 +126,8 @@ from pathlib import Path
 
 OUT_PATH = Path(".claude/docs/query-cli-index.md")
 
-# One recursive root. This tree has no domain sub-toolkit worth carving
-# out — `_lib/` holds 23 modules and exposes no CLI at all, so including
-# it costs nothing — and a recursive root keeps a new `scripts/` package
+# One recursive root. Shared helper packages mostly expose no CLI, so
+# including them costs little, and a recursive root keeps a new `scripts/` package
 # indexed the day it lands instead of the day someone remembers.
 ROOT = "scripts"
 
@@ -138,7 +135,7 @@ ROOT = "scripts"
 # not a gap.
 EXCLUDED = (
     (".claude/skills/*/scripts/",
-     "109 skill-private helpers, invoked by the SKILL.md that owns them; "
+     "skill-private helpers, invoked by the SKILL.md that owns them; "
      "`skill-catalog.md` and `/which-skill` are the router, and "
      "`find-skill-artifact-drift` already gates SKILL.md -> script existence"),
     ("scripts/skill_comply/fixtures/",
@@ -190,6 +187,7 @@ ACTION_VERBS = frozenset({
     "delete", "remove", "clear", "prune", "apply", "install", "uninstall",
     "set", "write", "record", "import", "export", "run", "build", "generate",
     "sync", "migrate", "revoke", "grant", "withdraw", "renew", "collect",
+    "stage",
 })
 
 # How far to follow calls out of a handler. Three hops covers the shape
@@ -198,11 +196,9 @@ ACTION_VERBS = frozenset({
 # helpers whose writes say nothing about the subcommand.
 MAX_DEPTH = 3
 
-# Keyword names this tree binds a subcommand handler under. Both are in
-# live use: the registry scripts (`decisions.py`, `plans.py`, `specs.py`)
-# use `func=`, while `sweep/__main__.py` binds all eight of its
-# subcommands with `handler=`. Matching only `func=` left every sweep
-# subcommand unresolved.
+# Supported keyword names for binding a subcommand handler. The current
+# registry scripts use `func=`; `handler=` remains supported because it is
+# an equally common argparse convention and occurs in portable consumers.
 HANDLER_KWARGS = ("func", "handler")
 
 WHITESPACE_RE = re.compile(r"\s+")
@@ -334,7 +330,7 @@ def _handler_by_set_defaults(tree: ast.Module) -> list[tuple[str, int, str]]:
 
 
 def _handler_by_dispatch(tree: ast.Module) -> dict[str, list[ast.stmt]]:
-    """`{subcommand: branch body}` from `if args.cmd == "x": ...`.
+    """Map literal equality and membership dispatch branches to commands.
 
     The second of the two dispatch styles here. The whole branch is the
     scan unit rather than "the first same-module call in it", because the
@@ -351,8 +347,19 @@ def _handler_by_dispatch(tree: ast.Module) -> dict[str, list[ast.stmt]]:
             for operand in [node.test.left, *node.test.comparators]
             if _literal(operand) is not None
         ]
+        if len(node.test.ops) == 1 and isinstance(node.test.ops[0], ast.In):
+            comparator = node.test.comparators[0]
+            if isinstance(comparator, (ast.Set, ast.List, ast.Tuple)):
+                names = [
+                    value
+                    for element in comparator.elts
+                    if (value := _literal(element)) is not None
+                ]
         if len(names) == 1 and node.body:
             out.setdefault(names[0], node.body)
+        elif names and node.body:
+            for name in names:
+                out.setdefault(name, node.body)
     return out
 
 
@@ -459,11 +466,9 @@ class ModuleIndex:
 def import_bindings(tree: ast.Module, self_dotted: str) -> tuple[dict, dict]:
     """`({bound name: (module, attr)}, {alias: module})` for one module.
 
-    `ast.walk` rather than a top-level pass on purpose: eight modules here
-    import inside a function body to isolate a heavy or circular dependency
-    — `agent_policy/friction.py:138` reaches for `agent_policy.grants`,
-    `queue_status.py:125` for `sweep.schemas` — and a top-level-only pass
-    would drop exactly those edges.
+    `ast.walk` rather than a top-level pass on purpose: modules may import
+    inside a function body to isolate a heavy or circular dependency, and
+    a top-level-only pass would drop exactly those edges.
     """
     package = self_dotted.rsplit(".", 1)[0] if "." in self_dotted else ""
     from_names: dict[str, tuple[str, str]] = {}
@@ -664,8 +669,7 @@ def render(buckets: dict[str, list[str]], singles: list[str], scanned: int) -> s
         "",
         "`Mutates` is read out of each subcommand's handler — filesystem",
         "writes, followed up to three calls deep and across module",
-        "boundaries — not guessed from its name: `verify-matrix` is",
-        "read-only while `skill_installer.py verify` writes. `only with",
+        "boundaries — not guessed from its name. `only with",
         "--flag` means the write is reachable only inside a branch testing",
         "that flag, so the bare form is safe to run. A subcommand whose",
         "verb says action is filed as one even when no write was found, so",

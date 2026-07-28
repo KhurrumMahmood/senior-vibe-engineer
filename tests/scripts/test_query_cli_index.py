@@ -1,7 +1,7 @@
 """Tests for `scripts/query_cli_index.py`.
 
-Covers: AST subcommand extraction under all three binding conventions in
-this tree, the write-effect classifier (including the cross-module hop),
+Covers: AST subcommand extraction under the supported binding conventions,
+the write-effect classifier (including the cross-module hop),
 the monotone verb-promotion rule, byte-for-byte determinism, and the
 freshness assertion the `query-cli-index-current` pre-commit hook makes.
 
@@ -97,7 +97,7 @@ def test_set_defaults_func_binds_to_the_nearest_add_parser_above_it():
 
 
 def test_set_defaults_handler_is_also_a_binding():
-    """`sweep/__main__.py` binds all eight of its subcommands this way."""
+    """Portable consumers may use `handler=` instead of `func=`."""
     handlers = _resolve('p = sub.add_parser("scan")\np.set_defaults(handler=_scan)\n')
     assert handlers["scan"] == "_scan"
 
@@ -113,6 +113,15 @@ def test_if_dispatch_yields_the_whole_branch_body():
         'sub.add_parser("a")\nif args.cmd == "a":\n    do_one()\n    do_two()\n'
     )
     assert len(handlers["a"]) == 2
+
+
+def test_membership_dispatch_binds_each_literal_to_the_branch_body():
+    handlers = _resolve(
+        'sub.add_parser("status")\n'
+        'sub.add_parser("plan")\n'
+        'if args.command in {"status", "plan"}:\n    inspect_state()\n'
+    )
+    assert set(handlers) == {"status", "plan"}
 
 
 def test_unbound_subcommand_is_absent_rather_than_defaulted():
@@ -310,12 +319,16 @@ def test_subsystems_for_path_is_discoverable_as_a_query():
     assert "`scripts/subsystems.py for-path`" in query_section
 
 
-def test_sweep_handler_bound_subcommands_all_resolve():
-    """All eight bind via `handler=`; matching only `func=` left them unknown."""
-    content = qci.build(REPO_ROOT)
-    rows = [ln for ln in content.splitlines() if "`scripts/sweep/__main__.py " in ln]
-    assert len(rows) == 8
-    assert not [ln for ln in rows if "unknown" in ln]
+def test_handler_bound_subcommand_is_classified_in_rendered_index(tree_root: Path):
+    _write(
+        tree_root / "scripts/tool.py",
+        "import argparse\n"
+        'p = sub.add_parser("scan", help="Inspect the project")\n'
+        "p.set_defaults(handler=cmd_scan)\n"
+        "def cmd_scan(args):\n    print(args.path)\n",
+    )
+    content = qci.build(tree_root)
+    assert "| `scripts/tool.py scan` | Inspect the project | no |" in content
 
 
 def test_two_runs_over_the_real_tree_are_byte_identical():

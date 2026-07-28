@@ -13,24 +13,23 @@ for a word and hoping the author picked the same one.
 
 `Mutates` is read out of each subcommand's handler — filesystem
 writes, followed up to three calls deep and across module
-boundaries — not guessed from its name: `verify-matrix` is
-read-only while `skill_installer.py verify` writes. `only with
+boundaries — not guessed from its name. `only with
 --flag` means the write is reachable only inside a branch testing
 that flag, so the bare form is safe to run. A subcommand whose
 verb says action is filed as one even when no write was found, so
 this errs toward warning rather than toward reassurance.
 
-107 subcommands across 111 scanned files, plus
-32 single-command scripts.
+71 subcommands across 76 scanned files, plus
+34 single-command scripts.
 
 Out of scope, deliberately — each already has a lookup surface:
 
-- `.claude/skills/*/scripts/` — 109 skill-private helpers, invoked by the SKILL.md that owns them; `skill-catalog.md` and `/which-skill` are the router, and `find-skill-artifact-drift` already gates SKILL.md -> script existence
+- `.claude/skills/*/scripts/` — skill-private helpers, invoked by the SKILL.md that owns them; `skill-catalog.md` and `/which-skill` are the router, and `find-skill-artifact-drift` already gates SKILL.md -> script existence
 - `scripts/skill_comply/fixtures/` — deliberately defective sample projects, excluded from ruff for the same reason
 
 Regenerate with `.venv/bin/python scripts/query_cli_index.py`.
 
-## Query subcommands — 60
+## Query subcommands — 45
 
 Safe to run to answer a question. Nothing here writes unless the named flag is passed.
 
@@ -42,43 +41,29 @@ Safe to run to answer a question. Nothing here writes unless the named flag is p
 | `scripts/decisions.py link-check` | Verify supersedes / applies_to links | no |
 | `scripts/decisions.py list` | List all decisions | no |
 | `scripts/decisions.py show` | Print one decision in full | no |
-| `scripts/distribution_probe.py verify-matrix` | validate structural projections and runtime evidence read-only | no |
 | `scripts/evidence_gate.py check` | Validate evidence manifest against skill frontmatter | no |
 | `scripts/evidence_gate.py show` | Print evidence_required / produces / consumes for a skill | no |
+| `scripts/host_migrations.py plan` | Read-only exact migration plan | no |
+| `scripts/host_migrations.py status` | Read-only code/state compatibility status | no |
 | `scripts/ledger.py drift-scan` | Find untracked big files | no |
 | `scripts/ledger.py history` | Show entry audit trail | no |
 | `scripts/ledger.py list` | List ledger entries | no |
 | `scripts/ledger.py needs-review` | List entries past review threshold | no |
 | `scripts/ledger.py show` | Show one entry with full history | no |
 | `scripts/manifest.py is-active` | Exit 0 if active, 1 if inactive. | no |
-| `scripts/manifest.py resolve` | Resolve the canonical active set. | no |
 | `scripts/manifest.py show` | Print the activation block. | no |
-| `scripts/manifest.py validate` | Validate activation and capability selection fields. | no |
-| `scripts/p1_trial_contract.py check` | (no help text) | no |
-| `scripts/p1_trial_contract.py host-check` | (no help text) | no |
-| `scripts/p1_trial_contract.py scored-ready` | (no help text) | no |
 | `scripts/plans.py audit` | Lifecycle + link drift checks | no |
 | `scripts/plans.py list` | List all plans | no |
 | `scripts/plans.py show` | Print one plan in full | no |
-| `scripts/portable_v1_oracles.py show` | (no help text) | no |
-| `scripts/portable_v1_state.py check` | (no help text) | unknown |
-| `scripts/portable_v1_state.py summary` | (no help text) | no |
-| `scripts/portable_v1_state.py transition-check` | (no help text) | no |
 | `scripts/precedents.py check` | Validate registry references and supersession links | no |
 | `scripts/precedents.py list` | List precedents | no |
 | `scripts/precedents.py show` | Print one precedent as JSON | no |
-| `scripts/productization_loop.py check` | (no help text) | unknown |
 | `scripts/project_adapt.py validate-adapter` | Validate adapter.yml schema | no |
 | `scripts/project_adapt.py validate-profile` | Validate profile.yml schema | no |
 | `scripts/query_planner.py for-files` | Surface adjacency/checklist for one or more touched files | no |
 | `scripts/queue_status.py hook` | Session-start hook: report pending count. | no |
 | `scripts/queue_status.py list` | List queue items (the manual-pickup floor). | no |
 | `scripts/semantic_inventory.py validate` | Validate file against schema | no |
-| `scripts/skill_bundle.py validate-catalog` | (no help text) | no |
-| `scripts/skill_bundle.py verify-image` | (no help text) | no |
-| `scripts/skill_bundle.py verify-release` | (no help text) | no |
-| `scripts/skill_expectations.py lint` | lint authored expectation contracts | no |
-| `scripts/skill_expectations.py validate-result` | validate one captured execution result | unknown |
 | `scripts/skill_meta.py lint` | Validate every SKILL.md | no |
 | `scripts/skill_meta.py show` | Print one skill's parsed frontmatter | no |
 | `scripts/specs.py audit` | Run coverage across every spec | no |
@@ -95,9 +80,8 @@ Safe to run to answer a question. Nothing here writes unless the named flag is p
 | `scripts/subsystems.py list` | List all subsystem names | no |
 | `scripts/subsystems.py paths` | Print path prefixes claimed by one subsystem | no |
 | `scripts/subsystems.py show` | Print the full entry for one subsystem | no |
-| `scripts/wp3_slice4_replay.py verify` | (no help text) | unknown |
 
-## Action subcommands — 44
+## Action subcommands — 25
 
 These write. Read the help text before running one.
 
@@ -110,80 +94,64 @@ These write. Read the help text before running one.
 | `scripts/agent_policy/grant.py revoke` | Revoke a single grant by ID. | yes |
 | `scripts/decisions.py init` | Scaffold a new ADR | yes |
 | `scripts/decisions.py rebuild` | Rebuild decision-index.json | yes |
-| `scripts/distribution_probe.py project` | build and validate all surface projections | yes |
 | `scripts/evidence_gate.py init` | Scaffold an evidence.json stub from skill frontmatter | yes |
+| `scripts/host_migrations.py apply` | Apply the pending ordered migration chain | yes |
 | `scripts/ledger.py update` | Upsert a ledger entry | yes |
 | `scripts/manifest.py activate` | Opt a skill back in. | yes |
 | `scripts/manifest.py deactivate` | Opt a skill out (with reason). | yes |
 | `scripts/plans.py init` | Scaffold a new plan | yes |
 | `scripts/plans.py promote` | Promote plan → scaffold a spec, mark plan promoted | yes |
-| `scripts/portable_v1_oracles.py run` | (no help text) | yes |
 | `scripts/project_adapt.py discover` | Discover objective project adapter facts | yes |
 | `scripts/project_adapt.py evaluate` | Write a dogfood evaluation report | yes |
 | `scripts/project_adapt.py interview` | Draft a project interview profile | yes |
-| `scripts/queue_status.py stage-sweep` | Stage a validated judgment-bound sweep packet. | yes |
+| `scripts/queue_status.py stage` | Stage a packet-compatible work item. | unknown |
 | `scripts/semantic_inventory.py artifacts` | Inventory non-code artifacts | yes |
 | `scripts/semantic_inventory.py callers` | Pre-compute caller counts via git grep | yes |
 | `scripts/semantic_inventory.py collect` | AST inventory: definitions + edges + source | yes |
 | `scripts/semantic_inventory.py graph` | Build call graph + trace workflows | yes |
 | `scripts/semantic_inventory.py prompts` | Generate comparison prompts from summaries | yes |
-| `scripts/skill_bundle.py build-image` | (no help text) | yes |
-| `scripts/skill_bundle.py build-release` | (no help text) | yes |
-| `scripts/skill_expectations.py compile` | compile authored contracts to canonical JSON | yes |
-| `scripts/skill_installer.py activate` | (no help text) | yes |
-| `scripts/skill_installer.py deactivate` | (no help text) | yes |
-| `scripts/skill_installer.py rollback` | (no help text) | yes |
-| `scripts/skill_installer.py set-mode` | (no help text) | yes |
-| `scripts/skill_installer.py uninstall` | (no help text) | unknown |
-| `scripts/skill_installer.py verify` | (no help text) | yes |
 | `scripts/specs.py init` | Scaffold a new stub spec for a legacy code cluster | yes |
 | `scripts/specs.py rebuild` | Rebuild spec-index.json | yes |
-| `scripts/sweep/__main__.py diff` | compare two complete manifests | yes |
-| `scripts/sweep/__main__.py digest` | write a judgment-gated bounded digest | yes |
-| `scripts/sweep/__main__.py judgment-import` | validate and bind run-local outcomes | yes |
-| `scripts/sweep/__main__.py judgment-input` | write one bounded classification batch | yes |
-| `scripts/sweep/__main__.py packet` | create a fresh actionable sweep packet | yes |
-| `scripts/sweep/__main__.py ratchet` | enforce and tighten a manifest baseline | yes |
-| `scripts/sweep/__main__.py scan` | run a registry-selected native and parser battery | yes |
-| `scripts/sweep/__main__.py verify` | run harness-owned verification, rescan, and expected-delta gates | yes |
-| `scripts/wp3_slice4_replay.py record` | (no help text) | yes |
 
-## Unclassified subcommands — 3
+## Unclassified subcommands — 1
 
 The handler could not be resolved from the AST and the verb is not in the fallback lexicon. **Treat as an action** until classified — a `set_defaults(func=...)` or `set_defaults(handler=...)` binding, or a recognised verb, moves the row into a real section.
 
 | Command | Answers | Mutates |
 |---|---|---|
-| `scripts/distribution_probe.py runtime` | collect separate runtime discovery evidence | unknown |
-| `scripts/portable_v1_oracles.py readiness` | (no help text) | unknown |
-| `scripts/queue_status.py stage` | Stage a legacy flat work item. | unknown |
+| `scripts/host_migrations.py restore` | Restore the last migration | unknown |
 
-## Single-command scripts — 32
+## Single-command scripts — 34
 
 An argparse CLI with no subcommands. Listed by their own docstring
 summary so this index is not itself a source of false absence.
 
 | Script | Does |
 |---|---|
+| `scripts/_lib/language_support/profile.py` | Load strict, versioned, stdlib-only language support profiles. |
 | `scripts/agent_policy/friction_review.py` | Optional scheduled review entrypoint for agent-policy friction. |
 | `scripts/agent_policy/hook.py` | Hook adapter for Claude Code, Codex, and Augment. |
-| `scripts/agent_policy/policy.py` | Shared policy checks for local coding agents. |
-| `scripts/analysis_fact_benchmark.py` | Benchmark the productized WP4 fact provider against the pinned D3 oracle. |
-| `scripts/analysis_portfolio_spike.py` | Run the pinned D3 analysis portfolio spike and emit machine evidence. |
-| `scripts/capability_claims.py` | Validate evidence-backed completion-floor claims against the registry. |
-| `scripts/check_capability_registry_consumers.py` | Guard canonical capability consumers against a second stack registry. |
-| `scripts/check_wp5_wp4_entry_gate.py` | Machine-check the verified WP4 dependency before WP5 parser work starts. |
+| `scripts/agent_policy/policy.py` | The evaluation engine for local coding-agent policy. |
+| `scripts/benchmark_code_health_family.py` | Run the resumable ML-020 full-skill versus compressed-family benchmark. |
+| `scripts/benchmark_product_code_health_launcher.py` | Benchmark the real code-health launcher in paired serial/parallel runs. |
+| `scripts/benchmark_readonly_lenses.py` | Run the fixed ML-009 serial-versus-parallel read-only-lenses benchmark. |
+| `scripts/build_multilanguage_matrix.py` | Build the tracked multi-language expansion matrix from accepted inputs. |
+| `scripts/build_router_catalog.py` | Build the metadata-only catalog bundled with the installed skill router. |
+| `scripts/capability_inventory.py` | Generate a portable lookup of first-party capabilities in a host project. |
+| `scripts/check_scan_scope_contracts.py` | Validate the declared scan-scope contract for every ``find-*`` skill. |
 | `scripts/chunk_file.py` | AST-based chunker for oversized Python files (refactor-subsystem Phase 1.3.0). |
+| `scripts/coherence_audit.py` | Audit decision propagation, subsystem coverage, and deferred obligations. |
+| `scripts/csharp_language_provider.py` | Produce narrow C# inventory and exact native project-compilation evidence. |
 | `scripts/duplication_audit.py` | AST-based duplication audit for the your-project codebase. |
 | `scripts/host_attest.py` | Export a counts-only evidence attestation from a host project (ADR 0035). |
-| `scripts/installer_selection.py` | Select install layers and bindings from a canonical stack profile. |
-| `scripts/lint/no_core_framework_leakage.py` | Reject framework vocabulary and dishonest metadata in migrated core skills. |
+| `scripts/language_doctor.py` | Report read-only language toolchain capabilities for one project. |
 | `scripts/lint/no_fat_view.py` | Fat-view lint rule. |
 | `scripts/lint/run.py` | Run ecosystem AST lint rules with one source of scope truth. |
 | `scripts/lint/run_jscpd.py` | Pinned jscpd wrapper for the find-duplication skill. |
 | `scripts/log_effectiveness.py` | Append one line to reports/_meta/effectiveness.jsonl. |
 | `scripts/name_audit.py` | Scan the given source directories for: |
 | `scripts/query_cli_index.py` | Query-CLI index generator. |
+| `scripts/real_repo_corpus.py` | Prepare and verify pinned real repositories in a disposable local cache. |
 | `scripts/render_status.py` | Lens renderer v0 — status.json → one self-contained dashboard HTML. |
 | `scripts/skill_comply/install_proposal.py` | Install a hand-built proposal into a seeded mini-host repo, by side-effect. |
 | `scripts/skill_comply/oracle_proposer_completeness.py` | Bucket-B oracle #1: proposer completeness against planted ground truth. |
@@ -191,9 +159,6 @@ summary so this index is not itself a source of false absence.
 | `scripts/skill_comply/seed_fixture.py` | Seed a throwaway "mini-host" git repo that mirrors the guard infrastructure a /prevent-regression run operates on. |
 | `scripts/skill_comply/validate.py` | End-to-end harness validation: seed → install → score, per proposal. |
 | `scripts/skill_effectiveness.py` | Aggregate reports/_meta/effectiveness.jsonl into a markdown dashboard. |
+| `scripts/source_inventory.py` | Inventory repository source files and classify roles without analyzing code. |
 | `scripts/status.py` | Project status projection — one derived, versioned status.json. |
-| `scripts/sweep/ecosystem.py` | Isolated parser-backed ecosystem detectors normalized for sweep manifests. |
-| `scripts/sweep_shims.py` | Resolve parser adapters and native sweep shims from the shared registry. |
 | `scripts/triage_audit.py` | Deterministic accountability checker for quality scan triage. |
-| `scripts/wp3_binding_selection_evidence.py` | Emit deterministic WP3 per-root binding-selection evidence. |
-| `scripts/wp3_move_gate.py` | Blocking WP3-local evidence gate for tracked foundation/exemplar moves. Validates Git moves, ADR 0024 concept evidence, ADR 0028… |
