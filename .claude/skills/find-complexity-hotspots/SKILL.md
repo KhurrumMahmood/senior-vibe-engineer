@@ -42,6 +42,11 @@ Use `scripts/run_csharp.py` with the sibling `_csharp` provider; run it with
 has a syntactic branch score of at least eight in the current compiled
 manifest closure. The score is advisory source syntax, not runtime cost,
 cognitive complexity, resolved control flow, or refactor safety.
+Without the product-specific `csharp-project.json`, this branch retains
+hash-bound authored-source findings as `partial` / `safe-defer-incomplete`
+without claiming build membership, dependency resolution, generated inputs,
+or native-test coverage. For a read-only real-repository scan, pass an external
+`--output-dir` with `--no-host-write`.
 
 ## C++20 branch
 

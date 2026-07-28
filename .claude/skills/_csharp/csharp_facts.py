@@ -423,6 +423,7 @@ def _finish(payload: dict[str, Any], root: Path, before: dict[str, str]) -> tupl
 
 def produce(
     project_root: Path, target: Path, *, dotnet: str | None,
+    allow_source_only: bool = False,
 ) -> tuple[dict[str, Any], int]:
     try:
         root = project_root.resolve(strict=True)
@@ -450,6 +451,66 @@ def produce(
     try:
         project = _load_project(root, inventory)
     except ValueError as exc:
+        if allow_source_only:
+            selected_sources = [
+                root / row["file"]
+                for row in inventory
+                if row["role"] == "source"
+                and (
+                    _inside(root / row["file"], selected_target)
+                    or (selected_target.is_file() and root / row["file"] == selected_target)
+                )
+            ]
+            if selected_sources:
+                try:
+                    references, code_analysis, csharp_analysis, runtime_version = _sdk_assets(
+                        dotnet_path, sdk_root
+                    )
+                except ValueError as assets_exc:
+                    payload.update(
+                        failure_kind="csharp_sdk_assets_unavailable",
+                        detail=str(assets_exc),
+                    )
+                    return _finish(payload, root, before)
+                assets = {
+                    "compiler": sdk_root / "Roslyn/bincore/csc.dll",
+                    "references": references,
+                    "code_analysis": code_analysis,
+                    "csharp_analysis": csharp_analysis,
+                    "runtime_version": runtime_version,
+                }
+                files, syntax_error = _syntax_files(
+                    root, selected_sources, dotnet_path, assets
+                )
+                if syntax_error:
+                    payload.update(
+                        failure_kind="csharp_roslyn_syntax_failed",
+                        detail=syntax_error,
+                    )
+                    return _finish(payload, root, before)
+                payload["files"] = files
+                payload["native_evidence"] = {
+                    "state": "source-only-unvalidated",
+                    "detail": (
+                        "Roslyn parsed authored sources without compiling the host project; "
+                        "build membership, dependencies, generators, and native tests remain unvalidated."
+                    ),
+                }
+                payload["boundaries"]["eligible_sources"] = (
+                    "authored lowercase .cs files under the explicit target; "
+                    "build membership and generated inputs are unvalidated"
+                )
+                payload["limits"].append(
+                    "The product-specific project manifest was absent or invalid, so native "
+                    "compilation, dependency resolution, generators, build-target membership, "
+                    "and project tests were not validated."
+                )
+                payload.update(
+                    status="partial",
+                    failure_kind="csharp_project_manifest_invalid",
+                    detail=str(exc),
+                )
+                return _finish(payload, root, before)
         payload.update(failure_kind="csharp_project_manifest_invalid", detail=str(exc))
         return _finish(payload, root, before)
     payload["project_manifest"] = project

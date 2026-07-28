@@ -274,6 +274,39 @@ def test_csharp_complete_clean_result_is_explicit(tmp_path: Path) -> None:
     assert payload["findings"] == []
 
 
+def test_csharp_complexity_retains_source_only_findings_outside_real_host(
+    tmp_path: Path,
+) -> None:
+    host = _copy_host(tmp_path)
+    (host / "csharp-project.json").unlink()
+    outside = tmp_path / "external-artifacts" / "complexity"
+    before = _state(host)
+
+    result = _run(
+        str(PYTHON), "-I", "-S", str(SCRIPTS["complexity"]),
+        "--project-root", str(host), "--dotnet", str(DOTNET),
+        "--target", "src", "--output-dir", str(outside),
+        "--no-host-write", cwd=host,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads((outside / "findings.json").read_text(encoding="utf-8"))
+    assert payload["status"] == "partial"
+    assert payload["failure_kind"] == "csharp_project_manifest_invalid"
+    assert payload["verdict"] == "safe-defer-incomplete"
+    assert payload["analysis"]["csharp"]["native_evidence"]["state"] == (
+        "source-only-unvalidated"
+    )
+    assert [(row["qualified_name"], row["branch_score"]) for row in payload["findings"]] == [
+        ("CSharpCohort.Syntax.RouteInvoice", 8)
+    ]
+    report = (outside / "report.md").read_text(encoding="utf-8")
+    assert "src/CSharpCohort/Syntax.cs" in report
+    assert not (host / "reports").exists()
+    assert not (host / ".native-build").exists()
+    assert _state(host) == before
+
+
 @pytest.mark.parametrize("kind", sorted(SCRIPTS))
 def test_each_csharp_consumer_runs_from_exact_copied_closure(
     tmp_path: Path, kind: str,
@@ -331,9 +364,10 @@ def test_csharp_refusal_lifecycle_replaces_artifacts_and_recovers(tmp_path: Path
     manifest.write_text("{}\n", encoding="utf-8")
     refused = _invoke(host, "complexity")
     refused_payload = _artifact(host, "complexity")
-    assert refused.returncode == 2
-    assert refused_payload["status"] == "failed"
+    assert refused.returncode == 0
+    assert refused_payload["status"] == "partial"
     assert refused_payload["failure_kind"] == "csharp_project_manifest_invalid"
+    assert refused_payload["verdict"] == "safe-defer-incomplete"
 
 
 def test_csharp_malformed_source_fails_direct_csc_diagnostic(tmp_path: Path) -> None:

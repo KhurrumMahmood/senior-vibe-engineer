@@ -23,8 +23,15 @@ from csharp_facts import (
 )
 
 
-def _facts(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
-    return produce(args.project_root, args.target, dotnet=args.dotnet)
+def _facts(
+    args: argparse.Namespace, *, allow_source_only: bool = False,
+) -> tuple[dict[str, Any], int]:
+    return produce(
+        args.project_root,
+        args.target,
+        dotnet=args.dotnet,
+        allow_source_only=allow_source_only,
+    )
 
 
 def _parser(description: str) -> argparse.ArgumentParser:
@@ -452,11 +459,30 @@ def complexity_main(argv: list[str] | None = None) -> int:
     parser = _parser("Report advisory direct-body C# branch hotspots.")
     parser.add_argument("--target", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument(
+        "--no-host-write",
+        action="store_true",
+        help="Require output-dir outside project-root for read-only dogfood",
+    )
     args = parser.parse_args(argv)
     root = args.project_root.resolve()
-    output = _inside_output(root, args.output_dir, parser)
+    output = args.output_dir.resolve()
+    if args.no_host_write:
+        try:
+            output.relative_to(root)
+        except ValueError:
+            pass
+        else:
+            parser.error("--no-host-write requires --output-dir outside --project-root")
+    else:
+        output = _inside_output(root, output, parser)
     clear_artifacts(output / name for name in ("detections.jsonl", "findings.json", "report.md"))
-    facts, code = _facts(args)
+    facts, code = _facts(args, allow_source_only=True)
+    evidence_level = (
+        "native-validated-source-syntax"
+        if facts["status"] == "complete"
+        else "hash-bound-source-syntax"
+    )
     findings = [{
         "pattern": "high-branch-function", "language": "csharp",
         "analyzer": facts["analyzer"], "file": row["file"],
@@ -465,10 +491,12 @@ def complexity_main(argv: list[str] | None = None) -> int:
         "end_lineno": row["end_line"], "loc": row["loc"],
         "branch_score": row["branch_score"],
         "evidence_scope": "direct-body-csharp-source-syntax-only",
-    } for row in _functions(facts) if row["branch_score"] >= 8] if facts["status"] == "complete" else []
+        "evidence_level": evidence_level,
+    } for row in _functions(facts) if row["branch_score"] >= 8] if facts["status"] in {"complete", "partial"} else []
     findings.sort(key=lambda row: (-row["branch_score"], row["file"], row["lineno"]))
     verdict = (
-        "incomplete-syntax-evidence" if facts["status"] != "complete"
+        "safe-defer-incomplete" if facts["status"] == "partial"
+        else "incomplete-syntax-evidence" if facts["status"] != "complete"
         else "measure-first" if findings else "no-hotspots"
     )
     payload = {
@@ -479,12 +507,23 @@ def complexity_main(argv: list[str] | None = None) -> int:
         json.dumps(row, sort_keys=True) + "\n" for row in findings
     ))
     atomic_json(output / "findings.json", payload)
-    atomic_text(
-        output / "report.md",
-        "# Complexity hotspot audit — C#\n\n"
-        f"Status: `{facts['status']}`\nVerdict: `{verdict}`\n\n"
-        "Direct-body branch-keyword syntax is advisory and does not measure runtime cost.\n",
+    report_lines = [
+        "# Complexity hotspot audit — C#",
+        "",
+        f"Status: `{facts['status']}`",
+        f"Verdict: `{verdict}`",
+        f"Findings: {len(findings)}",
+        "",
+    ]
+    report_lines.extend(
+        f"- `{row['file']}:{row['lineno']}` `{row['qualified_name']}` — branch score {row['branch_score']}"
+        for row in findings[:5]
     )
+    report_lines.extend([
+        "",
+        "Direct-body branch-keyword syntax is advisory and does not measure runtime cost.",
+    ])
+    atomic_text(output / "report.md", "\n".join(report_lines) + "\n")
     return terminal_return_code(facts, code)
 
 
