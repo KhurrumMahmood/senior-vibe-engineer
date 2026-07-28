@@ -712,6 +712,87 @@ auditable when completeness matters.
   plugin loading, loosening per-language validation, or raising the matrix
   schema version solely for internal refactoring.
 
+### ML-028 — One canonical `adapt-project` discovery engine
+
+- State: `candidate`
+- User value: product validation and installed execution cannot silently use
+  different discovery engines with incompatible schemas and language support.
+- Evidence: the first real-repository pass used `scripts/project_adapt.py` and
+  falsely concluded that the product missed all Go/Java detection; the
+  documented copied skill had already implemented both. Expanding the legacy
+  helper also immediately disagreed on authored-source exclusions, framework
+  inference, package-manager labels, and status fields.
+- Smallest experiment: identify actual consumers of the repository-level
+  `discover` subcommand, then either delegate it to the copied canonical
+  producer or retire/rename only that surface. Assert semantic equivalence for
+  the four pinned hosts if both entrypoints remain.
+- Acceptance: every supported `/adapt-project` route names one producer and
+  schema; product validation cannot select the legacy producer; no
+  `project-interview` consumer regresses.
+- Non-goals: a universal language adapter or rewriting every specialized
+  provider behind one schema.
+
+### ML-029 — Semantic `adapt-project` completion gate
+
+- State: `candidate`
+- User value: an adapter with empty obvious stack/command/source facts cannot
+  pass merely because four files exist.
+- Evidence: all four original broken `1900` legacy artifacts passed both
+  `check_evidence.py` and `validate-adapter`; Chi and PetClinic had empty
+  language and command facts despite root build markers.
+- Smallest experiment: make the ordinary evidence gate compare the JSON/YAML
+  payload, require a valid terminal status/schema, and enforce only
+  marker-backed invariants already promised by the selected producer. A host
+  with no inferable command must carry an explicit limitation rather than a
+  fabricated command.
+- Acceptance: the four broken artifacts fail with precise diagnostics; the
+  repaired pinned-host and existing copied-install artifacts pass; generic
+  documentation-only repositories are not falsely rejected.
+- Non-goals: attestation, digests, transaction infrastructure, or proving that
+  every reported project command succeeds in an unprepared environment.
+
+### ML-030 — Uniform dispatch and dogfood contract for specialized languages
+
+- State: `candidate`
+- User value: advertised C/C++/C#/Dart/Kotlin/PHP/Ruby/Rust/Swift discovery
+  should not require undocumented executor improvisation or host writes.
+- Evidence: the main pipeline always runs the five-language general scanner,
+  while the specialized wrappers use different arguments, status/command
+  facets, and mostly require output inside the host. This blocks an honest
+  `--no-host-write` real-repository journey beyond the initial slice.
+- Trigger: before breadth validation attempts the first specialized-language
+  repository.
+- Smallest experiment: add explicit marker/manifest-selected dispatch for one
+  next language and normalize external artifact root, terminal status,
+  evidence, and exact limitation behavior without changing its analyzer.
+- Acceptance: the routed installed closure selects the correct wrapper,
+  produces a useful externally stored artifact, preserves source bytes, and
+  refuses ambiguity rather than guessing; then repeat the pattern only when a
+  second language confirms it.
+- Non-goals: a universal result ontology, ambient full-catalog install, or one
+  shared semantic analyzer.
+
+### ML-031 — Continue calibrating `adapt-project` risk and report evidence
+
+- State: `candidate`
+- User value: the human report should surface the source/command facts the
+  user relies on without crowding them out with lexical documentation matches.
+- Evidence: Got's baseline sensitive-surface output treated migration-guide
+  documentation as sensitive, while the legacy report omitted source roots
+  entirely. The canonical real-host reports still need user-journey sampling.
+- Trigger: met for the first narrow class—canonical Got discovery labeled four
+  migration-guide documentation paths as sensitive and one authored auth path
+  correctly. The documentation-only class is repaired in the current slice;
+  further calibration still requires another real-host false-positive class.
+- Smallest experiment: sample five report claims on the pinned hosts; add
+  reason/category provenance and suppress only a demonstrated false-positive
+  class.
+- Acceptance: at least four of five sampled non-clean claims are correct and
+  the accepted language/root/command/limitation facts are visible in the human
+  report.
+- Non-goals: semantic security analysis or eliminating every lexical false
+  positive.
+
 ## External release dependency (tracked, not a language feature)
 
 The reviewed branch is still not the public source named by the README. Before

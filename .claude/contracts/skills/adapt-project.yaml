@@ -6,7 +6,7 @@ schema_version: 2
 skill: adapt-project
 job: meta
 problem_class: "host-project discovery / adapter scaffolding (META)"
-intent: "Discover objective host-project facts and scaffold a project adapter for engineering-skills — stack markers, commands, tests, CI, docs, Python and TypeScript/TSX source roots, domain terms, sensitive surfaces, and guardrails. TypeScript counts participate in the same large-root caution as Python while generated/vendor/dependency/build/test trees stay excluded; package.json never proves a Node framework. Writes timestamped evidence by default, requires --apply for the durable host adapter, and keeps --no-host-write artifacts outside the host."
+intent: "Discover objective host-project facts and scaffold a project adapter for engineering-skills — stack markers, commands, tests, CI, docs, and authored source roots for Python, JavaScript-family, TypeScript/TSX, Go, Java, and the separately selected bounded language-provider branches. TypeScript and Go counts participate in the same large-root caution as Python while generated/vendor/dependency/build/test trees stay excluded; package.json never proves a Node framework. Writes timestamped evidence by default, requires --apply for the durable host adapter, and keeps the general scanner's --no-host-write artifacts outside the host."
 solves: "Localizing the portable engineering-skills ecosystem to a new repo needs the operational facts (stack/commands/tests/CI/source roots) gathered objectively. There was no read-only discovery pass that produces a machine-readable adapter while explicitly refusing to confuse observed frequency with health — a messy repo's repeated patterns are flagged 'do not standardize yet', not canonized."
 born:
   commit: "a582cbf"
@@ -16,6 +16,7 @@ dogfood_kind: fixture-pair
 dogfooded_on:
   - "Committed Python/TypeScript positive, boundary, exclusion, copied-install, and hostile-path fixtures exercise final adapter/report/evidence artifacts."
   - "Fresh stock-installed TypeScript-host journey at /private/tmp/adapt-project-typescript-forward.qABrrP produced a useful read-only adapter and exposed the documented-command defect later pinned by regression."
+  - "Pinned read-only real-repository discovery on Requests, Got, go-chi/chi, and Spring PetClinic exposed and then verified pytest configuration, source/ layout, arbitrary Go package, and Java no-regression behavior."
 reports_dir: reports/adapt-project
 run_evidence:
   count: 0
@@ -48,7 +49,7 @@ provenance_confidence:
 evidence:
   - "a582cbf — born 2026-05-16 in a 3-skill cohort with find-complexity-hotspots and project-interview (facts)"
   - "reports_dir null, run count 0 (facts) — no ES2 timestamped run despite a documented dogfood pipeline"
-  - "has_scripts=false / has_fixtures=false (facts) — the project_adapt.py helper is shared/repo-level, not flagged as this skill's own scripts/ + fixtures signature"
+  - "The selected skill owns self-contained discovery and evidence scripts; language fixtures and copied-install tests exercise the final artifact boundary."
   - "Additive Python/TypeScript final-artifact, stock-install, path-containment, and fresh-forward evidence is indexed by .claude/tasks/multilanguage-learnings/adapt-project-typescript.{md,json}."
 gaps:
   - "No precedents.yml entry and no ADR in ai-docs/decisions/ names adapt-project; intent rests on the SKILL.md and the a582cbf cohort framing."

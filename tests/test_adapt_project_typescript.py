@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILL_ROOT = REPO_ROOT / ".claude" / "skills" / "adapt-project"
@@ -215,6 +217,77 @@ def test_type_script_size_boundary_and_exclusion_only_root_do_not_raise_large_so
     assert "Large source roots may contain mixed-quality legacy code; extract exemplars selectively." not in (
         excluded_adapter["standardization"]["cautions"]
     )
+
+
+def test_realistic_source_directory_establishes_typescript_and_setup(tmp_path: Path) -> None:
+    host = tmp_path / "typescript-host"
+    _write(
+        host / "package.json",
+        json.dumps({"scripts": {"test": "tsc --noEmit"}}),
+    )
+    _write(host / "tsconfig.json", "{}\n")
+    _write(host / "source" / "client.ts", "export const client = true\n")
+    _write(host / "test" / "client.test.ts", "export const covered = true\n")
+
+    adapter, _ = _discover(SKILL_ROOT, host, tmp_path / "artifacts", cwd=tmp_path)
+
+    roots = {row["path"]: row for row in adapter["source_roots"]}
+    assert adapter["stack"]["languages"] == ["typescript"]
+    assert roots["source"]["typescript_files"] == 1
+    assert "test" not in roots
+    assert adapter["commands"]["setup"] == ["npm install"]
+
+
+def test_sensitive_surface_detection_excludes_documentation_only_migration_hits(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "typescript-host"
+    _write(host / "package.json", json.dumps({"scripts": {"test": "tsc --noEmit"}}))
+    _write(host / "source" / "strip-url-auth.ts", "export const safe = true\n")
+    _write(host / "documentation" / "migration-guides" / "axios.md", "# Migrate\n")
+
+    adapter, _ = _discover(SKILL_ROOT, host, tmp_path / "artifacts", cwd=tmp_path)
+
+    paths = [row["path"] for row in adapter["sensitive_surfaces"]]
+    assert paths == ["source/strip-url-auth.ts"]
+
+
+def test_pyproject_pytest_commands_are_executable_in_order(tmp_path: Path) -> None:
+    host = tmp_path / "python-host"
+    _write(
+        host / "pyproject.toml",
+        "[build-system]\nrequires = ['setuptools']\n"
+        "[tool.pytest.ini_options]\ntestpaths = ['tests']\n",
+    )
+    _write(host / "requirements-dev.txt", "pytest\n")
+    _write(host / "src" / "library" / "__init__.py", "VALUE = 1\n")
+
+    adapter, _ = _discover(SKILL_ROOT, host, tmp_path / "artifacts", cwd=tmp_path)
+
+    assert adapter["commands"]["test"] == [".venv/bin/python -m pytest"]
+    assert adapter["commands"]["setup"] == [
+        "python3 -m venv .venv",
+        ".venv/bin/python -m pip install -r requirements-dev.txt",
+    ]
+
+
+@pytest.mark.parametrize(
+    "pyproject",
+    (
+        "[project]\ndependencies = ['pytest']\n",
+        "[tool.pytest.ini_options\ntestpaths = ['tests']\n",
+    ),
+)
+def test_pytest_command_requires_valid_structured_configuration(
+    tmp_path: Path, pyproject: str
+) -> None:
+    host = tmp_path / "python-host"
+    _write(host / "pyproject.toml", pyproject)
+    _write(host / "src" / "library" / "__init__.py", "VALUE = 1\n")
+
+    adapter, _ = _discover(SKILL_ROOT, host, tmp_path / "artifacts", cwd=tmp_path)
+
+    assert adapter["commands"]["test"] == []
 
 
 def test_copied_agents_install_is_isolated_and_writes_adapter_report_and_evidence(tmp_path: Path) -> None:

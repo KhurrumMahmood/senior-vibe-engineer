@@ -176,6 +176,24 @@ def test_go_large_root_caution_and_must_not_fire_boundaries(tmp_path: Path) -> N
     )
 
 
+def test_go_discovers_authored_top_level_packages_without_counting_examples(tmp_path: Path) -> None:
+    host, env = _host(tmp_path)
+    (host / "middleware").mkdir()
+    (host / "middleware" / "auth.go").write_text(
+        "package middleware\n\nfunc Auth() {}\n", encoding="utf-8"
+    )
+    (host / "_examples").mkdir()
+    (host / "_examples" / "demo.go").write_text(
+        "package main\n\nfunc main() {}\n", encoding="utf-8"
+    )
+
+    adapter, _ = _discover(SKILL, host, tmp_path / "artifacts", env)
+
+    roots = {row["path"]: row for row in adapter["source_roots"]}
+    assert roots["middleware"]["go_files"] == 1
+    assert "_examples" not in roots
+
+
 def test_go_nonreplaceable_latest_fails_before_writing_a_scan(tmp_path: Path) -> None:
     host, env = _host(tmp_path)
     artifacts = tmp_path / "artifacts"

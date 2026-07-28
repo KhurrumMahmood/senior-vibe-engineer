@@ -15,6 +15,7 @@ import os
 import re
 import shutil
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ ADAPTER_SCHEMA_VERSION = 1
 SOURCE_ROOT_CANDIDATES = (
     "app",
     "src",
+    "source",
     "core",
     "lib",
     "packages",
@@ -58,6 +60,9 @@ JAVASCRIPT_FAMILY_NON_SOURCE_PARTS = frozenset({
     "vendor",
 })
 GO_NON_SOURCE_PARTS = JAVASCRIPT_FAMILY_NON_SOURCE_PARTS | frozenset({
+    "_examples",
+    "example",
+    "examples",
     "testdata",
     "fixture",
     "fixtures",
@@ -66,7 +71,9 @@ GO_NON_SOURCE_PARTS = JAVASCRIPT_FAMILY_NON_SOURCE_PARTS | frozenset({
     "deps",
     "dependencies",
 })
-JAVA_NON_SOURCE_PARTS = GO_NON_SOURCE_PARTS | frozenset({
+JAVA_NON_SOURCE_PARTS = (
+    GO_NON_SOURCE_PARTS - {"_examples", "example", "examples"}
+) | frozenset({
     ".gradle",
     "gen",
     "integrationtest",
@@ -82,10 +89,12 @@ JAVA_GENERATED_ANNOTATION_RE = re.compile(
     r"(?m)^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)"
 )
 SENSITIVE_NAME_RE = re.compile(
-    r"(secret|credential|token|password|key|auth|ai_runtime|intelligence|sidecar|"
-    r"payment|billing|migration|agent_policy)",
+    r"(?<![A-Za-z0-9])(?:secrets?|credentials?|tokens?|passwords?|keys?|"
+    r"auth(?:entication|orization)?|ai_runtime|intelligence|sidecar|payments?|"
+    r"billing|migrations?|agent_policy)(?![A-Za-z0-9])",
     re.IGNORECASE,
 )
+DOCUMENTATION_PARTS = frozenset({"doc", "docs", "documentation", "guide", "guides"})
 TERM_RE = re.compile(r"^\*\*([^*\n:]{2,80})\*\*:", re.MULTILINE)
 SCAN_ID_RE = re.compile(r"^scan-[A-Za-z0-9][A-Za-z0-9_.-]{0,58}$")
 
@@ -257,6 +266,16 @@ def load_package(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def load_pyproject(path: Path) -> dict[str, Any]:
+    """Return structured project metadata without inferring from raw text."""
+    try:
+        with path.open("rb") as handle:
+            payload = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
 def source_roots(root: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     root_go_paths = [
@@ -360,6 +379,42 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
         if java_files:
             row["java_files"] = java_files
         rows.append(row)
+
+    # Go packages are not restricted to cmd/internal/pkg. Frameworks and
+    # libraries commonly use domain-named top-level packages (middleware,
+    # transport, router). Inventory each authored direct child that was not
+    # already represented, while applying the same generated/test/vendor rules.
+    represented = {
+        row["path"] for row in rows if isinstance(row.get("path"), str)
+    }
+    for path in sorted(root.iterdir()):
+        if (
+            not path.is_dir()
+            or path.name in represented
+            or path.name.startswith(".")
+            or not is_within(path, root)
+        ):
+            continue
+        go_paths = [
+            item
+            for item in path.rglob("*.go")
+            if is_within(item, root) and is_go_source(item, root)
+        ]
+        if not go_paths:
+            continue
+        rows.append({
+            "path": path.name,
+            "python_files": 0,
+            "typescript_files": 0,
+            "typescript_file_kinds": {"ts": 0, "tsx": 0},
+            "markdown_files": sum(
+                1
+                for item in path.rglob("*.md")
+                if is_within(item, root) and not is_common_ignored(item)
+            ),
+            "source_languages": ["go"],
+            "go_files": len(go_paths),
+        })
 
     # Maven and Gradle multi-module repositories commonly put Java sources at
     # <module>/src/main/java.  Keep the established flat candidate rows (for
@@ -465,13 +520,30 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
 def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, list[str]]:
     commands: dict[str, list[str]] = {"test": [], "lint": [], "dev": [], "setup": []}
     if "python" in stack["languages"]:
-        python = ".venv/bin/python" if (root / ".venv/bin/python").exists() else "python3"
+        # Setup always establishes this interpreter, so every inferred Python
+        # command composes with the setup sequence instead of bypassing it.
+        python = ".venv/bin/python"
         if (root / "manage.py").exists():
             commands["test"].append(f"{python} manage.py test")
             commands["dev"].append(f"{python} manage.py runserver")
+        pyproject = load_pyproject(root / "pyproject.toml")
+        tool = pyproject.get("tool")
+        pytest_configured = (
+            isinstance(tool, dict)
+            and isinstance(tool.get("pytest"), dict)
+            and isinstance(tool["pytest"].get("ini_options"), dict)
+        )
+        if pytest_configured or (root / "pytest.ini").is_file():
+            commands["test"].append(f"{python} -m pytest")
         commands["setup"].append("python3 -m venv .venv")
-        if (root / "requirements.txt").exists():
+        if (root / "requirements-dev.txt").exists():
+            commands["setup"].append(
+                ".venv/bin/python -m pip install -r requirements-dev.txt"
+            )
+        elif (root / "requirements.txt").exists():
             commands["setup"].append(".venv/bin/python -m pip install -r requirements.txt")
+        elif (root / "pyproject.toml").exists():
+            commands["setup"].append(".venv/bin/python -m pip install -e .")
     for path in [root / "package.json", *sorted(root.glob("*/package.json"))]:
         package = load_package(path)
         scripts = package.get("scripts")
@@ -486,6 +558,15 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, list[str]]:
                 commands["lint"].append(command)
             if name in {"dev", "start"}:
                 commands["dev"].append(command)
+    if (root / "package.json").is_file():
+        if (root / "pnpm-lock.yaml").is_file():
+            commands["setup"].append("pnpm install --frozen-lockfile")
+        elif (root / "package-lock.json").is_file():
+            commands["setup"].append("npm ci")
+        elif (root / "yarn.lock").is_file():
+            commands["setup"].append("yarn install --frozen-lockfile")
+        else:
+            commands["setup"].append("npm install")
     if "go" in stack["languages"] and (root / "go.mod").is_file():
         commands["test"].append("go test ./...")
     if "java" in stack["languages"] and (root / "pom.xml").is_file():
@@ -496,7 +577,7 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, list[str]]:
         commands["test"].append(
             "./gradlew test" if (root / "gradlew").is_file() else "gradle test"
         )
-    return {kind: sorted(set(values)) for kind, values in commands.items()}
+    return {kind: list(dict.fromkeys(values)) for kind, values in commands.items()}
 
 
 def detect_docs(root: Path) -> dict[str, Any]:
@@ -548,12 +629,18 @@ def detect_sensitive_surfaces(root: Path) -> list[dict[str, str]]:
         if is_common_ignored(path):
             continue
         rel = relative(path, root)
+        relative_parts = tuple(part.casefold() for part in Path(rel).parts)
+        documentation_only = path.suffix.casefold() == ".md" or any(
+            part in DOCUMENTATION_PARTS for part in relative_parts
+        )
+        if documentation_only:
+            continue
         if path.is_dir() and SENSITIVE_NAME_RE.search(rel):
             surfaces.append({"path": rel, "kind": "directory", "reason": "sensitive-looking name"})
         elif path.is_file() and path.name in {".env", ".env.local"}:
             surfaces.append({"path": rel, "kind": "file", "reason": "environment secrets file"})
         elif path.is_file() and SENSITIVE_NAME_RE.search(rel) and path.suffix in {
-            ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".java", ".md"
+            ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".java"
         } and (path.suffix != ".java" or is_java_source(path, root)):
             surfaces.append({"path": rel, "kind": "file", "reason": "sensitive-looking name"})
     return surfaces

@@ -137,6 +137,7 @@ standardization caution fires when any of the Python, TypeScript, or
 JavaScript counts exceeds 200. JavaScript-family counts exclude `node_modules`,
 `dist`, `build`, `generated`, `vendor`, and test descendants, as well as
 declaration, `*.test`/`*.spec`, generated, and minified files.
+Both `src/` and the common `source/` spelling are candidate source roots.
 
 This is objective source-root discovery, not a Node-stack adapter. A
 `package.json` may contribute package-manager markers and declared commands,
@@ -153,7 +154,10 @@ build, generated, fixture, test-directory, `*_test.go`, generated-name, and
 canonical `// Code generated ... DO NOT EDIT.` files. The same `>200` large-root
 standardization caution used for Python and JavaScript-family source applies to
 Go. Root-level Go files use the `.` source-root row; conventional `cmd`,
-`internal`, and `pkg` trees are source-root candidates alongside existing roots.
+`internal`, and `pkg` trees are source-root candidates alongside existing
+roots. Authored direct-child packages may use domain names such as
+`middleware/`; they are inventoried without treating example, test, fixture,
+dependency, vendor, build, or generated trees as production packages.
 
 A root `go.mod` is an objective Go language/package-manager marker and adds the
 native test command `go test ./...`; `go.work` is a language marker only. This
