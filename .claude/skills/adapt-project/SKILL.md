@@ -121,6 +121,10 @@ and human review decide what deserves to become doctrine.
 - A Java build's final adapter and report count only authored `.java` source,
   classify Maven or Gradle markers, emit the matching test command, and declare
   `analysis.java.status: complete`.
+- The same canonical installed command identifies marker-backed PHP/Composer,
+  Ruby/Bundler, Rust/Cargo, and Dart/Pub hosts, counts their authored source
+  roots, and emits conventional setup/test/lint commands without invoking the
+  richer language provider or claiming framework semantics.
 
 Status is atomic. `complete` means every requested filesystem fact and artifact
 was written. This read-only Go inventory has no honest `partial` mode and does
@@ -171,6 +175,22 @@ from the discovery command.
 For Java hosts, read [`references/java.md`](references/java.md) before running
 discovery. That reference defines the authored-source boundary, accepted build
 markers and commands, native fixture check, and explicit non-claims.
+
+## Specialized-language filesystem baseline
+
+The installed `scripts/discover.py` command always supplies a small objective
+baseline for PHP, Ruby, Rust, and Dart. It recognizes `composer.json`, Gemfile,
+`Cargo.toml`, and `pubspec.yaml`; inventories authored `.php`, `.rb`, `.rs`, and
+`.dart` source in conventional or project-owned top-level roots; excludes test,
+example/benchmark, generated, dependency, build, report, and symlink roles; and
+names conventional package-manager commands. This is sufficient for routing
+and setup guidance from a no-host-write scan.
+
+The baseline does not replace the richer provider branches below. Load a
+language provider on demand when the task needs native validation, syntax
+facts, role provenance, or mutation authority. A filesystem `complete` status
+means the bounded discovery artifacts are complete, not that dependencies are
+installed or the named project commands have passed.
 
 ## Rust v1 contract
 

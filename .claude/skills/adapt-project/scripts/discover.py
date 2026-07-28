@@ -85,6 +85,24 @@ JAVA_TEST_NAMES = ("*Test.java", "*Tests.java", "*IT.java")
 JAVA_GENERATED_MARKER_RE = re.compile(
     r"(?m)^\s*// Code generated .* DO NOT EDIT\.\s*$"
 )
+SIMPLE_LANGUAGE_SUFFIXES = {
+    "php": ".php",
+    "ruby": ".rb",
+    "rust": ".rs",
+    "dart": ".dart",
+}
+SIMPLE_LANGUAGE_NON_SOURCE_PARTS = {
+    "php": frozenset({"build", "example", "examples", "generated", "test", "tests", "vendor"}),
+    "ruby": frozenset({
+        "benchmark", "benchmarks", "build", "dist", "example", "examples",
+        "generated", "spec", "specs", "test", "tests", "tmp", "vendor",
+    }),
+    "rust": frozenset({"benches", "examples", "generated", "target", "test", "tests", "vendor"}),
+    "dart": frozenset({
+        ".dart_tool", "benchmark", "benchmarks", "build", "example", "examples",
+        "generated", "test", "tests", "vendor",
+    }),
+}
 JAVA_GENERATED_ANNOTATION_RE = re.compile(
     r"(?m)^\s*@(?:javax\.annotation\.processing\.)?Generated(?:\s*\(|\s*$)"
 )
@@ -250,6 +268,29 @@ def is_java_source(path: Path, project_root: Path) -> bool:
     )
 
 
+def is_simple_language_source(path: Path, project_root: Path, language: str) -> bool:
+    """Recognize authored source for marker-backed filesystem discovery."""
+    if path.suffix.casefold() != SIMPLE_LANGUAGE_SUFFIXES[language]:
+        return False
+    if _has_symlink_boundary(path, project_root):
+        return False
+    try:
+        parts = path.resolve().relative_to(project_root.resolve()).parts
+    except ValueError:
+        return False
+    folded = tuple(part.casefold() for part in parts)
+    if any(part in COMMON_SKIP_PARTS for part in parts) or any(
+        part in SIMPLE_LANGUAGE_NON_SOURCE_PARTS[language] for part in folded
+    ):
+        return False
+    name = path.name.casefold()
+    if "generated" in name:
+        return False
+    if language == "dart" and name.endswith((".g.dart", ".freezed.dart")):
+        return False
+    return not (language == "rust" and name == "build.rs")
+
+
 def is_within(path: Path, root: Path) -> bool:
     try:
         path.resolve().relative_to(root.resolve())
@@ -288,7 +329,15 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
         for item in root.glob("*.java")
         if is_within(item, root) and is_java_source(item, root)
     ]
-    if root_go_paths or root_java_paths:
+    root_simple_paths = {
+        language: [
+            item
+            for item in root.glob(f"*{suffix}")
+            if is_within(item, root) and is_simple_language_source(item, root, language)
+        ]
+        for language, suffix in SIMPLE_LANGUAGE_SUFFIXES.items()
+    }
+    if root_go_paths or root_java_paths or any(root_simple_paths.values()):
         root_row: dict[str, Any] = {
             "path": ".",
             "python_files": 0,
@@ -299,12 +348,15 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
                 language
                 for language, paths in (("go", root_go_paths), ("java", root_java_paths))
                 if paths
-            ],
+            ] + [language for language, paths in root_simple_paths.items() if paths],
         }
         if root_go_paths:
             root_row["go_files"] = len(root_go_paths)
         if root_java_paths:
             root_row["java_files"] = len(root_java_paths)
+        for language, paths in root_simple_paths.items():
+            if paths:
+                root_row[f"{language}_files"] = len(paths)
         rows.append(root_row)
     for name in (*SOURCE_ROOT_CANDIDATES, *GO_SOURCE_ROOT_CANDIDATES):
         path = root / name
@@ -320,6 +372,15 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             for item in path.rglob("*.java")
             if is_within(item, root) and is_java_source(item, root)
         ]
+        simple_paths = {
+            language: [
+                item
+                for item in path.rglob(f"*{suffix}")
+                if is_within(item, root)
+                and is_simple_language_source(item, root, language)
+            ]
+            for language, suffix in SIMPLE_LANGUAGE_SUFFIXES.items()
+        }
         if name in GO_SOURCE_ROOT_CANDIDATES and not go_paths:
             continue
         python_files = sum(
@@ -354,6 +415,9 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             source_languages.append("go")
         if java_files:
             source_languages.append("java")
+        source_languages.extend(
+            language for language, paths in simple_paths.items() if paths
+        )
         markdown_files = sum(
             1 for item in path.rglob("*.md") if is_within(item, root) and not is_common_ignored(item)
         )
@@ -378,6 +442,9 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             row["go_files"] = go_files
         if java_files:
             row["java_files"] = java_files
+        for language, paths in simple_paths.items():
+            if paths:
+                row[f"{language}_files"] = len(paths)
         rows.append(row)
 
     # Go packages are not restricted to cmd/internal/pkg. Frameworks and
@@ -415,6 +482,51 @@ def source_roots(root: Path) -> list[dict[str, Any]]:
             "source_languages": ["go"],
             "go_files": len(go_paths),
         })
+
+    # Several common ecosystems use a project-owned top-level source folder
+    # rather than src/lib (for example Slim/ in PHP and crates/ in Rust
+    # workspaces). Inventory only direct children that contain authored source
+    # after the same language-specific role exclusions.
+    represented = {
+        row["path"] for row in rows if isinstance(row.get("path"), str)
+    }
+    for path in sorted(root.iterdir()):
+        if (
+            not path.is_dir()
+            or path.name in represented
+            or path.name.startswith(".")
+            or not is_within(path, root)
+        ):
+            continue
+        simple_paths = {
+            language: [
+                item
+                for item in path.rglob(f"*{suffix}")
+                if is_within(item, root)
+                and is_simple_language_source(item, root, language)
+            ]
+            for language, suffix in SIMPLE_LANGUAGE_SUFFIXES.items()
+        }
+        if not any(simple_paths.values()):
+            continue
+        row = {
+            "path": path.name,
+            "python_files": 0,
+            "typescript_files": 0,
+            "typescript_file_kinds": {"ts": 0, "tsx": 0},
+            "markdown_files": sum(
+                1
+                for item in path.rglob("*.md")
+                if is_within(item, root) and not is_common_ignored(item)
+            ),
+            "source_languages": [
+                language for language, paths in simple_paths.items() if paths
+            ],
+        }
+        for language, paths in simple_paths.items():
+            if paths:
+                row[f"{language}_files"] = len(paths)
+        rows.append(row)
 
     # Maven and Gradle multi-module repositories commonly put Java sources at
     # <module>/src/main/java.  Keep the established flat candidate rows (for
@@ -481,6 +593,17 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         row.get("java_files", 0) for row in roots
     ):
         languages.append("java")
+    marker_languages = (
+        ("php", ("composer.json",)),
+        ("ruby", ("Gemfile", "gems.rb")),
+        ("rust", ("Cargo.toml",)),
+        ("dart", ("pubspec.yaml",)),
+    )
+    for language, markers in marker_languages:
+        if any((root / marker).is_file() for marker in markers) or any(
+            row.get(f"{language}_files", 0) for row in roots
+        ):
+            languages.append(language)
 
     package_managers: list[str] = []
     for marker, manager in (("pnpm-lock.yaml", "pnpm"), ("package-lock.json", "npm"), ("yarn.lock", "yarn")):
@@ -496,6 +619,14 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         package_managers.append("maven")
     if (root / "build.gradle").is_file() or (root / "build.gradle.kts").is_file():
         package_managers.append("gradle")
+    if (root / "composer.json").is_file():
+        package_managers.append("composer")
+    if (root / "Gemfile").is_file() or (root / "gems.rb").is_file():
+        package_managers.append("bundler")
+    if (root / "Cargo.toml").is_file():
+        package_managers.append("cargo")
+    if (root / "pubspec.yaml").is_file():
+        package_managers.append("pub")
 
     requirements_text = "\n".join(read_text(path) for path in requirements)
     python_config = requirements_text + "\n" + read_text(root / "pyproject.toml")
@@ -505,6 +636,8 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         "manage.py", "pyproject.toml", "requirements.txt", "package.json", "pnpm-lock.yaml", "vite.config.ts", "tsconfig.json",
         "go.mod", "go.work", "pom.xml", "mvnw", "build.gradle",
         "build.gradle.kts", "settings.gradle", "settings.gradle.kts", "gradlew",
+        "composer.json", "composer.lock", "Gemfile", "Gemfile.lock", "gems.rb",
+        "gems.locked", "Cargo.toml", "Cargo.lock", "pubspec.yaml", "pubspec.lock",
     ) if (root / name).exists()]
     return {
         "languages": languages,
@@ -577,6 +710,31 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, list[str]]:
         commands["test"].append(
             "./gradlew test" if (root / "gradlew").is_file() else "gradle test"
         )
+    if "php" in stack["languages"] and (root / "composer.json").is_file():
+        composer = load_package(root / "composer.json")
+        scripts = composer.get("scripts")
+        if isinstance(scripts, dict) and "test" in scripts:
+            commands["test"].append("composer test")
+        commands["lint"].append("composer validate --no-check-publish --no-interaction")
+        commands["setup"].append(
+            "composer install --no-interaction"
+            + (" --no-dev" if not isinstance(scripts, dict) else "")
+        )
+    if "ruby" in stack["languages"]:
+        if (root / "Rakefile").is_file():
+            commands["test"].append("bundle exec rake test")
+        if (root / "Gemfile").is_file() or (root / "gems.rb").is_file():
+            commands["setup"].append("bundle install")
+    if "rust" in stack["languages"] and (root / "Cargo.toml").is_file():
+        locked = " --locked" if (root / "Cargo.lock").is_file() else ""
+        commands["test"].append(f"cargo test{locked}")
+        commands["lint"].append(f"cargo clippy{locked} --all-targets")
+        commands["setup"].append(f"cargo fetch{locked}")
+    if "dart" in stack["languages"] and (root / "pubspec.yaml").is_file():
+        if (root / "test").is_dir():
+            commands["test"].append("dart test")
+        commands["lint"].append("dart analyze")
+        commands["setup"].append("dart pub get")
     return {kind: list(dict.fromkeys(values)) for kind, values in commands.items()}
 
 
@@ -640,7 +798,8 @@ def detect_sensitive_surfaces(root: Path) -> list[dict[str, str]]:
         elif path.is_file() and path.name in {".env", ".env.local"}:
             surfaces.append({"path": rel, "kind": "file", "reason": "environment secrets file"})
         elif path.is_file() and SENSITIVE_NAME_RE.search(rel) and path.suffix in {
-            ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".java"
+            ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".java",
+            ".php", ".rb", ".rs", ".dart",
         } and (path.suffix != ".java" or is_java_source(path, root)):
             surfaces.append({"path": rel, "kind": "file", "reason": "sensitive-looking name"})
     return surfaces
@@ -653,6 +812,10 @@ def standardization(source_root_rows: list[dict[str, Any]], guards: dict[str, An
         or row.get("javascript_files", 0) > 200
         or row.get("go_files", 0) > 200
         or row.get("java_files", 0) > 200
+        or row.get("php_files", 0) > 200
+        or row.get("ruby_files", 0) > 200
+        or row.get("rust_files", 0) > 200
+        or row.get("dart_files", 0) > 200
         for row in source_root_rows
     )
     cautions = [
@@ -687,7 +850,7 @@ def discover(project_root: Path) -> dict[str, Any]:
                 "status": "complete",
                 "analyzer": "filesystem-source-inventory",
             }
-            for language in ("go", "java")
+            for language in ("go", "java", "php", "ruby", "rust", "dart")
             if language in stack["languages"]
         },
         "generated_at": utc_now(),
@@ -743,6 +906,14 @@ def adapter_markdown(adapter: dict[str, Any]) -> str:
                 line += f"Go: {row['go_files']}; "
             if row.get("java_files"):
                 line += f"Java: {row['java_files']}; "
+            for language, label in (
+                ("php", "PHP"),
+                ("ruby", "Ruby"),
+                ("rust", "Rust"),
+                ("dart", "Dart"),
+            ):
+                if row.get(f"{language}_files"):
+                    line += f"{label}: {row[f'{language}_files']}; "
             lines.append(line + f"classified: {', '.join(row['source_languages']) or 'none'}")
     else:
         lines.append("- (none inferred)")

@@ -6,7 +6,7 @@ schema_version: 2
 skill: adapt-project
 job: meta
 problem_class: "host-project discovery / adapter scaffolding (META)"
-intent: "Discover objective host-project facts and scaffold a project adapter for engineering-skills — stack markers, commands, tests, CI, docs, and authored source roots for Python, JavaScript-family, TypeScript/TSX, Go, Java, and the separately selected bounded language-provider branches. TypeScript and Go counts participate in the same large-root caution as Python while generated/vendor/dependency/build/test trees stay excluded; package.json never proves a Node framework. Writes timestamped evidence by default, requires --apply for the durable host adapter, and keeps the general scanner's --no-host-write artifacts outside the host."
+intent: "Discover objective host-project facts and scaffold a project adapter for engineering-skills — stack markers, commands, tests, CI, docs, and authored source roots for Python, JavaScript-family, TypeScript/TSX, Go, Java, plus a marker-backed filesystem baseline for PHP/Composer, Ruby/Bundler, Rust/Cargo, and Dart/Pub before any richer provider is loaded. Source counts participate in the same large-root caution while generated/vendor/dependency/build/test/example trees stay excluded; package metadata never proves a framework. Writes timestamped evidence by default, requires --apply for the durable host adapter, and keeps the general scanner's --no-host-write artifacts outside the host."
 solves: "Localizing the portable engineering-skills ecosystem to a new repo needs the operational facts (stack/commands/tests/CI/source roots) gathered objectively. There was no read-only discovery pass that produces a machine-readable adapter while explicitly refusing to confuse observed frequency with health — a messy repo's repeated patterns are flagged 'do not standardize yet', not canonized."
 born:
   commit: "a582cbf"
@@ -17,6 +17,7 @@ dogfooded_on:
   - "Committed Python/TypeScript positive, boundary, exclusion, copied-install, and hostile-path fixtures exercise final adapter/report/evidence artifacts."
   - "Fresh stock-installed TypeScript-host journey at /private/tmp/adapt-project-typescript-forward.qABrrP produced a useful read-only adapter and exposed the documented-command defect later pinned by regression."
   - "Pinned read-only real-repository discovery on Requests, Got, go-chi/chi, and Spring PetClinic exposed and then verified pytest configuration, source/ layout, arbitrary Go package, and Java no-regression behavior."
+  - "Pinned no-host-write discovery on Slim, Sinatra, byteorder, and dart-lang/path verified PHP/Composer, Ruby/Bundler, Rust/Cargo, and Dart/Pub markers, authored source roots, and conventional command guidance."
 reports_dir: reports/adapt-project
 run_evidence:
   count: 0
