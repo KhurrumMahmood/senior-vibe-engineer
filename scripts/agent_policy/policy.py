@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
-"""Shared policy checks for local coding agents.
+"""The evaluation engine for local coding-agent policy.
 
 This module is intentionally stdlib-only. Hook runners can call it before the
 project virtualenv is installed, while normal project verification still uses
 ``.venv/bin/python``.
 
-The command-level checks here are universal (venv usage, destructive shell,
-network/migration approval). Patch-scanning hooks and stop-hook sensitivity
-are *project-specific* — host projects extend ``SENSITIVE_PREFIXES`` and the
-``_looks_like_*`` predicates with their own rules. See the placeholders below.
+**What the rules are** lives in ``rules.py``; what this module does is run
+them. That split is deliberate: the rules used to be regex literals inline in
+``evaluate_command``, which left nowhere to record whether the damage a rule
+guards against can be undone or whether some other layer already covers it.
+Adding those fields to an inline literal is not possible; adding them to a
+registry is a dataclass field.
+
+The command-level rules are universal (venv usage, destructive shell,
+network/migration approval). Patch-scanning and stop-hook sensitivity are
+*project-specific* — host projects extend ``SENSITIVE_PREFIXES`` and the
+``_looks_like_*`` predicates below with their own rules. The registry declares
+those rules' metadata; the predicates here decide when they fire.
 """
 from __future__ import annotations
 
@@ -23,11 +31,17 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 
+try:
+    from scripts.agent_policy.rules import BY_ID, COMMAND_GROUPS
+    from scripts.agent_policy.vocab import DECISION_ORDER, ScanBasis
+except ModuleNotFoundError:  # direct execution: `python3 scripts/agent_policy/policy.py`
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from scripts.agent_policy.rules import BY_ID, COMMAND_GROUPS
+    from scripts.agent_policy.vocab import DECISION_ORDER, ScanBasis
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LOG_DIR = REPO_ROOT / "logs" / "agent_policy"
 TEST_RUN_LOG = LOG_DIR / "test_runs.jsonl"
-
-DECISION_ORDER = {"allow": 0, "warn": 1, "ask": 2, "block": 3}
 
 # Host projects fill this with directories or files whose changes warrant a
 # stop-hook "did you run the tests?" gate. Empty by default — the framework
@@ -65,64 +79,38 @@ def strongest_decision(decisions: Iterable[PolicyDecision]) -> PolicyDecision | 
 
 
 def evaluate_command(command: str) -> list[PolicyDecision]:
+    """Run every active command rule, in registry order.
+
+    Group order and within-group order are observable: they decide which
+    rule id a compound command reports. So is ``first_match_only``, which
+    reproduces the ``break`` the destructive loop used to carry — at most
+    one destructive rule is ever reported, while the ask group reports
+    every match. Both are declared in ``rules.COMMAND_GROUPS`` and pinned
+    by tests.
+    """
     command = command.strip()
     if not command:
         return []
 
     scan_text = _strip_quoted(command)
+    summary = command_summary(command)
     decisions: list[PolicyDecision] = []
 
-    if re.search(r"(^|[;&|]\s*)(python|python3)\s+(manage\.py|-m\s+pytest)\b", scan_text):
-        decisions.append(
-            PolicyDecision(
-                "command.require_venv_python",
-                "block",
-                "Use `.venv/bin/python`, not bare `python` or `python3`, for project commands.",
-                command_summary(command),
-            )
-        )
-
-    destructive_patterns = {
-        "command.destructive_rm": r"(^|[;&|]\s*)rm\s+-[A-Za-z]*r[A-Za-z]*f\b",
-        "command.git_reset_hard": r"(^|[;&|]\s*)git\s+reset\s+--hard\b",
-        "command.git_clean_force": r"(^|[;&|]\s*)git\s+clean\s+-[A-Za-z]*f\b",
-        "command.sudo": r"(^|[;&|]\s*)sudo\b",
-        "command.chmod_777": r"(^|[;&|]\s*)chmod\s+777\b",
-    }
-    for rule_id, pattern in destructive_patterns.items():
-        if re.search(pattern, scan_text):
+    for group in COMMAND_GROUPS:
+        for rule in group.rules:
+            if not rule.active:
+                continue
+            # Per-rule, because a rule that needs to read inside quotes
+            # (`mysql -e "DROP DATABASE x"`) must not force every other
+            # matcher to start firing on quoted prose.
+            basis = command if rule.scan_basis is ScanBasis.RAW else scan_text
+            if not rule.matches(basis):
+                continue
             decisions.append(
-                PolicyDecision(
-                    rule_id,
-                    "block",
-                    "Destructive command blocked by agent policy; ask the user for an explicit path.",
-                    command_summary(command),
-                )
+                PolicyDecision(rule.id, str(rule.severity), rule.reason, summary)
             )
-            break
-
-    ask_patterns = {
-        "command.git_push": r"(^|[;&|]\s*)git\s+push\b",
-        "command.git_checkout_dashdash": r"(^|[;&|]\s*)git\s+checkout\s+--\s+",
-        "command.django_migration": (
-            r"manage\.py\s+(migrate|makemigrations)\b(?!.*--(?:dry-run|check)\b)"
-        ),
-        "command.package_install": (
-            r"(^|[;&|]\s*)((pip|pip3|uv\s+pip|poetry|npm|pnpm|yarn)\s+"
-            r"(install|add|update|upgrade|sync|ci)\b)"
-        ),
-        "command.live_integration": r"(--run-live|RUN_LIVE_INTEGRATION=1)",
-    }
-    for rule_id, pattern in ask_patterns.items():
-        if re.search(pattern, scan_text):
-            decisions.append(
-                PolicyDecision(
-                    rule_id,
-                    "ask",
-                    "This command crosses a higher-risk boundary and should be user-approved.",
-                    command_summary(command),
-                )
-            )
+            if group.first_match_only:
+                break
 
     return decisions
 
@@ -154,32 +142,27 @@ def scan_patch(patch_text: str, tool_input: dict | None = None) -> list[PolicyDe
         line_summary = f"{normalized}: {line.strip()[:120]}"
         if _looks_like_direct_provider(line):
             decisions.append(
-                PolicyDecision(
-                    "patch.isolated_runtime_direct_provider",
-                    "block",
-                    "Isolated runtime model calls must go through the canonical AI runtime facade.",
-                    line_summary,
-                )
+                _from_rule("patch.isolated_runtime_direct_provider", line_summary)
             )
         if _looks_like_production_write(line):
             decisions.append(
-                PolicyDecision(
-                    "patch.artifact_only_production_write",
-                    "block",
-                    "Artifact-only packages must not write production rows or dispatch background tasks.",
-                    line_summary,
-                )
+                _from_rule("patch.artifact_only_production_write", line_summary)
             )
         if _looks_like_prompt_truth_leak(normalized, line):
-            decisions.append(
-                PolicyDecision(
-                    "patch.prompt_truth_leak",
-                    "block",
-                    "Resolver/planner prompts must not include scorer-only truth or holdout values.",
-                    line_summary,
-                )
-            )
+            decisions.append(_from_rule("patch.prompt_truth_leak", line_summary))
     return decisions
+
+
+def _from_rule(rule_id: str, summary: str) -> PolicyDecision:
+    """Build a decision from the registry, so severity and reason have one home.
+
+    Patch and Stop rules have no regex — their matcher is the predicate
+    that called this — but they still carry severity, reason, tier and
+    band in ``rules.py`` alongside the command rules. Reading those back
+    here is what keeps a rule's metadata from existing in two places.
+    """
+    rule = BY_ID[rule_id]
+    return PolicyDecision(rule.id, str(rule.severity), rule.reason, summary)
 
 
 def evaluate_stop(
@@ -195,14 +178,7 @@ def evaluate_stop(
         return []
     if _message_mentions_unrun_tests(last_message):
         return []
-    return [
-        PolicyDecision(
-            "stop.require_verification_note",
-            "block",
-            "Sensitive files changed. Run relevant tests or state what was not run and why before finishing.",
-            ", ".join(sensitive[:5]),
-        )
-    ]
+    return [_from_rule("stop.require_verification_note", ", ".join(sensitive[:5]))]
 
 
 def record_test_command(
