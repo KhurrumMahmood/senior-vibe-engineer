@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "repositories": [
+    {
+      "language": "python",
+      "license": "Apache-2.0",
+      "name": "requests",
+      "revision": "414f0513c33883adf6f2b46901d4f0b38a455851",
+      "slice": 1,
+      "source": "https://github.com/psf/requests.git"
+    },
+    {
+      "language": "typescript",
+      "license": "MIT",
+      "name": "got",
+      "revision": "e3924aa1e53a6ca3eb93a43618ce532442a89b40",
+      "slice": 1,
+      "source": "https://github.com/sindresorhus/got.git"
+    },
+    {
+      "language": "go",
+      "license": "MIT",
+      "name": "chi",
+      "revision": "8b258c7bb28f97a5f2a856ff7ef962578fec9215",
+      "slice": 1,
+      "source": "https://github.com/go-chi/chi.git"
+    },
+    {
+      "language": "java",
+      "license": "Apache-2.0",
+      "name": "spring-petclinic",
+      "revision": "f182358d02e4a68e52bdbabf55ca7800288511e7",
+      "slice": 1,
+      "source": "https://github.com/spring-projects/spring-petclinic.git"
+    }
+  ]
+}
