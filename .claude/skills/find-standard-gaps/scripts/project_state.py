@@ -29,16 +29,22 @@ Stdlib-only. Read-only against the project.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
-import sys
 from pathlib import Path
 
 # The scanner bundles its narrow state-home resolver so an installed skill has
-# no dependency on the toolkit's sibling `_common` directory.
-_SCRIPT_DIR = str(Path(__file__).resolve().parent)
-if _SCRIPT_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPT_DIR)
-import engineering_home as _home
+# no dependency on the toolkit's sibling `_common` directory. Load it under a
+# private name so in-process callers cannot mistake this narrow resolver for
+# `_common/engineering_home.py`.
+_HOME_PATH = Path(__file__).resolve().with_name("engineering_home.py")
+_HOME_SPEC = importlib.util.spec_from_file_location(
+    "find_standard_gaps_engineering_home", _HOME_PATH
+)
+if _HOME_SPEC is None or _HOME_SPEC.loader is None:
+    raise ImportError(f"cannot load bundled engineering-home resolver: {_HOME_PATH}")
+_home = importlib.util.module_from_spec(_HOME_SPEC)
+_HOME_SPEC.loader.exec_module(_home)
 
 # Ordinal ladders for >= comparison. Index = severity; a higher index
 # means "more mature" / "higher stakes". These are the canonical orders

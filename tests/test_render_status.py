@@ -9,6 +9,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -25,6 +27,22 @@ def _load(name: str, rel: str):
 
 render_mod = _load("render_status_mod", "scripts/render_status.py")
 status_mod = _load("status_mod_r", "scripts/status.py")
+
+
+def test_status_import_does_not_publish_skill_local_engineering_home() -> None:
+    script = REPO_ROOT / "scripts" / "status.py"
+    code = (
+        "import importlib.util, sys\n"
+        f"path = {str(script)!r}\n"
+        "spec = importlib.util.spec_from_file_location('isolated_status', path)\n"
+        "module = importlib.util.module_from_spec(spec)\n"
+        "spec.loader.exec_module(module)\n"
+        "assert 'engineering_home' not in sys.modules\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.fixture
