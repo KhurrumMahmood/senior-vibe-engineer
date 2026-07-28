@@ -70,8 +70,10 @@
   "runtime_closure": {
     "definition": "Ruby profile plus existing stdlib-only profile/doctor/inventory runtime exercised by the spine; this is not a copied skill closure and earns no skill support claim.",
     "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
-    "manifest_sha256": "c3f95cf3fcfce46ededd413fd006fe4e5e967962a96d322f977404847ab2785b",
-    "total_bytes": 40672,
+    "reviewed_revision": "955ca3df06112f21172c730982892f6fa227115f",
+    "review_reason": "Portable capability inventory extended the shared source inventory while preserving the Ruby spine contract.",
+    "manifest_sha256": "db740f4f7b6576313c212089869017566d320afbea7cb4982827a1ce47e1345c",
+    "total_bytes": 42110,
     "files": [
       "scripts/language_profiles/ruby.json",
       "scripts/language_doctor.py",

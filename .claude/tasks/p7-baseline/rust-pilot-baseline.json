@@ -84,8 +84,10 @@
   "runtime_closure": {
     "definition": "Rust profile plus existing stdlib-only profile/doctor/inventory runtime exercised by the spine; this is not a copied skill closure and earns no skill support claim.",
     "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
-    "manifest_sha256": "970b050a114075cbaf1e34a97b8492f5f78c12419583e0e668db74f60b549b8d",
-    "total_bytes": 41465,
+    "reviewed_revision": "955ca3df06112f21172c730982892f6fa227115f",
+    "review_reason": "Portable capability inventory extended the shared source inventory while preserving the Rust spine contract.",
+    "manifest_sha256": "1b933ebe3e346ab861a225eb958767131266d5c6edbdf4794776ec17ed08a131",
+    "total_bytes": 42903,
     "files": [
       "scripts/language_profiles/rust.json",
       "scripts/language_doctor.py",

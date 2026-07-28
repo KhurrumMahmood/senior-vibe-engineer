@@ -64,11 +64,11 @@
   },
   "runtime_closure": {
     "definition": "C++-named suffix/database provider plus existing stdlib-only profile/doctor/inventory runtime exercised by the spine; it is not a copied skill closure and earns no skill support claim.",
-    "reviewed_revision": "febc76141feed564de628bde6d99f20f85191ebb",
-    "review_reason": "P6 removed the rejected shared terminal-lifecycle abstraction while preserving the seven-file C++ spine closure.",
+    "reviewed_revision": "955ca3df06112f21172c730982892f6fa227115f",
+    "review_reason": "Portable capability inventory extended the shared source inventory while preserving the seven-file C++ spine contract.",
     "manifest_algorithm": "sha256(path + NUL + file_sha256 + LF), listed path order",
-    "manifest_sha256": "7b2cb3e3d163513a209125c3d0d20a8ac2c3d4062592d26e411809d092e352f9",
-    "total_bytes": 44532,
+    "manifest_sha256": "46324aafaa02fbb8cb1a5b641884fdf7006aa97c80cf9b9683c4b523c810faa4",
+    "total_bytes": 45970,
     "files": [
       "scripts/language_profiles/cpp.json",
       "scripts/cpp_language_provider.py",
