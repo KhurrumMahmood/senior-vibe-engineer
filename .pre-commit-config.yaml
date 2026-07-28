@@ -154,3 +154,24 @@ repos:
         additional_dependencies: ["PyYAML>=6.0"]
         files: ^(README\.md|docs/|\.augment/rules/imported/|\.engineering/(project/surfaces\.json|subsystems\.yaml|quality/decision-impacts/)|\.claude/(ideas/log\.jsonl|skills/_common/(engineering_home\.py|scan_scope_contracts\.json))|scripts/(coherence_audit|host_migrations)\.py|tests/test_coherence_audit\.py)
         pass_filenames: false
+
+      # Generated-index freshness. scripts/ holds 42 top-level utilities and
+      # no entry point — no Makefile, no justfile — so "which subsystem owns
+      # this path?" gets answered by grepping and hoping rather than by
+      # looking `subsystems.py for-path` up. An index that drifts is worse
+      # than none: its silence reads as "that command does not exist",
+      # hence the gate. Regenerates into memory and compares; never writes
+      # the doc itself.
+      #
+      # The generator introspects argparse via AST and executes nothing, so
+      # this hook cannot trigger a script's import side effects. Stdlib
+      # only, hence no additional_dependencies. Runs on any Python change
+      # under scripts/: help text, handler bodies, and the imports the
+      # write-effect scan follows are all inputs, so an edit anywhere in
+      # the tree can make the doc stale.
+      - id: query-cli-index-current
+        name: "query-cli-index-current (.claude/docs/query-cli-index.md matches scripts/)"
+        entry: python scripts/query_cli_index.py --check
+        language: python
+        files: ^scripts/.*\.py$
+        pass_filenames: false

@@ -302,6 +302,7 @@ read the file.
 
 | File | Read when… |
 |---|---|
+| `query-cli-index.md` | **Before writing a one-off scan or script — and before claiming that no command answers a question.** Generated index of every argparse subcommand under `scripts/`, split into the ones that answer a question and the ones that write, with each subcommand's own `help=` text and a `Mutates` column read out of its handler's actual filesystem writes. Regenerate with `scripts/query_cli_index.py`; never hand-edit. |
 | `canonical-patterns.md` | Before touching input parsing, dispatch, exports, AI calls, form inputs, or any surface a lint covers. |
 | `architectural-smells.md` | Diagnosing omnibus modules, stringly-typed state, query mutation, layer violation, format-equivalence gaps (parallel writers), product-topology drift, or folder-topology drift. |
 | `skill-catalog.md` | Picking a cleanup / audit / IDEAS skill (map / suspect / explain / refactor / guard / decide / meta / ideas). |
