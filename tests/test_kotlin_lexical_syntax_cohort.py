@@ -194,6 +194,38 @@ def test_kotlin_provider_reports_only_bounded_source_syntax(tmp_path: Path) -> N
     assert _state(host) == before
 
 
+def test_kotlin_complexity_falls_back_to_external_source_only_artifacts(
+    tmp_path: Path,
+) -> None:
+    host = _copy_host(tmp_path)
+    before = _state(host)
+    (host / "kotlin-project.json").unlink()
+    after_manifest_removal = _state(host)
+    output = tmp_path / "external-artifacts" / "complexity"
+
+    result = _run(
+        str(PYTHON), "-I", "-S", str(SCRIPTS["complexity"]),
+        "--project-root", str(host), "--kotlinc", str(KOTLINC),
+        "--java", str(JAVA), "--target", "src", "--output-dir", str(output),
+        "--no-host-write", cwd=host,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads((output / "findings.json").read_text(encoding="utf-8"))
+    assert payload["status"] == "partial"
+    assert payload["failure_kind"] == "kotlin_project_manifest_invalid"
+    assert payload["verdict"] == "safe-defer-incomplete"
+    assert [(row["qualified_name"], row["branch_score"]) for row in payload["findings"]] == [
+        ("cohort.routeInvoice", 8)
+    ]
+    assert payload["findings"][0]["evidence_level"] == "hash-bound-source-syntax"
+    report = (output / "report.md").read_text(encoding="utf-8")
+    assert "Findings: 1" in report
+    assert "cohort.routeInvoice" in report
+    assert before != after_manifest_removal
+    assert _state(host) == after_manifest_removal
+
+
 def test_nine_kotlin_consumers_emit_distinct_final_artifacts(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     before = _state(host)
@@ -328,9 +360,13 @@ def test_kotlin_refusal_lifecycle_replaces_artifacts_and_recovers(tmp_path: Path
     manifest.write_text("{}\n", encoding="utf-8")
     refused = _invoke(host, "complexity")
     refused_payload = _artifact(host, "complexity")
-    assert refused.returncode == 2
-    assert refused_payload["status"] == "failed"
+    assert refused.returncode == 0
+    assert refused_payload["status"] == "partial"
     assert refused_payload["failure_kind"] == "kotlin_project_manifest_invalid"
+    assert refused_payload["verdict"] == "safe-defer-incomplete"
+    assert [(row["qualified_name"], row["branch_score"]) for row in refused_payload["findings"]] == [
+        ("cohort.routeInvoice", 8)
+    ]
 
 
 def test_kotlin_malformed_source_fails_direct_kotlinc_diagnostic(tmp_path: Path) -> None:

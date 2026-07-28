@@ -204,6 +204,30 @@ def test_cpp_provider_represents_cpp_identity_and_compile_owned_headers(tmp_path
     assert _state(host) == before
 
 
+def test_cpp_complexity_writes_useful_artifacts_outside_host(tmp_path: Path) -> None:
+    host = _copy_host(tmp_path)
+    before = _state(host)
+    output = tmp_path / "external-artifacts" / "complexity"
+
+    result = _run(
+        str(PYTHON), "-I", "-S", str(SCRIPTS["complexity"]),
+        "--project-root", str(host), "--clangxx", str(CLANGXX),
+        "--target", "src", "--output-dir", str(output), "--no-host-write",
+        cwd=host,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads((output / "findings.json").read_text(encoding="utf-8"))
+    assert payload["status"] == "complete"
+    assert [(row["qualified_name"], row["branch_score"]) for row in payload["findings"]] == [
+        ("cohort::route_invoice", 8)
+    ]
+    report = (output / "report.md").read_text(encoding="utf-8")
+    assert "Findings: 1" in report
+    assert "cohort::route_invoice" in report
+    assert _state(host) == before
+
+
 def test_nine_cpp_consumers_produce_bounded_value_artifacts(tmp_path: Path) -> None:
     host = _copy_host(tmp_path)
     before = _state(host)

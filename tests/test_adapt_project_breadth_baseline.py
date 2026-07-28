@@ -155,3 +155,44 @@ def test_canonical_discovery_identifies_swiftpm_without_counting_tests(
     }
     assert "Swift: 1" in (scan / "report.md").read_text(encoding="utf-8")
     assert _state(host) == before
+
+
+@pytest.mark.parametrize(
+    ("language", "source", "marker", "manager", "command"),
+    [
+        ("c", "src/parser.c", "CMakeLists.txt", "cmake", "ctest --test-dir build"),
+        ("cpp", "src/format.cc", "CMakeLists.txt", "cmake", "ctest --test-dir build"),
+        ("kotlin", "module/src/main/kotlin/App.kt", "build.gradle.kts", "gradle", "./gradlew test"),
+        ("csharp", "src/App.cs", "App.csproj", "dotnet", "dotnet test"),
+    ],
+)
+def test_canonical_discovery_identifies_remaining_compiled_languages(
+    tmp_path: Path,
+    language: str,
+    source: str,
+    marker: str,
+    manager: str,
+    command: str,
+) -> None:
+    host = tmp_path / language
+    _write(host / source, "int main() { return 0; }\n")
+    _write(host / marker, "// project marker\n")
+    if language == "kotlin":
+        _write(host / "gradlew", "#!/bin/sh\n")
+        _write(host / "module/src/test/kotlin/AppTest.kt", "class AppTest\n")
+    elif language == "csharp":
+        _write(host / "src/App.g.cs", "// generated\n")
+    else:
+        _write(host / "tests/decoy" / Path(source).name, "// test\n")
+    before = _state(host)
+
+    adapter, _ = _discover(host, tmp_path / f"{language}-artifacts", language)
+
+    assert language in adapter["stack"]["languages"]
+    assert manager in adapter["stack"]["package_managers"]
+    assert sum(row.get(f"{language}_files", 0) for row in adapter["source_roots"]) == 1
+    assert adapter["analysis"][language]["status"] == "complete"
+    assert command in adapter["commands"]["test"]
+    if language == "kotlin":
+        assert "java" not in adapter["stack"]["languages"]
+    assert _state(host) == before

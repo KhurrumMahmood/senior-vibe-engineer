@@ -665,6 +665,7 @@ def _base_payload(
 
 def produce(
     project_root: Path, target: Path, *, kotlinc: str | None, java: str | None,
+    allow_source_only: bool = False,
 ) -> tuple[dict[str, Any], int]:
     try:
         root = project_root.resolve(strict=True)
@@ -706,6 +707,43 @@ def produce(
     try:
         project = _load_project(root, inventory)
     except ValueError as exc:
+        if allow_source_only:
+            selected_sources = [
+                root / row["file"]
+                for row in inventory
+                if row["role"] == "source"
+                and (
+                    _inside(root / row["file"], selected_target)
+                    or (selected_target.is_file() and root / row["file"] == selected_target)
+                )
+            ]
+            if selected_sources:
+                payload["files"] = [_syntax_file(path, root) for path in selected_sources]
+                payload["analyzer"] = "kotlin-source-tokenizer"
+                payload["boundaries"]["eligible_sources"] = (
+                    "authored lowercase .kt files under the explicit target; "
+                    "build membership and generated inputs are unvalidated"
+                )
+                payload["limits"].append(
+                    "The project manifest was absent or invalid, so native compilation, "
+                    "dependency resolution, and build-target membership were not validated."
+                )
+                payload.update(
+                    status="partial",
+                    failure_kind="kotlin_project_manifest_invalid",
+                    detail=str(exc),
+                )
+                after_inventory, after = _inventory(root)
+                payload["inventory"] = after_inventory
+                payload["source_manifest"].update(
+                    after=after,
+                    after_sha256=_manifest_hash(after),
+                    preserved=before == after,
+                )
+                if not payload["source_manifest"]["preserved"]:
+                    payload.update(status="failed", failure_kind="unexpected_source_mutation")
+                    return payload, 2
+                return payload, 0
         payload.update(failure_kind="kotlin_project_manifest_invalid", detail=str(exc))
         after_inventory, after = _inventory(root)
         payload["inventory"] = after_inventory

@@ -93,6 +93,10 @@ SIMPLE_LANGUAGE_SUFFIXES = {
     "rust": (".rs",),
     "dart": (".dart",),
     "swift": (".swift",),
+    "c": (".c",),
+    "cpp": (".cc", ".cpp", ".cxx", ".c++"),
+    "kotlin": (".kt",),
+    "csharp": (".cs",),
 }
 SIMPLE_LANGUAGE_NON_SOURCE_PARTS = {
     "php": frozenset({"build", "example", "examples", "generated", "test", "tests", "vendor"}),
@@ -107,6 +111,15 @@ SIMPLE_LANGUAGE_NON_SOURCE_PARTS = {
     }),
     "swift": frozenset({
         ".build", "build", "example", "examples", "generated", "test", "tests", "vendor",
+    }),
+    "c": GO_NON_SOURCE_PARTS,
+    "cpp": GO_NON_SOURCE_PARTS,
+    "kotlin": frozenset({
+        ".gradle", ".kotlin", "build", "example", "examples", "generated",
+        "integrationtest", "test", "tests", "testfixtures", "vendor",
+    }),
+    "csharp": frozenset({
+        "bin", "build", "example", "examples", "generated", "obj", "test", "tests", "vendor",
     }),
 }
 JAVA_GENERATED_ANNOTATION_RE = re.compile(
@@ -295,6 +308,8 @@ def is_simple_language_source(path: Path, project_root: Path, language: str) -> 
     if language == "dart" and name.endswith((".g.dart", ".freezed.dart")):
         return False
     if language == "swift" and name == "package.swift":
+        return False
+    if language == "csharp" and name.endswith((".designer.cs", ".g.cs", ".generated.cs")):
         return False
     return not (language == "rust" and name == "build.rs")
 
@@ -600,9 +615,10 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         "settings.gradle",
         "settings.gradle.kts",
     )
-    if any((root / marker).is_file() for marker in java_markers) or any(
-        row.get("java_files", 0) for row in roots
-    ):
+    has_java_source = any(row.get("java_files", 0) for row in roots)
+    has_kotlin_source = any(row.get("kotlin_files", 0) for row in roots)
+    has_java_marker = any((root / marker).is_file() for marker in java_markers)
+    if has_java_source or (has_java_marker and not has_kotlin_source):
         languages.append("java")
     marker_languages = (
         ("php", ("composer.json",)),
@@ -615,6 +631,9 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         if any((root / marker).is_file() for marker in markers) or any(
             row.get(f"{language}_files", 0) for row in roots
         ):
+            languages.append(language)
+    for language in ("c", "cpp", "kotlin", "csharp"):
+        if any(row.get(f"{language}_files", 0) for row in roots):
             languages.append(language)
 
     package_managers: list[str] = []
@@ -641,6 +660,10 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         package_managers.append("pub")
     if (root / "Package.swift").is_file():
         package_managers.append("swiftpm")
+    if (root / "CMakeLists.txt").is_file() and ({"c", "cpp"} & set(languages)):
+        package_managers.append("cmake")
+    if "csharp" in languages:
+        package_managers.append("dotnet")
 
     requirements_text = "\n".join(read_text(path) for path in requirements)
     python_config = requirements_text + "\n" + read_text(root / "pyproject.toml")
@@ -653,7 +676,13 @@ def detect_stack(root: Path, roots: list[dict[str, Any]]) -> dict[str, Any]:
         "composer.json", "composer.lock", "Gemfile", "Gemfile.lock", "gems.rb",
         "gems.locked", "Cargo.toml", "Cargo.lock", "pubspec.yaml", "pubspec.lock",
         "Package.swift", ".swift-format",
+        "CMakeLists.txt", "global.json",
     ) if (root / name).exists()]
+    markers.extend(
+        relative(path, root)
+        for pattern in ("*.sln", "*.csproj")
+        for path in sorted(root.glob(pattern))
+    )
     return {
         "languages": languages,
         # Preserve the reference Python Django marker while refusing to infer
@@ -754,6 +783,19 @@ def detect_commands(root: Path, stack: dict[str, Any]) -> dict[str, list[str]]:
         commands["test"].append("swift test")
         commands["lint"].append("swift-format lint --strict --recursive Sources")
         commands["setup"].append("swift package resolve")
+    if {"c", "cpp"} & set(stack["languages"]) and (root / "CMakeLists.txt").is_file():
+        commands["test"].append("ctest --test-dir build")
+        commands["setup"].append("cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
+    if "kotlin" in stack["languages"] and (
+        (root / "build.gradle").is_file() or (root / "build.gradle.kts").is_file()
+    ):
+        commands["test"].append(
+            "./gradlew test" if (root / "gradlew").is_file() else "gradle test"
+        )
+    if "csharp" in stack["languages"]:
+        commands["test"].append("dotnet test")
+        commands["lint"].append("dotnet format --verify-no-changes")
+        commands["setup"].append("dotnet restore")
     return {kind: list(dict.fromkeys(values)) for kind, values in commands.items()}
 
 
@@ -820,6 +862,7 @@ def detect_sensitive_surfaces(root: Path) -> list[dict[str, str]]:
             ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".java",
             ".php", ".rb", ".rs", ".dart",
             ".swift",
+            ".c", ".cc", ".cpp", ".cxx", ".c++", ".kt", ".cs",
         } and (path.suffix != ".java" or is_java_source(path, root)):
             surfaces.append({"path": rel, "kind": "file", "reason": "sensitive-looking name"})
     return surfaces
@@ -837,6 +880,10 @@ def standardization(source_root_rows: list[dict[str, Any]], guards: dict[str, An
         or row.get("rust_files", 0) > 200
         or row.get("dart_files", 0) > 200
         or row.get("swift_files", 0) > 200
+        or row.get("c_files", 0) > 200
+        or row.get("cpp_files", 0) > 200
+        or row.get("kotlin_files", 0) > 200
+        or row.get("csharp_files", 0) > 200
         for row in source_root_rows
     )
     cautions = [
@@ -871,7 +918,10 @@ def discover(project_root: Path) -> dict[str, Any]:
                 "status": "complete",
                 "analyzer": "filesystem-source-inventory",
             }
-            for language in ("go", "java", "php", "ruby", "rust", "dart", "swift")
+            for language in (
+                "go", "java", "php", "ruby", "rust", "dart", "swift",
+                "c", "cpp", "kotlin", "csharp",
+            )
             if language in stack["languages"]
         },
         "generated_at": utc_now(),
@@ -933,6 +983,10 @@ def adapter_markdown(adapter: dict[str, Any]) -> str:
                 ("rust", "Rust"),
                 ("dart", "Dart"),
                 ("swift", "Swift"),
+                ("c", "C"),
+                ("cpp", "C++"),
+                ("kotlin", "Kotlin"),
+                ("csharp", "C#"),
             ):
                 if row.get(f"{language}_files"):
                     line += f"{label}: {row[f'{language}_files']}; "
