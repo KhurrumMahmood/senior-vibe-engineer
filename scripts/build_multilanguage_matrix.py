@@ -142,8 +142,15 @@ SWIFT_ACCEPTED_EVIDENCE = (
 SWIFT_STRUCTURE_PROPOSALS = (
     ".claude/skills/_swift-semantic-readonly/swift_structure_proposals.py"
 )
+SWIFT_PROJECT_LEXICAL_PROVIDER = (
+    ".claude/skills/_swift-project-lexical/swift_project_facts.py"
+)
+SWIFT_PROJECT_LEXICAL_GUIDE = ".claude/skills/_swift-project-lexical/GUIDE.md"
 LANGUAGE_CLOSURE_HELPERS = {
     "extract-enum": {"swift": [SWIFT_PROVIDER, SWIFT_ACCEPTED_EVIDENCE]},
+    "find-complexity-hotspots": {
+        "swift": [SWIFT_PROJECT_LEXICAL_PROVIDER, SWIFT_PROJECT_LEXICAL_GUIDE]
+    },
     "find-dormant": {"swift": [SWIFT_PROVIDER]},
     "find-implicit-state": {"swift": [SWIFT_PROVIDER]},
     "find-incomplete-sweep": {"swift": [SWIFT_PROVIDER]},

@@ -96,6 +96,22 @@
       "revision": "e019e63ee459bd005694ed944af7ad6c8a165c57",
       "slice": 3,
       "source": "https://github.com/detekt/detekt.git"
+    },
+    {
+      "language": "swift",
+      "license": "Apache-2.0",
+      "name": "swift-argument-parser",
+      "revision": "2f77f2fccb6e84fecff338c37b199e33e7dfd119",
+      "slice": 4,
+      "source": "https://github.com/apple/swift-argument-parser.git"
+    },
+    {
+      "language": "csharp",
+      "license": "Apache-2.0",
+      "name": "stateless",
+      "revision": "588f1a1a08683b452eb7c05562d9f055693cba5d",
+      "slice": 4,
+      "source": "https://github.com/dotnet-state-machine/stateless.git"
     }
   ]
 }

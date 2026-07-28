@@ -360,10 +360,12 @@ def test_complexity_external_partial_preserves_hash_bound_syntax_leads(
     payload = json.loads((output / "findings.json").read_text(encoding="utf-8"))
     assert payload["status"] == "partial"
     assert payload["failure_kind"] == "swiftpm-dependencies-outside-contract"
+    assert payload["outcome"] == "safe-defer-incomplete"
     assert [(row["function"], row["branch_score"]) for row in payload["findings"]] == [
         ("routeInvoice", 11)
     ]
     assert payload["findings"][0]["evidence_level"] == "hash-bound-lexical"
+    assert (output.parent / "latest").resolve() == output.resolve()
     assert _state(host) == before
 
 

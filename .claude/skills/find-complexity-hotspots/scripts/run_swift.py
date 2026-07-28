@@ -184,7 +184,9 @@ def main(argv: list[str] | None = None) -> int:
         if status == "complete" and findings
         else "no-hotspots"
         if status == "complete"
-        else "incomplete"
+        else "safe-defer-incomplete"
+        if status == "partial"
+        else "scan-blocked"
     )
     payload = {
         "schema_version": 1,
@@ -232,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     if status != "complete":
         lines.append("- Incomplete evidence; no clean conclusion is available.")
     _atomic(output / "report.md", "\n".join(lines) + "\n")
-    if status == "complete":
+    if status in {"complete", "partial"}:
         try:
             latest.symlink_to(output.name)
         except OSError:

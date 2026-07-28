@@ -2509,7 +2509,12 @@
             "bundled_tooling": ".claude/skills/find-complexity-hotspots/scripts"
           }
         ],
-        "language_helpers": {},
+        "language_helpers": {
+          "swift": [
+            ".claude/skills/_swift-project-lexical/swift_project_facts.py",
+            ".claude/skills/_swift-project-lexical/GUIDE.md"
+          ]
+        },
         "shared_tooling": "scripts",
         "common_guidance": ".claude/skills/_common",
         "shared_guidance": ".claude/docs"

@@ -278,6 +278,32 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert java_payload["routing_context"]["language"] == "java"
     assert java_payload["recommendation"] == "find-complexity-hotspots"
     assert java_payload["handoff"]["skills"] == ["find-complexity-hotspots"]
+
+    swift_complexity = _run_isolated(
+        installed["which-skill"] / "scripts" / "match.py",
+        "find complexity hotspots in this Swift package",
+        "--project-root",
+        str(host),
+        "--library-root",
+        str(library_root),
+        "--language",
+        "swift",
+        "--json",
+        cwd=host,
+    )
+    swift_complexity_payload = _json_output(swift_complexity)
+    assert swift_complexity_payload["recommendation"] == "find-complexity-hotspots"
+    assert swift_complexity_payload["handoff"]["capabilities"]["skills"][0][
+        "closure_helpers"
+    ] == {
+        "swift": [
+            str(
+                library_root
+                / ".claude/skills/_swift-project-lexical/swift_project_facts.py"
+            ),
+            str(library_root / ".claude/skills/_swift-project-lexical/GUIDE.md"),
+        ]
+    }
     assert java_payload["handoff"]["capabilities"]["skills"][0][
         "java_disposition"
     ] == "java-supported"

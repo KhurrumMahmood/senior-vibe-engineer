@@ -163,10 +163,12 @@ def test_public_manifest_is_valid_and_names_are_unique() -> None:
         "ruby",
         "rust",
         "dart",
+        "swift",
+        "csharp",
     }
-    assert {entry.slice for entry in entries} == {1, 2, 3}
-    assert all(
-        sum(entry.slice == slice_id for entry in entries) == 4
-        for slice_id in (1, 2, 3)
-    )
+    assert {entry.slice for entry in entries} == {1, 2, 3, 4}
+    assert {
+        slice_id: sum(entry.slice == slice_id for entry in entries)
+        for slice_id in (1, 2, 3, 4)
+    } == {1: 4, 2: 4, 3: 4, 4: 2}
     assert len(entries) == len({entry.name for entry in entries})
