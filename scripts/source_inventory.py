@@ -55,11 +55,30 @@ EXCLUDED_DIRECTORIES = {
     ".ruff_cache": ("build", "cache"),
 }
 
+EXCLUDED_RELATIVE_DIRECTORIES = {
+    ".engineering/local": ("tooling", "machine_local_state"),
+}
+
 TEST_DIRECTORIES = {"test", "tests", "__tests__"}
 FIXTURE_DIRECTORIES = {"fixture", "fixtures"}
-TOOL_DIRECTORIES = {"script", "scripts", "tool", "tools", "bin"}
+TOOL_STATE_DIRECTORIES = {
+    ".agents",
+    ".augment",
+    ".claude",
+    ".codex",
+    ".cursor",
+    ".engineering",
+    ".gemini",
+}
+TOOL_DIRECTORIES = TOOL_STATE_DIRECTORIES | {
+    "bin",
+    "script",
+    "scripts",
+    "tool",
+    "tools",
+}
 MIGRATION_DIRECTORIES = {"migration", "migrations"}
-GENERATED_DIRECTORIES = {"generated", "gen"}
+GENERATED_DIRECTORIES = {"generated", "gen", "reports"}
 
 
 class InventoryError(ValueError):
@@ -136,6 +155,8 @@ def _role(
         profile is not None and _matches(path.name, profile.source_roles.test_file_globs)
     ):
         return "test", "classified", "test_path_or_name"
+    if parts & TOOL_DIRECTORIES:
+        return "tooling", "classified", "tooling_path"
     if profile is not None and _matches(
         path.name, profile.source_roles.declaration_file_globs
     ):
@@ -144,8 +165,6 @@ def _role(
         return "configuration", "classified", "configuration_name"
     if parts & MIGRATION_DIRECTORIES:
         return "migration", "classified", "migration_path"
-    if parts & TOOL_DIRECTORIES:
-        return "tooling", "classified", "tooling_path"
     return "source", "classified", "source_default"
 
 
@@ -176,7 +195,16 @@ def _walk_source_root(
         for child_name in sorted(child_directories):
             child = current / child_name
             relative = _relative(child, project_root)
-            excluded = EXCLUDED_DIRECTORIES.get(child_name.lower())
+            excluded = EXCLUDED_RELATIVE_DIRECTORIES.get(relative)
+            relative_parts = {part.lower() for part in Path(relative).parts[:-1]}
+            if (
+                excluded is None
+                and child_name.lower() == "local"
+                and relative_parts & TOOL_STATE_DIRECTORIES
+            ):
+                excluded = ("tooling", "machine_local_state")
+            if excluded is None:
+                excluded = EXCLUDED_DIRECTORIES.get(child_name.lower())
             if child.is_symlink():
                 excluded = ("symlink", "symlink_boundary")
             if excluded is not None:

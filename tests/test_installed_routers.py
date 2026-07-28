@@ -142,6 +142,9 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
     assert payload["handoff"]["source_inventory_tool"] == str(
         library_root / "scripts" / "source_inventory.py"
     )
+    assert payload["handoff"]["capability_inventory_tool"] == str(
+        library_root / "scripts" / "capability_inventory.py"
+    )
     assert payload["handoff"]["runtime"] == {
         "available": False,
         "python": str(library_root / ".venv" / "bin" / "python"),
@@ -1049,6 +1052,9 @@ def test_default_routers_materialize_an_on_demand_library_outside_discovery(tmp_
         cwd=host,
     )
     shape_payload = _json_output(shape_routed)
+    assert shape_payload["handoff"]["capability_inventory_tool"] == str(
+        library_root / "scripts" / "capability_inventory.py"
+    )
     assert shape_payload["handoff"]["capabilities"]["skills"][0] == {
         "skill": "adapt-project",
         "expansion_disposition": "language-level",
@@ -2003,6 +2009,7 @@ def test_installed_which_cleanup_routes_without_repository_runtime(tmp_path):
     assert "find-test-obligation-drift" in recommendations
     handoff = recommendations["find-test-obligation-drift"]["handoff"]
     assert handoff["skills"] == ["find-test-obligation-drift"]
+    assert handoff["capability_inventory_tool"] is None
     assert handoff["capabilities"]["available"] is False
     assert handoff["capabilities"]["reason"] == "manifest_missing"
     optional_install = recommendations["find-test-obligation-drift"]["optional_install"]

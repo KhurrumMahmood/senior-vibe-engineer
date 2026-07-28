@@ -37,6 +37,12 @@ This design does not replace that decision. It defines the smallest useful
 extension: optional integration of selected engineering guidance into a host
 project's native agent-instruction surfaces.
 
+Each router handoff also exposes the shared `source_inventory_tool` and
+`capability_inventory_tool` from the external library when available. These
+tools do not become ambient skills: an agent uses them on demand to classify
+the host's source or answer “does this already exist?” without loading the
+other 73 skill headers into its normal context.
+
 The shipped `which-skill/scripts/bootstrap_library.py` action also initializes
 the fresh host's toolkit-owned `.engineering/.gitignore` with `/local/`. It
 does not edit project source or agent instructions. If that file already exists

@@ -65,6 +65,15 @@ independent hunk parsers. Target modes become router claims only after the
 all-producer and copied-library conformance gates pass and the registry's
 `adapter_rollout` block activates them.
 
+Before declaring that a first-party capability does not exist, read the host's
+generated `.engineering/docs/capability-inventory.md`. If it is absent or
+stale, use the router handoff's `capability_inventory_tool` with `--stdout` for
+a read-only lookup or regenerate it explicitly. Never hand-edit the generated
+file, and do not treat its bounded static references as runtime usage or
+reachability. This repository's first-party code is itself tooling, so pass
+`--include-role tooling`; ordinary host applications normally keep the default
+source/declaration roles.
+
 ## Planning ladder
 
 Plan complexity should be tiered to task stakes:

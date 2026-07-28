@@ -451,6 +451,7 @@ def test_recommendation_prefers_on_demand_handoff_and_keeps_install_optional(tmp
         "guides": [],
         "shared_tooling": None,
         "source_inventory_tool": None,
+        "capability_inventory_tool": None,
         "common_guidance": None,
         "shared_guidance": None,
         "runtime": {

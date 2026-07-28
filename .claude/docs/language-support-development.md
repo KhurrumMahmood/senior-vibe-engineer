@@ -105,7 +105,38 @@ A provider may return `partial` or `unsupported` for a higher tier while still
 providing a useful lower tier. Consumers own their final report/proposal/diff
 schema; providers do not claim that syntax facts prove semantic outcomes.
 
-### 4. Execution and artifact lifecycle
+### 4. Capability inventory
+
+`scripts/capability_inventory.py` turns first-party capability discovery from
+a repeated text-search problem into a generated lookup. It consumes the shared
+source inventory rather than maintaining another suffix or role table. By
+default, source and declaration files become capability units; test,
+generated, vendor, and build files never inflate inbound-use counts.
+
+The portable contract is intentionally smaller than a universal semantic
+index:
+
+- Python descriptions come from module docstrings; other languages use the
+  first meaningful language-idiomatic source documentation comment while
+  rejecting license, generated-file, and tool-directive boilerplate.
+- File-level local references are resolved only for bounded import/include
+  shapes. Go reports package-level references. Swift and C# currently report
+  reference attribution as unavailable rather than manufacturing file-level
+  precision.
+- A missing description, read failure, or unsupported reference scope remains
+  visible in the artifact. Static counts do not claim runtime usage,
+  reachability, symbol identity, or dead code.
+- Markdown defaults to the host-owned
+  `.engineering/docs/capability-inventory.md`; `--stdout` is the read-only
+  path, `--check` detects staleness, and `--no-host-write` enforces an external
+  artifact boundary.
+
+Every added language profile must at least preserve source-unit discovery and
+description extraction. Reference attribution may remain explicitly partial
+until a representative fixture and real repository prove a trustworthy
+resolver.
+
+### 5. Execution and artifact lifecycle
 
 The accepted cross-language foundation currently shares only atomic source-
 inventory output. Tool probing is shared through profiles and the read-only
@@ -120,7 +151,7 @@ Extract another mechanic only after two real consumers demonstrate the exact
 same contract and all promotion metrics pass. Keep every selected closure
 explicit; do not make a skill depend on an undeclared repository runtime.
 
-### 5. Conformance harness and scaffolder
+### 6. Conformance harness and scaffolder
 
 Every language/provider tier should be tested against the same outer contract:
 
@@ -137,7 +168,7 @@ A scaffolder may create a profile, provider skeleton, fixture roster, and test
 stubs. It must not generate a semantic implementation or mark a language
 supported before the final-outcome checks pass.
 
-### 6. Batched fact production
+### 7. Batched fact production
 
 When several read-only skills need genuinely identical native facts, run the
 provider once per project snapshot and let family consumers read a
@@ -148,7 +179,7 @@ Do not batch mutations. Do not introduce a cache or shared provider until two
 real consumers demonstrate identical facts and a measured reduction in total
 adapter-plus-test cost.
 
-### 7. Cohort A project/lexical evidence
+### 8. Cohort A project/lexical evidence
 
 PHP, Ruby, and Swift independently confirmed the same narrow implementation
 shape: one language-local external-library provider can own source roles,
@@ -179,7 +210,7 @@ snapshot across independent read-only consumers without weakening their final
 statuses. The current external-library closure is the honest prerequisite for
 that experiment, not the experiment itself.
 
-### 8. Cohort A syntax evidence
+### 9. Cohort A syntax evidence
 
 The syntax wave preserved language ownership instead of forcing one parser
 contract across PHP, Ruby, and Swift. PHP and Ruby use separate on-demand
@@ -199,7 +230,7 @@ syntax candidates and explicit unresolved boundaries; they do not establish
 semantic identity, behavioral equivalence, refactor safety, or request-level
 batching.
 
-### 9. Cohort A semantic evidence
+### 10. Cohort A semantic evidence
 
 PHP and Ruby now have accepted language-local semantic tiers for five
 read-only consumers. PHP freezes exact Composer PSR-4 ownership and direct
@@ -236,7 +267,7 @@ selected-overload/default-argument, assignment, and function-body facts to five
 read-only consumers. It does not rehabilitate the failed protocol path or turn
 compiler AST into whole-program/runtime evidence.
 
-### 10. Cohort A accepted-evidence consumers
+### 11. Cohort A accepted-evidence consumers
 
 PHP, Ruby, and Swift now consume accepted producer evidence for downstream
 outcomes: enum proposal, exact-field regression guard, boundary proposal,
@@ -257,7 +288,7 @@ content-addressed authority, atomic refusal/recovery, current or disposable
 native proof, and no-mutation claims. Guards are staged and verified but not
 installed; proposals remain read-only and require separate mutation approval.
 
-### 11. Ruby mutation evidence
+### 12. Ruby mutation evidence
 
 Ruby reaches all 22 bounded language outcomes with one self-contained
 `move-path` adapter rather than another shared rewrite platform. The accepted
@@ -268,7 +299,7 @@ dynamic Ruby is preserved; dynamic loading or reflection involving the moved
 identity refuses. Reuse this transaction shape selectively, but keep each
 language's identity and native-verification rules local.
 
-### 12. C completion evidence
+### 13. C completion evidence
 
 C reaches all 22 bounded language outcomes without treating C and C++ as one
 language. Every selected C path requires Clang 21+ and a trustworthy, current,
@@ -293,7 +324,7 @@ equivalence, or mutation authority; proposals preserve human acceptance, the
 guard is staged rather than installed, and the one mutation supports only an
 authored `.c` file move inside one C17/Clang/Make project.
 
-### 13. C++ completion evidence
+### 14. C++ completion evidence
 
 C++ reaches all 22 bounded language outcomes without borrowing C truth. Every
 semantic claim requires Clang 21+, a current complete C++20
@@ -316,7 +347,7 @@ public-header and shared-library changes, external consumers, and alternate
 build variants remain explicit non-claims. A complete compile database is the
 selected static snapshot, not proof of the open C++ runtime or binary world.
 
-### 14. Kotlin/JVM completion evidence
+### 15. Kotlin/JVM completion evidence
 
 Kotlin reaches all 22 bounded language outcomes at Kotlin/JVM 2.4.10 and JDK
 17. Every supported row starts from an exact `kotlin-project.json` or
@@ -344,7 +375,7 @@ explicit non-claims. Most Kotlin closures require the external selected-skill
 library plus `_kotlin` or `_kotlin-semantic`; only the standalone move is a
 stock-selected install.
 
-### 15. C# completion evidence
+### 16. C# completion evidence
 
 C# reaches all 22 bounded language-level outcomes. The authoritative coverage
 file is `.claude/tasks/csharp-language-coverage.json`; all rows are
@@ -373,7 +404,7 @@ variants, frameworks, serialization, trimming/AOT, interop, binary
 compatibility, deletion, equivalence, structure proposals, or mutation beyond
 the one accepted source-location move.
 
-### 16. Swift completion evidence
+### 17. Swift completion evidence
 
 Swift reaches all 22 bounded language-level outcomes under Apple Swift 6.3.3.
 The authoritative coverage file is

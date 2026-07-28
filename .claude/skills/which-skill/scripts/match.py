@@ -917,6 +917,7 @@ def library_handoff(
         )
     shared_tooling = library_root / "scripts"
     source_inventory = shared_tooling / "source_inventory.py"
+    capability_inventory = shared_tooling / "capability_inventory.py"
     common_guidance = library_root / ".claude" / "skills" / "_common"
     shared_guidance = library_root / ".claude" / "docs"
     runtime_python = library_root / ".venv" / "bin" / "python"
@@ -932,6 +933,9 @@ def library_handoff(
         "guides": guides if guides_available else [],
         "shared_tooling": str(shared_tooling) if shared_tooling.is_dir() else None,
         "source_inventory_tool": str(source_inventory) if source_inventory.is_file() else None,
+        "capability_inventory_tool": (
+            str(capability_inventory) if capability_inventory.is_file() else None
+        ),
         "common_guidance": str(common_guidance) if common_guidance.is_dir() else None,
         "shared_guidance": str(shared_guidance) if shared_guidance.is_dir() else None,
         "runtime": {

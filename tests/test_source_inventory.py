@@ -70,6 +70,10 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     _write(host / "node_modules" / "pkg" / "vendor.ts", "export const vendor = 1;\n")
     _write(host / "dist" / "bundle.ts", "export const bundled = 1;\n")
     _write(host / ".build" / "SwiftBuildOutput.swift", "struct SwiftBuildOutput {}\n")
+    _write(
+        host / ".engineering" / "local" / "corpus" / "foreign.py",
+        "FOREIGN = True\n",
+    )
     external = tmp_path / "external"
     _write(external / "escaped.ts", "export const escaped = 1;\n")
     (host / "linked").symlink_to(external, target_is_directory=True)
@@ -186,18 +190,25 @@ def test_inventory_covers_first_party_roles_and_honest_boundaries(tmp_path: Path
     assert excluded[".build"] == {
         "path": ".build", "role": "build", "reason": "build_output"
     }
+    assert excluded[".engineering/local"] == {
+        "path": ".engineering/local",
+        "role": "tooling",
+        "reason": "machine_local_state",
+    }
     assert excluded["linked"] == {
         "path": "linked", "role": "symlink", "reason": "symlink_boundary"
     }
     assert "node_modules/pkg/vendor.ts" not in files
     assert "dist/bundle.ts" not in files
     assert ".build/SwiftBuildOutput.swift" not in files
+    assert ".engineering/local/corpus/foreign.py" not in files
     assert "linked/escaped.ts" not in files
 
     assert payload["counts"]["files"] == len(files)
     assert payload["counts"]["classification"]["ambiguous"] == 1
     assert payload["counts"]["excluded_roles"] == {
         "build": 2,
+        "tooling": 1,
         "vendor": 1,
         "symlink": 1,
     }
@@ -237,6 +248,34 @@ def test_inventory_uses_profile_suffix_and_role_rules(tmp_path: Path) -> None:
     assert files["src/module.pyx"]["language"] == "python"
     assert files["src/module.pyx"]["role"] == "source"
     assert files["src/module_check.pyx"]["role"] == "test"
+
+
+def test_inventory_classifies_agent_state_and_reports_outside_product_source(
+    tmp_path: Path,
+) -> None:
+    host = tmp_path / "host"
+    _write(host / "src/app.py", "VALUE = 1\n")
+    _write(host / ".agents/skills/router.py", "ROUTER = True\n")
+    _write(host / ".engineering/docs/check.py", "CHECK = True\n")
+    _write(host / ".claude/tasks/tool-evaluation/local/foreign.py", "FOREIGN = True\n")
+    _write(host / "reports/run/generated.py", "RESULT = True\n")
+
+    completed = _run("--project-root", str(host))
+
+    assert completed.returncode == 0, completed.stderr
+    payload = json.loads(completed.stdout)
+    files = {row["path"]: row for row in payload["files"]}
+    assert files["src/app.py"]["role"] == "source"
+    assert files[".agents/skills/router.py"]["role"] == "tooling"
+    assert files[".engineering/docs/check.py"]["role"] == "tooling"
+    assert files["reports/run/generated.py"]["role"] == "generated"
+    assert ".claude/tasks/tool-evaluation/local/foreign.py" not in files
+    excluded = {row["path"]: row for row in payload["excluded_roots"]}
+    assert excluded[".claude/tasks/tool-evaluation/local"] == {
+        "path": ".claude/tasks/tool-evaluation/local",
+        "role": "tooling",
+        "reason": "machine_local_state",
+    }
 
 
 def test_inventory_rejects_outside_roots_and_output(tmp_path: Path) -> None:

@@ -120,6 +120,27 @@ accepts explicit paths, `--staged`, `--changed-from REF`, `--commit SHA`, and
 `--range A..B`. Its `--scope-mode` distinguishes changed-line findings,
 whole-changed-file analysis, explicit paths, and project-level obligations.
 
+Router JSON also exposes `capability_inventory_tool`. Use it before adding a
+new first-party service, helper, module, or package:
+
+```bash
+LIBRARY_ROOT="$(dirname "$PWD")/.engineering-skills/$(basename "$PWD")"
+
+# Read-only lookup across the languages present in the host project.
+"$LIBRARY_ROOT/.venv/bin/python" \
+  "$LIBRARY_ROOT/scripts/capability_inventory.py" \
+  --project-root "$PWD" --stdout
+
+# Or generate .engineering/docs/capability-inventory.md for later lookup.
+"$LIBRARY_ROOT/.venv/bin/python" \
+  "$LIBRARY_ROOT/scripts/capability_inventory.py" \
+  --project-root "$PWD"
+```
+
+Descriptions are harvested from source documentation. Static `Used by`
+counts are bounded local-reference evidence, not runtime usage or reachability;
+unsupported attribution remains visibly unavailable.
+
 ## Update, repair, and migrate
 
 The stock skill installer owns the three router directories. Git owns the

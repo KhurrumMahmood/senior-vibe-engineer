@@ -163,6 +163,15 @@ authoring pattern.
 - **Prove the core output path.** For pipeline / extraction / export /
   codegen work, candidate-level success is not enough. Verify a
   representative input through the final executable/output boundary.
+- **Look up capabilities before declaring them absent.** Before adding a new
+  service, helper, module, or package, read the host's generated
+  `.engineering/docs/capability-inventory.md` when present. If absent or stale,
+  use the router handoff's `capability_inventory_tool` with `--stdout` for a
+  read-only lookup or regenerate the file explicitly. Never hand-edit it, and
+  treat its static reference counts as bounded evidence rather than runtime
+  usage or reachability. In this toolkit repository, its first-party code is
+  itself tooling, so pass `--include-role tooling`; host application projects
+  normally keep the default source/declaration roles.
 - **Capture lessons** in the right surface — five tiers, no overlap:
   - `.claude/docs/precedents.yml` — updateable implementation case law for
     recurring mechanisms with exemplars, guards, exceptions, and supersession.
@@ -302,6 +311,7 @@ read the file.
 | `/.engineering/docs/todo-tuning.md` | Calibrating `/find-orphaned-ideas --todo` for the host project — path-skip globs (vendor JS, agent worktrees, generated migrations), `min_words` override. Optional; defaults work without it. |
 | `review-lane.md` | Customizing the adversarial-gate sub-agent for `/mature-existing-ideas --adversarial`. Default is `general-purpose`; override only when the host project ships a project-specific reviewer. |
 | `/.engineering/docs/importance-map.md` | Declaring high-value areas for `/find-orphaned-ideas --attention-gap` (ADR 0016). Mixed `path:` + `kind:` locators, tier vocabulary `critical` > `core` > `supporting`. Absent map = mode emits "no importance map declared" and exits clean. |
+| `/.engineering/docs/capability-inventory.md` | Before claiming a first-party capability is absent or adding a new service/helper/module/package. Generated from the router handoff's `capability_inventory_tool`; never hand-edit. |
 | `quality-coordination-kernel.md` | Designing a new skill / lint / ADR, evaluating maintenance ROI, or thinking about kernel architecture, the harness layer, or productization across projects. |
 | `senior-engineer-posture.md` | Starting non-trivial new/underdeveloped/major-rework feature work, or any new UI surface — frame the problem class and canonical practices before picking an approach. |
 | `development-workflow.md` | Multi-step / risky implementation work; want test-first / call-path / service / view / testing prose. |
