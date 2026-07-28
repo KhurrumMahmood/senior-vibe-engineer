@@ -753,7 +753,7 @@ auditable when completeness matters.
 
 ### ML-030 — Uniform dispatch and dogfood contract for specialized languages
 
-- State: `partially implemented`
+- State: `completed for the advertised-language real-repository slice`
 - User value: advertised C/C++/C#/Dart/Kotlin/PHP/Ruby/Rust/Swift discovery
   should not require undocumented executor improvisation or host writes.
 - Evidence: the main pipeline always runs the five-language general scanner,
@@ -765,9 +765,12 @@ auditable when completeness matters.
   preserves source bytes. Canonical `adapt-project` discovery now detects all
   four ecosystems through one external-output entrypoint. Ruby, Rust, and Dart
   honestly preserve syntax leads when their native project gate is incomplete.
-- Remaining gap: task-specific specialized wrappers still expose different
-  command shapes, and C/C++/C#/Kotlin/Swift have not completed the same
-  real-repository dogfood journey.
+- Closeout evidence: pinned real-repository slices now cover PHP, Ruby, Rust,
+  Dart, C, C++, Kotlin, Swift, and C#. Every routed complexity wrapper accepts
+  external artifacts or has an equivalent external-output contract, preserves
+  the host, and emits either a complete result or useful explicitly partial
+  evidence. Exact revisions and sampled source checks are recorded in the four
+  real-repository evidence files.
 - Trigger: before each remaining specialized-language breadth slice.
 - Smallest experiment: add explicit marker/manifest-selected dispatch for one
   next language and normalize external artifact root, terminal status,
@@ -778,6 +781,27 @@ auditable when completeness matters.
   second language confirms it.
 - Non-goals: a universal result ontology, ambient full-catalog install, or one
   shared semantic analyzer.
+
+### ML-034 — Compact and normalize specialized complexity artifacts
+
+- State: `candidate`
+- User value: real-repository results should be quick to inspect and cheap to
+  retain without losing the evidence needed to verify a finding.
+- Evidence: the C# Stateless report is useful and only 745 bytes, but its
+  `findings.json` is 3.84 MB because it embeds all lexical facts and duplicate
+  before/after source maps. Its explicit output directory also lacks the
+  convenience `latest` pointer used by the generic and Swift runners.
+- Trigger: reproduce the same artifact-size or lookup friction in a second
+  specialized runner, or make artifact retention part of the public journey.
+- Smallest experiment: keep full facts in a separate content-addressed scan
+  artifact, project only finding-level provenance into `findings.json`, and
+  normalize the successful partial `latest` behavior for one runner.
+- Acceptance: the Markdown report and every existing finding remain
+  semantically identical; the main findings artifact shrinks by at least 75%;
+  source hashes and failure boundaries remain auditable; copied-closure and
+  real-repository regressions pass.
+- Non-goals: a universal result schema, database, remote cache, or changing the
+  analyzer's evidence level.
 
 ### ML-033 — Make Ruby native verification usable for real gems
 

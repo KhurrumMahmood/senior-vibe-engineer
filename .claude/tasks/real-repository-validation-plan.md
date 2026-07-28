@@ -112,7 +112,7 @@ Initial-slice exit gate:
 
 ### E. Breadth and release truth
 
-- [ ] E1. Every advertised language eventually reaches `real-repo-smoke` on at
+- [x] E1. Every advertised language eventually reaches `real-repo-smoke` on at
   least one pinned repository.
 - [x] E2. Representative deep journeys cover Python, TypeScript, Go, Java, one
   dynamic non-Python language, one systems language, and one mobile-oriented
@@ -148,6 +148,8 @@ Initial-slice exit gate:
 | Breadth regression boundary | Ruby/Rust/Dart families, breadth discovery, corpus, conformance, matrix, release consistency, router quality, installed routers | `204 passed in 397.51s`; skill compliance `4 passed`; commit hooks pass | pass |
 | Corpus harness, slice 3 | `.venv/bin/python scripts/real_repo_corpus.py prepare --slice 3`; final `verify --slice 3` | exact detached Express/inih/fmt/detekt checkouts; declared licenses and clean revisions verified | pass |
 | Routed slice 3 | exact evidence in `real-repository-slice3-evidence.md` at `4f3bf41` | JavaScript 1 complete; C 1 complete; C++ 36 useful partial; Kotlin 5 useful partial; sampled spans and clean revisions pass | pass |
+| Corpus harness, slice 4 | `.venv/bin/python scripts/real_repo_corpus.py prepare --slice 4`; final `verify --slice 4` | exact detached Swift/C# checkouts; declared Apache-2.0 license files and clean revisions verified; corpus suite `11 passed` | pass |
+| Routed slice 4 | exact evidence in `real-repository-slice4-evidence.md`; C# repair `50e1359`, Swift/closure closeout `877045b` | Swift 14 useful partial; C# 5 useful partial; every C# result and top Swift spans manually checked; source checkouts preserved | pass |
 
 ## Validation status
 
@@ -160,13 +162,13 @@ Initial-slice exit gate:
 | Java | yes | yes | yes | yes |
 | PHP | yes | yes | yes | yes |
 | Ruby | yes | yes | yes | yes |
-| Swift | yes | yes | pending | pending |
+| Swift | yes | yes | yes | yes |
 | Rust | yes | yes | yes | yes |
 | Dart | yes | yes | yes | yes |
 | C | yes | yes | yes | yes |
 | C++ | yes | yes | yes | yes |
 | Kotlin | yes | yes | yes | yes |
-| C# | yes | yes | pending | pending |
+| C# | yes | yes | yes | yes |
 
 ## Current disposition of the preflight findings
 
