@@ -183,8 +183,11 @@ def test_installed_router_and_comment_scanner_distinguish_hunks_from_files(
     assert file_scans["find-duplication"]["status"] == "ready"
 
     scans = {row["skill"]: row["scan"] for row in line_payload["recommendations"]}
-    assert scans["find-test-obligation-drift"]["effective_mode"] == "changed-files"
-    assert scans["find-test-obligation-drift"]["status"] == "widened"
+    assert "find-test-obligation-drift" not in scans
+    assert {
+        (row["skill"], row["reason"])
+        for row in line_payload["excluded_ineligible"]
+    } == {("find-test-obligation-drift", "framework_context_not_declared")}
     assert scans["find-duplication"]["effective_mode"] == "changed-files"
     assert scans["find-duplication"]["status"] == "widened"
     assert scans["find-omnibus"]["effective_mode"] == "changed-files"
@@ -306,7 +309,17 @@ def test_router_resolves_scope_once_for_all_recommendations(
     )
 
     assert calls == 1
-    assert len(result["recommendations"]) >= 3
+    assert {row["skill"] for row in result["recommendations"]} == {
+        "find-comment-drift",
+        "prevent-regression",
+    }
+    assert result["excluded_ineligible"] == [
+        {
+            "skill": "find-test-obligation-drift",
+            "reason": "framework_context_not_declared",
+            "languages": [],
+        }
+    ]
     assert {
         json.dumps(item["scan"]["selector"], sort_keys=True)
         for item in result["recommendations"]
