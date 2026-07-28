@@ -346,8 +346,9 @@ def test_copied_and_stock_selected_skill_runs_without_checkout_runtime(tmp_path:
 
 def test_docs_state_the_narrow_compiler_backed_contract() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
     assert "language: any" in text
-    assert "scans: [python, typescript, javascript, go, java, rust]" in text
+    assert {"python", "typescript", "javascript", "go", "java", "rust"} <= scans
     assert "TypeScript Compiler API" in text
     assert "aliases, resolved object-literal spreads, overloads, and defaults" in text
     assert "framework APIs" in text

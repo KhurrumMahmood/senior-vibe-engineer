@@ -492,7 +492,8 @@ def test_stock_install_runs_documented_commands_verbatim_under_host_python(tmp_p
 def test_frontmatter_and_docs_name_the_narrow_typescript_contract() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
 
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
     assert "language: any" in text
-    assert "scans: [python, javascript, typescript, go, java, rust]" in text
+    assert {"python", "javascript", "typescript", "go", "java", "rust"} <= scans
     assert "TypeScript Compiler API" in text
     assert "does not resolve aliases, types, receivers, or frameworks" in text

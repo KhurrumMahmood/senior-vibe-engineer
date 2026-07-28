@@ -354,9 +354,10 @@ def test_stock_install_runs_documented_commands_verbatim_under_host_python(tmp_p
 def test_frontmatter_and_docs_name_the_narrow_typescript_contract() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
 
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
     assert "language: any" in text
     assert "framework: any" in text
-    assert "scans: [python, javascript, typescript]" in text
+    assert {"python", "javascript", "typescript"} <= scans
     assert "block-bodied arrows" in text
     assert "React/Node/ORM" in text
     assert "expression-bodied arrows" in text

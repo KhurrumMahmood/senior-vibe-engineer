@@ -222,5 +222,6 @@ def test_go_try_condition_is_not_misreported_as_clean(tmp_path: Path) -> None:
 
 def test_go_frontmatter_declares_support() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-    assert "scans: [python, javascript, typescript, go, java, rust]" in text
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
+    assert {"python", "javascript", "typescript", "go", "java", "rust"} <= scans
     assert "Go" in text

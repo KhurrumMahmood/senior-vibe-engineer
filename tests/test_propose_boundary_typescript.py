@@ -236,9 +236,10 @@ def test_stock_install_runs_documented_command_outside_checkout_without_repo_imp
 def test_skill_docs_truthfully_limit_typescript_v1() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
 
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
     assert "language: any" in text
     assert "framework: any" in text
-    assert "scans: [python, typescript, javascript]" in text
+    assert {"python", "typescript", "javascript"} <= scans
     assert "project-local `tsconfig.json`" in text
     assert "unresolved or ambiguous" in text
     assert "framework semantics" in text

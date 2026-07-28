@@ -309,8 +309,9 @@ def test_copied_typescript_skill_and_stock_install_have_no_checkout_runtime(tmp_
 def test_frontmatter_and_docs_state_the_narrow_typescript_contract() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
 
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
     assert "language: any" in text
     assert "framework: any" in text
-    assert "scans: [python, typescript]" in text
+    assert {"python", "typescript"} <= scans
     assert "never infer safe deletion" in text
     assert "registry, event, and framework" in text

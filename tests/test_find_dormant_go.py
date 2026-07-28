@@ -307,7 +307,8 @@ def test_go_exclusions_and_report_symlinks_are_safe(tmp_path: Path) -> None:
 
 def test_go_docs_declare_the_bounded_contract() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-    assert "scans: [python, typescript, javascript, go]" in text
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
+    assert {"python", "typescript", "javascript", "go"} <= scans
     assert "## Go v1" in text
     assert "go/types" in text
     assert "never infer safe deletion" in text

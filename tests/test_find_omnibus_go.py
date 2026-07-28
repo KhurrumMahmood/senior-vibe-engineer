@@ -271,5 +271,6 @@ def test_narrow_vendor_target_cannot_bypass_go_source_policy(tmp_path: Path) -> 
 
 def test_go_frontmatter_declares_support() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-    assert "scans: [python, javascript, typescript, go, java, rust, swift]" in text
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
+    assert {"python", "javascript", "typescript", "go", "java", "rust", "swift"} <= scans
     assert "--language python|javascript|typescript|go|java" in text

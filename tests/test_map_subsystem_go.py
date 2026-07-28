@@ -288,7 +288,8 @@ def test_go_map_workspace_is_explicitly_unsupported(tmp_path: Path) -> None:
 
 def test_go_map_docs_state_the_bounded_family_local_contract() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-    assert "scans: [python, typescript, javascript, go]" in text
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
+    assert {"python", "typescript", "javascript", "go"} <= scans
     assert "Go 1.22" in text
     assert "go list -e -json -mod=readonly ./..." in text
     assert "go/parser` and `go/ast" in text

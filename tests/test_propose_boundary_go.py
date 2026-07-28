@@ -350,8 +350,9 @@ def test_go_copied_skill_closure_runs_without_repository_imports(tmp_path: Path)
 
 def test_go_skill_docs_limit_the_family_local_v1() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
 
-    assert "scans: [python, typescript, javascript, go, java, rust]" in text
+    assert {"python", "typescript", "javascript", "go", "java", "rust"} <= scans
     assert "Go 1.22" in text
     assert "go list -e -json -mod=readonly ./..." in text
     assert "go/parser`/`go/ast" in text

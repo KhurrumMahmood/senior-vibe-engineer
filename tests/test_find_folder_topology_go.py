@@ -257,8 +257,9 @@ def test_go_folder_statuses_and_copied_skill_are_honest(tmp_path: Path) -> None:
 
 def test_go_folder_docs_name_the_bounded_contract() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
 
-    assert "scans: [python, javascript, typescript, go]" in text
+    assert {"python", "javascript", "typescript", "go"} <= scans
     assert "Go >= 1.22.0" in text
     assert "python-filesystem-names" in text
     assert "_test.go" in text

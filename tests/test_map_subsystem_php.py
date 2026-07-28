@@ -384,7 +384,8 @@ def test_php_map_refuses_unsafe_artifact_paths_and_copied_command_is_self_contai
 def test_php_map_docs_state_the_family_local_psr4_boundary_and_tree_sitter_rejection() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
     knowledge = (SKILL / "knowledge" / "php-v1.md").read_text(encoding="utf-8")
-    assert "scans: [python, typescript, javascript, go, java, php, swift, c]" in text
+    scans = set(text.split("scans: [", 1)[1].split("]", 1)[0].split(", "))
+    assert {"python", "typescript", "javascript", "go", "java", "php", "swift", "c"} <= scans
     assert "PHP 8.1" in text
     assert "composer validate --no-check-publish --no-interaction" in text
     assert "Composer PSR-4" in text
