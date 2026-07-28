@@ -146,6 +146,8 @@ Initial-slice exit gate:
 | Installed specialized-language lifecycle | local committed source at `62559f1`; `skills@1.5.19`; three routers; exact external library; route; execute; uninstall | all four routes selected on-demand complexity and canonical project-intake closures; selected skills never ambient-installed; final list `[]` | pass |
 | Routed breadth slice | exact evidence in `real-repository-breadth-slice-evidence.md` | PHP 2 complete; Ruby 9 useful partial; Rust 51 useful partial; Dart 4 useful partial; sampled declarations and tracked revisions pass | pass |
 | Breadth regression boundary | Ruby/Rust/Dart families, breadth discovery, corpus, conformance, matrix, release consistency, router quality, installed routers | `204 passed in 397.51s`; skill compliance `4 passed`; commit hooks pass | pass |
+| Corpus harness, slice 3 | `.venv/bin/python scripts/real_repo_corpus.py prepare --slice 3`; final `verify --slice 3` | exact detached Express/inih/fmt/detekt checkouts; declared licenses and clean revisions verified | pass |
+| Routed slice 3 | exact evidence in `real-repository-slice3-evidence.md` at `4f3bf41` | JavaScript 1 complete; C 1 complete; C++ 36 useful partial; Kotlin 5 useful partial; sampled spans and clean revisions pass | pass |
 
 ## Validation status
 
