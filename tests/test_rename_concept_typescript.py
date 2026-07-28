@@ -411,14 +411,18 @@ def test_fresh_router_library_handoff_reaches_clean_ts_outcome_without_skill_ins
     assert routing["handoff"]["skills"] == [
         "rename-concept",
         "find-concept-divergence",
+        "map-subsystem",
     ]
     assert routing["handoff"]["default_execution"] == "fresh_non_context_subagent"
     assert "--skill rename-concept" in routing["optional_install"]["command"]
     assert "--skill find-concept-divergence" in routing["optional_install"]["command"]
+    assert "--skill map-subsystem" in routing["optional_install"]["command"]
     installed = library_root / ".claude" / "skills" / "rename-concept"
     companion = library_root / ".claude" / "skills" / "find-concept-divergence"
+    mapper = library_root / ".claude" / "skills" / "map-subsystem"
     assert installed.is_dir()
     assert companion.is_dir()
+    assert mapper.is_dir()
     assert {
         path.name for path in (host / ".agents" / "skills").iterdir() if path.is_dir()
     } == {"which-shape", "which-skill", "which-cleanup"}
