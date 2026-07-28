@@ -32,6 +32,38 @@
       "revision": "f182358d02e4a68e52bdbabf55ca7800288511e7",
       "slice": 1,
       "source": "https://github.com/spring-projects/spring-petclinic.git"
+    },
+    {
+      "language": "php",
+      "license": "MIT",
+      "name": "slim",
+      "revision": "80900fb39cafce3ae53b18a2c4f642a122f03095",
+      "slice": 2,
+      "source": "https://github.com/slimphp/Slim.git"
+    },
+    {
+      "language": "ruby",
+      "license": "MIT",
+      "name": "sinatra",
+      "revision": "cb22afd7902b566b6eaba6c4ea89739494a65d12",
+      "slice": 2,
+      "source": "https://github.com/sinatra/sinatra.git"
+    },
+    {
+      "language": "rust",
+      "license": "Unlicense OR MIT",
+      "name": "ripgrep",
+      "revision": "f9c05a949d1a0dc8e16dee28ca9605d38611faeb",
+      "slice": 2,
+      "source": "https://github.com/BurntSushi/ripgrep.git"
+    },
+    {
+      "language": "dart",
+      "license": "BSD-3-Clause",
+      "name": "path",
+      "revision": "7e3d5d87220133ad9cc99f82e85a826011a62859",
+      "slice": 2,
+      "source": "https://github.com/dart-lang/path.git"
     }
   ]
 }

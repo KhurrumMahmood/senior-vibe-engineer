@@ -114,7 +114,7 @@ Initial-slice exit gate:
 
 - [ ] E1. Every advertised language eventually reaches `real-repo-smoke` on at
   least one pinned repository.
-- [ ] E2. Representative deep journeys cover Python, TypeScript, Go, Java, one
+- [x] E2. Representative deep journeys cover Python, TypeScript, Go, Java, one
   dynamic non-Python language, one systems language, and one mobile-oriented
   language.
 - [ ] E3. At least one mutation-capable closure is exercised in preview mode
@@ -142,21 +142,25 @@ Initial-slice exit gate:
 | Java corpus | `https://github.com/spring-projects/spring-petclinic.git@f182358d02e4a68e52bdbabf55ca7800288511e7` | canonical scan: Java, `src=30`, Maven+Gradle wrapper tests, no inferred framework, 6,730 bytes, 0.08 s, evidence pass, host clean | C1 pass |
 | Installed router lifecycle | local committed source at `1179fa1`; `skills@1.5.19`; three routers; external library/runtime; schema plan/apply; route; uninstall | compatibility match; health-audit + on-demand complexity handoffs; selected skill never ambient-installed; final list `[]` | pass |
 | Routed initial slice | exact evidence in `real-repository-initial-slice-evidence.md` | Python 24 complete; TypeScript 4 complete; Go 1 partial with build-tag disclosure; Java 0 complete; sampled claims and tracked digests pass | pass |
+| Corpus harness, slice 2 | `.venv/bin/python scripts/real_repo_corpus.py prepare --slice 2`; `verify --slice 2`; `tests/test_real_repo_corpus.py` | exact detached PHP/Ruby/Rust/Dart checkouts; declared licenses and clean revisions verified; `11 passed` | pass |
+| Installed specialized-language lifecycle | local committed source at `62559f1`; `skills@1.5.19`; three routers; exact external library; route; execute; uninstall | all four routes selected on-demand complexity and canonical project-intake closures; selected skills never ambient-installed; final list `[]` | pass |
+| Routed breadth slice | exact evidence in `real-repository-breadth-slice-evidence.md` | PHP 2 complete; Ruby 9 useful partial; Rust 51 useful partial; Dart 4 useful partial; sampled declarations and tracked revisions pass | pass |
+| Breadth regression boundary | Ruby/Rust/Dart families, breadth discovery, corpus, conformance, matrix, release consistency, router quality, installed routers | `204 passed in 397.51s`; skill compliance `4 passed`; commit hooks pass | pass |
 
 ## Validation status
 
 | Language | Implemented | Fixture validated | Real-repo smoke | Journey validated |
 |---|---:|---:|---:|---:|
-| Python | yes | yes | yes | pending |
-| TypeScript | yes | yes | yes | pending |
+| Python | yes | yes | yes | yes |
+| TypeScript | yes | yes | yes | yes |
 | JavaScript | yes | yes | pending | pending |
-| Go | yes | yes | yes | pending |
-| Java | yes | yes | yes | pending |
-| PHP | yes | yes | pending | pending |
-| Ruby | yes | yes | pending | pending |
+| Go | yes | yes | yes | yes |
+| Java | yes | yes | yes | yes |
+| PHP | yes | yes | yes | yes |
+| Ruby | yes | yes | yes | yes |
 | Swift | yes | yes | pending | pending |
-| Rust | yes | yes | pending | pending |
-| Dart | yes | yes | pending | pending |
+| Rust | yes | yes | yes | yes |
+| Dart | yes | yes | yes | yes |
 | C | yes | yes | pending | pending |
 | C++ | yes | yes | pending | pending |
 | Kotlin | yes | yes | pending | pending |

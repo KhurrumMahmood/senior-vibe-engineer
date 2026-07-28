@@ -753,15 +753,22 @@ auditable when completeness matters.
 
 ### ML-030 — Uniform dispatch and dogfood contract for specialized languages
 
-- State: `candidate`
+- State: `partially implemented`
 - User value: advertised C/C++/C#/Dart/Kotlin/PHP/Ruby/Rust/Swift discovery
   should not require undocumented executor improvisation or host writes.
 - Evidence: the main pipeline always runs the five-language general scanner,
   while the specialized wrappers use different arguments, status/command
   facets, and mostly require output inside the host. This blocks an honest
   `--no-host-write` real-repository journey beyond the initial slice.
-- Trigger: before breadth validation attempts the first specialized-language
-  repository.
+- Current evidence: the pinned PHP/Ruby/Rust/Dart slice now routes the correct
+  on-demand hotspot closure, stores useful artifacts outside each host, and
+  preserves source bytes. Canonical `adapt-project` discovery now detects all
+  four ecosystems through one external-output entrypoint. Ruby, Rust, and Dart
+  honestly preserve syntax leads when their native project gate is incomplete.
+- Remaining gap: task-specific specialized wrappers still expose different
+  command shapes, and C/C++/C#/Kotlin/Swift have not completed the same
+  real-repository dogfood journey.
+- Trigger: before each remaining specialized-language breadth slice.
 - Smallest experiment: add explicit marker/manifest-selected dispatch for one
   next language and normalize external artifact root, terminal status,
   evidence, and exact limitation behavior without changing its analyzer.
@@ -771,6 +778,28 @@ auditable when completeness matters.
   second language confirms it.
 - Non-goals: a universal result ontology, ambient full-catalog install, or one
   shared semantic analyzer.
+
+### ML-033 — Make Ruby native verification usable for real gems
+
+- State: `candidate`
+- User value: a Ruby skill should be able to run a repository's ordinary
+  native test command when dependencies are already present, instead of
+  forcing every real gem into syntax-only partial status.
+- Evidence: the Sinatra journey retained nine useful Prism leads, but the
+  current native runner's `--disable-gems -Ilib` contract is incompatible with
+  ordinary Minitest/Bundler test loading even when the equivalent project-owned
+  command is otherwise valid. Sinatra also intentionally omits a committed
+  `Gemfile.lock`, which is common for libraries and should be disclosed without
+  erasing syntax evidence.
+- Smallest experiment: accept one explicit, argv-structured project test
+  command under the existing read-only/no-network boundary; keep syntax-only
+  partial as the fallback when dependencies or a reproducible command are
+  unavailable.
+- Acceptance: one pinned real gem with prepared dependencies runs its declared
+  test command, a missing-dependency fixture remains partial with a precise
+  reason, shell strings are refused, and source bytes remain unchanged.
+- Non-goals: automatic `bundle install`, network access, Rails-specific setup,
+  or treating an absent library lockfile as semantic proof of failure.
 
 ### ML-031 — Continue calibrating `adapt-project` risk and report evidence
 

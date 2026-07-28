@@ -150,5 +150,16 @@ def test_verify_refuses_dirty_checkout(tmp_path: Path) -> None:
 
 def test_public_manifest_is_valid_and_names_are_unique() -> None:
     entries = corpus.load_manifest(corpus.DEFAULT_MANIFEST)
-    assert {entry.language for entry in entries} == {"python", "typescript", "go", "java"}
+    assert {entry.language for entry in entries} == {
+        "python",
+        "typescript",
+        "go",
+        "java",
+        "php",
+        "ruby",
+        "rust",
+        "dart",
+    }
+    assert {entry.slice for entry in entries} == {1, 2}
+    assert all(sum(entry.slice == slice_id for entry in entries) == 4 for slice_id in (1, 2))
     assert len(entries) == len({entry.name for entry in entries})
